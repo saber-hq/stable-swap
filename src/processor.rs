@@ -20,10 +20,11 @@ use solana_sdk::{
     info,
     program_error::PrintProgramError,
     program_error::ProgramError,
-    program_option::COption,
+    // program_option::COption,
     program_pack::Pack,
     pubkey::Pubkey,
 };
+use spl_token::{pack::Pack as TokenPack, state::Account, state::Mint};
 
 // Test program id for the swap program.
 #[cfg(not(target_arch = "bpf"))]
@@ -36,13 +37,13 @@ const TOKEN_PROGRAM_ID: Pubkey = Pubkey::new_from_array([1u8; 32]);
 pub struct Processor {}
 impl Processor {
     /// Unpacks a spl_token `Account`.
-    pub fn unpack_token_account(data: &[u8]) -> Result<spl_token::state::Account, SwapError> {
-        spl_token::state::Account::unpack(data).map_err(|_| SwapError::ExpectedAccount)
+    pub fn unpack_token_account(data: &[u8]) -> Result<Account, SwapError> {
+        TokenPack::unpack(data).map_err(|_| SwapError::ExpectedAccount)
     }
 
     /// Unpacks a spl_token `Mint`.
-    pub fn unpack_mint(data: &[u8]) -> Result<spl_token::state::Mint, SwapError> {
-        spl_token::state::Mint::unpack(data).map_err(|_| SwapError::ExpectedMint)
+    pub fn unpack_mint(data: &[u8]) -> Result<Mint, SwapError> {
+        TokenPack::unpack(data).map_err(|_| SwapError::ExpectedMint)
     }
 
     /// Calculates the authority id by generating a program address.
@@ -176,7 +177,7 @@ impl Processor {
         if *authority_info.key == destination.owner {
             return Err(SwapError::InvalidOutputOwner.into());
         }
-        if COption::Some(*authority_info.key) != pool_mint.mint_authority {
+        if *authority_info.key != pool_mint.mint_authority.unwrap() {
             return Err(SwapError::InvalidOwner.into());
         }
         if token_a.mint == token_b.mint {

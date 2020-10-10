@@ -27,6 +27,8 @@ pub struct SwapInfo {
     /// Pool tokens are issued when A or B tokens are deposited.
     /// Pool tokens can be withdrawn back to the original A or B token.
     pub pool_mint: Pubkey,
+    /// Amplication factor (A)
+    pub amp_factor: u64,
     /// Numerator of fee applied to the input token amount prior to output calculation.
     pub fee_numerator: u64,
     /// Denominator of fee applied to the input token amount prior to output calculation.
@@ -41,14 +43,22 @@ impl IsInitialized for SwapInfo {
 }
 
 impl Pack for SwapInfo {
-    const LEN: usize = 114;
+    const LEN: usize = 122;
 
     /// Unpacks a byte buffer into a [SwapInfo](struct.SwapInfo.html).
     fn unpack_from_slice(input: &[u8]) -> Result<Self, ProgramError> {
-        let input = array_ref![input, 0, 114];
+        let input = array_ref![input, 0, 122];
         #[allow(clippy::ptr_offset_with_cast)]
-        let (is_initialized, nonce, token_a, token_b, pool_mint, fee_numerator, fee_denominator) =
-            array_refs![input, 1, 1, 32, 32, 32, 8, 8];
+        let (
+            is_initialized,
+            nonce,
+            token_a,
+            token_b,
+            pool_mint,
+            amp_factor,
+            fee_numerator,
+            fee_denominator,
+        ) = array_refs![input, 1, 1, 32, 32, 32, 8, 8, 8];
         Ok(Self {
             is_initialized: match is_initialized {
                 [0] => false,
@@ -59,20 +69,30 @@ impl Pack for SwapInfo {
             token_a: Pubkey::new_from_array(*token_a),
             token_b: Pubkey::new_from_array(*token_b),
             pool_mint: Pubkey::new_from_array(*pool_mint),
+            amp_factor: u64::from_le_bytes(*amp_factor),
             fee_numerator: u64::from_le_bytes(*fee_numerator),
             fee_denominator: u64::from_le_bytes(*fee_denominator),
         })
     }
 
     fn pack_into_slice(&self, output: &mut [u8]) {
-        let output = array_mut_ref![output, 0, 114];
-        let (is_initialized, nonce, token_a, token_b, pool_mint, fee_numerator, fee_denominator) =
-            mut_array_refs![output, 1, 1, 32, 32, 32, 8, 8];
+        let output = array_mut_ref![output, 0, 122];
+        let (
+            is_initialized,
+            nonce,
+            token_a,
+            token_b,
+            pool_mint,
+            amp_factor,
+            fee_numerator,
+            fee_denominator,
+        ) = mut_array_refs![output, 1, 1, 32, 32, 32, 8, 8, 8];
         is_initialized[0] = self.is_initialized as u8;
         nonce[0] = self.nonce;
         token_a.copy_from_slice(self.token_a.as_ref());
         token_b.copy_from_slice(self.token_b.as_ref());
         pool_mint.copy_from_slice(self.pool_mint.as_ref());
+        *amp_factor = self.amp_factor.to_le_bytes();
         *fee_numerator = self.fee_numerator.to_le_bytes();
         *fee_denominator = self.fee_denominator.to_le_bytes();
     }
@@ -91,6 +111,7 @@ mod tests {
         let token_a = Pubkey::new_from_array(token_a_raw);
         let token_b = Pubkey::new_from_array(token_b_raw);
         let pool_mint = Pubkey::new_from_array(pool_mint_raw);
+        let amp_factor: u64 = 0;
         let fee_numerator = 1;
         let fee_denominator = 4;
         let is_initialized = true;
@@ -100,6 +121,7 @@ mod tests {
             token_a,
             token_b,
             pool_mint,
+            amp_factor,
             fee_numerator,
             fee_denominator,
         };
@@ -115,6 +137,8 @@ mod tests {
         packed.extend_from_slice(&token_a_raw);
         packed.extend_from_slice(&token_b_raw);
         packed.extend_from_slice(&pool_mint_raw);
+        packed.push(amp_factor as u8);
+        packed.extend_from_slice(&[0u8; 7]); // padding
         packed.push(fee_numerator as u8);
         packed.extend_from_slice(&[0u8; 7]); // padding
         packed.push(fee_denominator as u8);

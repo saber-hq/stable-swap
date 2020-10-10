@@ -3,7 +3,7 @@
 #![cfg(feature = "program")]
 
 use crate::{
-    curve::{ConstantProduct, PoolTokenConverter},
+    curve::{PoolTokenConverter, StableSwap},
     error::SwapError,
     instruction::SwapInstruction,
     state::SwapInfo,
@@ -33,8 +33,9 @@ const SWAP_PROGRAM_ID: Pubkey = Pubkey::new_from_array([2u8; 32]);
 #[cfg(not(target_arch = "bpf"))]
 const TOKEN_PROGRAM_ID: Pubkey = Pubkey::new_from_array([1u8; 32]);
 
-/// Program state handler.
+/// Program state handler. (and general curve params)
 pub struct Processor {}
+
 impl Processor {
     /// Unpacks a spl_token `Account`.
     pub fn unpack_token_account(data: &[u8]) -> Result<Account, SwapError> {
@@ -143,6 +144,7 @@ impl Processor {
     pub fn process_initialize(
         program_id: &Pubkey,
         nonce: u8,
+        amp_factor: u64,
         fee_numerator: u64,
         fee_denominator: u64,
         accounts: &[AccountInfo],
@@ -177,7 +179,7 @@ impl Processor {
         if *authority_info.key == destination.owner {
             return Err(SwapError::InvalidOutputOwner.into());
         }
-        if *authority_info.key != pool_mint.mint_authority.unwrap() {
+        if *authority_info.key != pool_mint.mint_authority.unwrap_or_default() {
             return Err(SwapError::InvalidOwner.into());
         }
         if token_a.mint == token_b.mint {
@@ -220,6 +222,7 @@ impl Processor {
             pool_mint: *pool_mint_info.key,
             fee_numerator,
             fee_denominator,
+            amp_factor,
         };
         SwapInfo::pack(obj, &mut swap_info.data.borrow_mut())?;
         Ok(())
@@ -263,7 +266,7 @@ impl Processor {
         let dest_account = Self::unpack_token_account(&swap_destination_info.data.borrow())?;
 
         let amount_out = if *swap_source_info.key == token_swap.token_a {
-            let mut invariant = ConstantProduct {
+            let mut invariant = StableSwap {
                 token_a: source_account.amount,
                 token_b: dest_account.amount,
                 fee_numerator: token_swap.fee_numerator,
@@ -273,7 +276,7 @@ impl Processor {
                 .swap_a_to_b(amount_in)
                 .ok_or(SwapError::CalculationFailure)?
         } else {
-            let mut invariant = ConstantProduct {
+            let mut invariant = StableSwap {
                 token_a: dest_account.amount,
                 token_b: source_account.amount,
                 fee_numerator: token_swap.fee_numerator,
@@ -479,6 +482,7 @@ impl Processor {
         let instruction = SwapInstruction::unpack(input)?;
         match instruction {
             SwapInstruction::Initialize {
+                amp_factor,
                 fee_numerator,
                 fee_denominator,
                 nonce,
@@ -487,6 +491,7 @@ impl Processor {
                 Self::process_initialize(
                     program_id,
                     nonce,
+                    amp_factor,
                     fee_numerator,
                     fee_denominator,
                     accounts,
@@ -635,6 +640,7 @@ mod tests {
     struct SwapAccountInfo {
         nonce: u8,
         authority_key: Pubkey,
+        amp_factor: u64,
         fee_numerator: u64,
         fee_denominator: u64,
         swap_key: Pubkey,
@@ -656,6 +662,7 @@ mod tests {
     impl SwapAccountInfo {
         pub fn new(
             user_key: &Pubkey,
+            amp_factor: u64,
             fee_numerator: u64,
             fee_denominator: u64,
             token_a_amount: u64,
@@ -700,6 +707,7 @@ mod tests {
             SwapAccountInfo {
                 nonce,
                 authority_key,
+                amp_factor,
                 fee_numerator,
                 fee_denominator,
                 swap_key,
@@ -731,6 +739,7 @@ mod tests {
                     &self.pool_mint_key,
                     &self.pool_token_key,
                     self.nonce,
+                    self.amp_factor,
                     self.fee_numerator,
                     self.fee_denominator,
                 )
@@ -1174,6 +1183,7 @@ mod tests {
     #[test]
     fn test_initialize() {
         let user_key = pubkey_rand();
+        let amp_factor = 0;
         let fee_numerator = 1;
         let fee_denominator = 2;
         let token_a_amount = 1000;
@@ -1182,12 +1192,12 @@ mod tests {
 
         let mut accounts = SwapAccountInfo::new(
             &user_key,
+            amp_factor,
             fee_numerator,
             fee_denominator,
             token_a_amount,
             token_b_amount,
         );
-
         // wrong nonce for authority_key
         {
             let old_nonce = accounts.nonce;
@@ -1474,6 +1484,7 @@ mod tests {
                         &accounts.pool_mint_key,
                         &accounts.pool_token_key,
                         accounts.nonce,
+                        accounts.amp_factor,
                         accounts.fee_numerator,
                         accounts.fee_denominator,
                     )
@@ -1542,12 +1553,14 @@ mod tests {
     fn test_deposit() {
         let user_key = pubkey_rand();
         let depositor_key = pubkey_rand();
+        let amp_factor = 0;
         let fee_numerator = 1;
         let fee_denominator = 2;
         let token_a_amount = 1000;
         let token_b_amount = 9000;
         let mut accounts = SwapAccountInfo::new(
             &user_key,
+            amp_factor,
             fee_numerator,
             fee_denominator,
             token_a_amount,
@@ -2034,10 +2047,12 @@ mod tests {
         let user_key = pubkey_rand();
         let fee_numerator = 1;
         let fee_denominator = 2;
+        let amp_factor = 0;
         let token_a_amount = 1000;
         let token_b_amount = 2000;
         let mut accounts = SwapAccountInfo::new(
             &user_key,
+            amp_factor,
             fee_numerator,
             fee_denominator,
             token_a_amount,
@@ -2546,12 +2561,14 @@ mod tests {
     fn test_swap() {
         let user_key = pubkey_rand();
         let swapper_key = pubkey_rand();
+        let amp_factor = 0;
         let fee_numerator = 1;
         let fee_denominator = 10;
         let token_a_amount = 1000;
         let token_b_amount = 5000;
         let mut accounts = SwapAccountInfo::new(
             &user_key,
+            amp_factor,
             fee_numerator,
             fee_denominator,
             token_a_amount,

@@ -48,8 +48,8 @@ impl SwapResult {
     }
 }
 
-/// The Uniswap invariant calculator.
-pub struct ConstantProduct {
+/// The StableSwap invariant calculator.
+pub struct StableSwap {
     /// Token A
     pub token_a: u64,
     /// Token B
@@ -60,7 +60,7 @@ pub struct ConstantProduct {
     pub fee_denominator: u64,
 }
 
-impl ConstantProduct {
+impl StableSwap {
     /// Swap token a to b
     pub fn swap_a_to_b(&mut self, token_a: u64) -> Option<u64> {
         let result = SwapResult::swap_to(

@@ -220,9 +220,9 @@ impl Processor {
             token_a: *token_a_info.key,
             token_b: *token_b_info.key,
             pool_mint: *pool_mint_info.key,
+            amp_factor,
             fee_numerator,
             fee_denominator,
-            amp_factor,
         };
         SwapInfo::pack(obj, &mut swap_info.data.borrow_mut())?;
         Ok(())

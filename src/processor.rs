@@ -201,7 +201,7 @@ impl Processor {
             return Err(SwapError::InvalidSupply.into());
         }
 
-        let converter = PoolTokenConverter::new_pool(token_a.amount, token_b.amount);
+        let converter = PoolTokenConverter::new_pool(amp_factor, token_a.amount, token_b.amount);
         let initial_amount = converter.supply;
 
         Self::token_mint_to(
@@ -347,8 +347,12 @@ impl Processor {
         let token_b = Self::unpack_token_account(&token_b_info.data.borrow())?;
         let pool_mint = Self::unpack_mint(&pool_mint_info.data.borrow())?;
 
-        let converter =
-            PoolTokenConverter::new_existing(pool_mint.supply, token_a.amount, token_b.amount);
+        let converter = PoolTokenConverter::new_existing(
+            token_swap.amp_factor,
+            pool_mint.supply,
+            token_a.amount,
+            token_b.amount,
+        );
 
         let a_amount = converter
             .token_a_rate(pool_token_amount)
@@ -431,8 +435,12 @@ impl Processor {
         let token_b = Self::unpack_token_account(&token_b_info.data.borrow())?;
         let pool_mint = Self::unpack_mint(&pool_mint_info.data.borrow())?;
 
-        let converter =
-            PoolTokenConverter::new_existing(pool_mint.supply, token_a.amount, token_b.amount);
+        let converter = PoolTokenConverter::new_existing(
+            token_swap.amp_factor,
+            pool_mint.supply,
+            token_a.amount,
+            token_b.amount,
+        );
 
         let a_amount = converter
             .token_a_rate(pool_token_amount)
@@ -2059,7 +2067,8 @@ mod tests {
             token_b_amount,
         );
         let withdrawer_key = pubkey_rand();
-        let pool_converter = PoolTokenConverter::new_pool(token_a_amount, token_b_amount);
+        let pool_converter =
+            PoolTokenConverter::new_pool(amp_factor, token_a_amount, token_b_amount);
         let initial_a = token_a_amount / 10;
         let initial_b = token_b_amount / 10;
         let initial_pool = pool_converter.supply / 10;
@@ -2539,6 +2548,7 @@ mod tests {
                 Processor::unpack_token_account(&accounts.token_b_account.data).unwrap();
             let pool_mint = Processor::unpack_mint(&accounts.pool_mint_account.data).unwrap();
             let pool_converter = PoolTokenConverter::new_existing(
+                amp_factor,
                 pool_mint.supply,
                 swap_token_a.amount,
                 swap_token_b.amount,

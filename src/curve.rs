@@ -150,8 +150,8 @@ impl PoolTokenConverter {
         if sum_x == 0 {
             0
         } else {
-            let mut d = sum_x;
             let mut d_prev: u64;
+            let mut d = sum_x;
             let an = self.amp_factor * n_coins; // A * n
 
             // Newton's method to approximate D?

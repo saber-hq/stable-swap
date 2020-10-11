@@ -48,8 +48,8 @@ impl SwapResult {
     }
 }
 
-/// The Uniswap invariant calculator.
-pub struct ConstantProduct {
+/// The StableSwap invariant calculator.
+pub struct StableSwap {
     /// Token A
     pub token_a: u64,
     /// Token B
@@ -60,7 +60,7 @@ pub struct ConstantProduct {
     pub fee_denominator: u64,
 }
 
-impl ConstantProduct {
+impl StableSwap {
     /// Swap token a to b
     pub fn swap_a_to_b(&mut self, token_a: u64) -> Option<u64> {
         let result = SwapResult::swap_to(
@@ -93,6 +93,8 @@ impl ConstantProduct {
 /// Conversions for pool tokens, how much to deposit / withdraw, along with
 /// proper initialization
 pub struct PoolTokenConverter {
+    /// Amplification coefficient (A)
+    pub amp_factor: u64,
     /// Total supply
     pub supply: u64,
     /// Token A amount
@@ -103,8 +105,9 @@ pub struct PoolTokenConverter {
 
 impl PoolTokenConverter {
     /// Create a converter based on existing market information
-    pub fn new_existing(supply: u64, token_a: u64, token_b: u64) -> Self {
+    pub fn new_existing(amp_factor: u64, supply: u64, token_a: u64, token_b: u64) -> Self {
         Self {
+            amp_factor,
             supply,
             token_a,
             token_b,
@@ -114,9 +117,10 @@ impl PoolTokenConverter {
     /// Create a converter for a new pool token, no supply present yet.
     /// According to Uniswap, the geometric mean protects the pool creator
     /// in case the initial ratio is off the market.
-    pub fn new_pool(token_a: u64, token_b: u64) -> Self {
+    pub fn new_pool(amp_factor: u64, token_a: u64, token_b: u64) -> Self {
         let supply = INITIAL_SWAP_POOL_AMOUNT;
         Self {
+            amp_factor,
             supply,
             token_a,
             token_b,
@@ -136,6 +140,40 @@ impl PoolTokenConverter {
             .checked_mul(self.token_b)?
             .checked_div(self.supply)
     }
+
+    /// Compute stable swap invariant
+    pub fn compute_d(&self, amount_a: u64, amount_b: u64) -> u64 {
+        // XXX: Curve uses u256
+        let n_coins: u64 = 2; // n
+        let sum_x = amount_a + amount_b; // sum(x_i), a.k.a S
+        if sum_x == 0 {
+            0
+        } else {
+            let mut d_prev: u64;
+            let mut d = sum_x;
+            let leverage = self.amp_factor * n_coins; // A * n
+
+            // Newton's method to approximate D
+            for _ in 0..63 {
+                let mut d_p = d;
+                d_p = d_p * d / (amount_a * n_coins);
+                d_p = d_p * d / (amount_b * n_coins);
+                d_prev = d;
+                d = (leverage * sum_x + d_p * n_coins) * d
+                    / ((leverage - 1) * d + (n_coins + 1) * d_p);
+                // Equality with the precision of 1
+                if d > d_p {
+                    if d - d_prev <= 1 {
+                        break;
+                    }
+                } else if d_prev - d <= 1 {
+                    break;
+                }
+            }
+
+            d
+        }
+    }
 }
 
 #[cfg(test)]
@@ -144,28 +182,29 @@ mod tests {
 
     #[test]
     fn initial_pool_amount() {
-        let token_converter = PoolTokenConverter::new_pool(1, 5);
+        let token_converter = PoolTokenConverter::new_pool(0, 1, 5);
         assert_eq!(token_converter.supply, INITIAL_SWAP_POOL_AMOUNT);
     }
 
     fn check_pool_token_a_rate(
+        amp_factor: u64,
         token_a: u64,
         token_b: u64,
         deposit: u64,
         supply: u64,
         expected: Option<u64>,
     ) {
-        let calculator = PoolTokenConverter::new_existing(supply, token_a, token_b);
+        let calculator = PoolTokenConverter::new_existing(amp_factor, supply, token_a, token_b);
         assert_eq!(calculator.token_a_rate(deposit), expected);
     }
 
     #[test]
     fn issued_tokens() {
-        check_pool_token_a_rate(2, 50, 5, 10, Some(1));
-        check_pool_token_a_rate(10, 10, 5, 10, Some(5));
-        check_pool_token_a_rate(5, 100, 5, 10, Some(2));
-        check_pool_token_a_rate(5, u64::MAX, 5, 10, Some(2));
-        check_pool_token_a_rate(u64::MAX, u64::MAX, 5, 10, None);
+        check_pool_token_a_rate(0, 2, 50, 5, 10, Some(1));
+        check_pool_token_a_rate(0, 10, 10, 5, 10, Some(5));
+        check_pool_token_a_rate(0, 5, 100, 5, 10, Some(2));
+        check_pool_token_a_rate(0, 5, u64::MAX, 5, 10, Some(2));
+        check_pool_token_a_rate(0, u64::MAX, u64::MAX, 5, 10, None);
     }
 
     #[test]

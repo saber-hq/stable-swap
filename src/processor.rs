@@ -330,10 +330,6 @@ impl Processor {
         let dest_info = next_account_info(account_info_iter)?;
         let token_program_info = next_account_info(account_info_iter)?;
 
-        print!(
-            "token_a_amount: {} token_b_amount: {} min_mint_amount: {}\n",
-            token_a_amount, token_a_amount, min_mint_amount
-        );
         let token_swap = SwapInfo::unpack(&swap_info.data.borrow())?;
         if *authority_info.key != Self::authority_id(program_id, swap_info.key, token_swap.nonce)? {
             return Err(SwapError::InvalidProgramAddress.into());
@@ -351,7 +347,7 @@ impl Processor {
         let vault_a = Self::unpack_token_account(&vault_a_info.data.borrow())?;
         let vault_b = Self::unpack_token_account(&vault_b_info.data.borrow())?;
         let pool_mint = Self::unpack_mint(&pool_mint_info.data.borrow())?;
-        print!("vault_a: {}; vault_b: {}\n", vault_a.amount, vault_b.amount);
+
         // Initial deposit requires both token_a and token_b
         if pool_mint.supply == 0 && (token_a_amount == 0 || token_b_amount == 0) {
             return Err(SwapError::InvalidBootstrap.into());
@@ -394,16 +390,13 @@ impl Processor {
             }
             d_2 = converter.compute_d(new_balances[0], new_balances[1]);
         }
-        print!("d_0: {}, d_1: {}, d_2: {}\n", d_0, d_1, d_2);
+
         let mint_amount = if pool_mint.supply == 0 {
             d_1
         } else {
             pool_mint.supply * (d_2 - d_0) / d_0
         };
-        print!(
-            "mint_amount: {}, min_mint_amount: {}\n",
-            mint_amount, min_mint_amount
-        );
+
         if mint_amount < min_mint_amount {
             return Err(SwapError::ExceededSlippage.into());
         }
@@ -2015,6 +2008,7 @@ mod tests {
                 mut pool_account,
             ) = accounts.setup_token_accounts(&user_key, &depositor_key, deposit_a, deposit_b, 0);
             // min mint_amount in too high
+            // XXX: Arbitary big number to pass test.
             let high_min_mint_amount = 10000000000000;
             assert_eq!(
                 Err(SwapError::ExceededSlippage.into()),
@@ -2093,10 +2087,6 @@ mod tests {
 
             let swap_token_a =
                 Processor::unpack_token_account(&accounts.token_a_account.data).unwrap();
-            print!(
-                "swap_token_a.amount: {}, deposit_a: {}, token_a_amount: {}\n",
-                swap_token_a.amount, deposit_a, token_a_amount
-            );
             assert_eq!(swap_token_a.amount, deposit_a + token_a_amount);
             let swap_token_b =
                 Processor::unpack_token_account(&accounts.token_b_account.data).unwrap();
@@ -2109,6 +2099,7 @@ mod tests {
             let swap_pool_account =
                 Processor::unpack_token_account(&accounts.pool_token_account.data).unwrap();
             let pool_mint = Processor::unpack_mint(&accounts.pool_mint_account.data).unwrap();
+            // XXX: Revisit and make sure amount of LP tokens minted is corrected.
             assert_eq!(
                 pool_mint.supply,
                 pool_account.amount + swap_pool_account.amount

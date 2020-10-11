@@ -154,7 +154,7 @@ impl PoolTokenConverter {
             let mut d = sum_x;
             let an = self.amp_factor * n_coins; // A * n
 
-            // Newton's method to approximate D?
+            // Newton's method to approximate D
             for _ in 0..63 {
                 let mut d_p = d;
                 d_p = d_p * d / (amount_a * n_coins);

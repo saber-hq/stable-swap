@@ -173,10 +173,6 @@ impl PoolTokenConverter {
             d
         }
     }
-
-    // fn get_xp_mem(&self, token_balance: u64) -> Option<u64> {   // XXX: Curve uses u256
-    //     unimplemented!("get_xp_mem unimplemented");
-    // }
 }
 
 #[cfg(test)]

@@ -93,7 +93,7 @@ impl StableSwap {
 /// Conversions for pool tokens, how much to deposit / withdraw, along with
 /// proper initialization
 pub struct PoolTokenConverter {
-    /// Amplification factor (A)
+    /// Amplification coefficient (A)
     pub amp_factor: u64,
     /// Total supply
     pub supply: u64,

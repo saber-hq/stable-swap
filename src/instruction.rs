@@ -25,7 +25,7 @@ pub enum SwapInstruction {
     ///   5. `[writable]` Pool Token Account to deposit the minted tokens. Must be empty, owned by user.
     ///   6. '[]` Token program id
     Initialize {
-        /// Amplification factor (A)
+        /// Amplification coefficient (A)
         amp_factor: u64,
         /// swap pool fee numerator
         fee_numerator: u64,

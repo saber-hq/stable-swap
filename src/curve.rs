@@ -143,7 +143,6 @@ impl PoolTokenConverter {
 
     /// Compute stable swap invariant
     pub fn compute_d(&self, amount_a: u64, amount_b: u64) -> u64 {
-        // Sourced from https://github.com/curvefi/curve-contract/blob/0fd801df7488d89f0e2fc81e760942d7858b01d6/contracts/pool-templates/StableSwapBase.vy#L196
         // XXX: Curve uses u256
         let n_coins: u64 = 2; // n
         let sum_x = amount_a + amount_b; // sum(x_i), a.k.a S
@@ -152,7 +151,7 @@ impl PoolTokenConverter {
         } else {
             let mut d_prev: u64;
             let mut d = sum_x;
-            let an = self.amp_factor * n_coins; // A * n
+            let leverage = self.amp_factor * n_coins; // A * n
 
             // Newton's method to approximate D
             for _ in 0..63 {
@@ -160,7 +159,8 @@ impl PoolTokenConverter {
                 d_p = d_p * d / (amount_a * n_coins);
                 d_p = d_p * d / (amount_b * n_coins);
                 d_prev = d;
-                d = (an * sum_x + d_p * n_coins) * d / ((an - 1) * d + (n_coins + 1) * d_p);
+                d = (leverage * sum_x + d_p * n_coins) * d
+                    / ((leverage - 1) * d + (n_coins + 1) * d_p);
                 // Equality with the precision of 1
                 if d > d_p {
                     if d - d_prev <= 1 {
@@ -170,6 +170,7 @@ impl PoolTokenConverter {
                     break;
                 }
             }
+
             d
         }
     }

@@ -140,6 +140,43 @@ impl PoolTokenConverter {
             .checked_mul(self.token_b)?
             .checked_div(self.supply)
     }
+
+    /// Compute stable swap invariante invariant
+    pub fn compute_d(&self) -> u64 {
+        // Sourced from https://github.com/curvefi/curve-contract/blob/0fd801df7488d89f0e2fc81e760942d7858b01d6/contracts/pool-templates/StableSwapBase.vy#L196
+        // XXX: Curve uses u256
+        let n_coins: u64 = 2; // n
+        let sum_x = self.token_a + self.token_b; // sum(x_i), a.k.a S
+        if sum_x == 0 {
+            0
+        } else {
+            let mut d = sum_x;
+            let mut d_prev: u64;
+            let an = self.amp_factor * n_coins; // A * n
+
+            // Newton's method to approximate D?
+            for _ in 0..63 {
+                let mut d_p = d;
+                d_p = d_p * d / (self.token_a * n_coins);
+                d_p = d_p * d / (self.token_b * n_coins);
+                d_prev = d;
+                d = (an * sum_x + d_p * n_coins) * d / ((an - 1) * d + (n_coins + 1) * d_p);
+                // Equality with the precision of 1
+                if d > d_p {
+                    if d - d_prev <= 1 {
+                        break;
+                    }
+                } else if d_prev - d <= 1 {
+                    break;
+                }
+            }
+            d
+        }
+    }
+
+    // fn get_xp_mem(&self, token_balance: u64) -> Option<u64> {   // XXX: Curve uses u256
+    //     unimplemented!("get_xp_mem unimplemented");
+    // }
 }
 
 #[cfg(test)]

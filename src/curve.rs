@@ -4,7 +4,7 @@
 /// "sensible" given a maximum of u64.
 /// Note that on Ethereum, Uniswap uses the geometric mean of all provided
 /// input amounts, and Balancer uses 100 * 10 ^ 18.
-pub const INITIAL_SWAP_POOL_AMOUNT: u64 = 1_000_000_000;
+pub const INITIAL_SWAP_POOL_AMOUNT: u64 = 1_000_000_000; // TODO: Remove
 
 /// Encodes all results of swapping from a source token to a destination token
 pub struct SwapResult {
@@ -96,7 +96,7 @@ pub struct PoolTokenConverter {
     /// Amplification coefficient (A)
     pub amp_factor: u64,
     /// Total supply
-    pub supply: u64,
+    pub supply: u64, // TODO: Remove
     /// Token A amount
     pub token_a: u64,
     /// Token B amount
@@ -200,11 +200,11 @@ mod tests {
 
     #[test]
     fn issued_tokens() {
-        check_pool_token_a_rate(0, 2, 50, 5, 10, Some(1));
-        check_pool_token_a_rate(0, 10, 10, 5, 10, Some(5));
-        check_pool_token_a_rate(0, 5, 100, 5, 10, Some(2));
-        check_pool_token_a_rate(0, 5, u64::MAX, 5, 10, Some(2));
-        check_pool_token_a_rate(0, u64::MAX, u64::MAX, 5, 10, None);
+        check_pool_token_a_rate(1, 2, 50, 5, 10, Some(1));
+        check_pool_token_a_rate(1, 10, 10, 5, 10, Some(5));
+        check_pool_token_a_rate(1, 5, 100, 5, 10, Some(2));
+        check_pool_token_a_rate(1, 5, u64::MAX, 5, 10, Some(2));
+        check_pool_token_a_rate(1, u64::MAX, u64::MAX, 5, 10, None);
     }
 
     #[test]

@@ -330,6 +330,10 @@ impl Processor {
         let dest_info = next_account_info(account_info_iter)?;
         let token_program_info = next_account_info(account_info_iter)?;
 
+        print!(
+            "token_a_amount: {} token_b_amount: {} min_mint_amount: {}\n",
+            token_a_amount, token_a_amount, min_mint_amount
+        );
         let token_swap = SwapInfo::unpack(&swap_info.data.borrow())?;
         if *authority_info.key != Self::authority_id(program_id, swap_info.key, token_swap.nonce)? {
             return Err(SwapError::InvalidProgramAddress.into());
@@ -347,7 +351,7 @@ impl Processor {
         let vault_a = Self::unpack_token_account(&vault_a_info.data.borrow())?;
         let vault_b = Self::unpack_token_account(&vault_b_info.data.borrow())?;
         let pool_mint = Self::unpack_mint(&pool_mint_info.data.borrow())?;
-
+        print!("vault_a: {}; vault_b: {}\n", vault_a.amount, vault_b.amount);
         // Initial deposit requires both token_a and token_b
         if pool_mint.supply == 0 && (token_a_amount == 0 || token_b_amount == 0) {
             return Err(SwapError::InvalidBootstrap.into());
@@ -359,7 +363,6 @@ impl Processor {
             vault_a.amount,
             vault_b.amount,
         );
-
         // Initial invariant
         let mut d_0: u64 = 0; // XXX: Curve uses u256
         if pool_mint.supply > 0 {
@@ -391,13 +394,16 @@ impl Processor {
             }
             d_2 = converter.compute_d(new_balances[0], new_balances[1]);
         }
-
+        print!("d_0: {}, d_1: {}, d_2: {}\n", d_0, d_1, d_2);
         let mint_amount = if pool_mint.supply == 0 {
             d_1
         } else {
             pool_mint.supply * (d_2 - d_0) / d_0
         };
-
+        print!(
+            "mint_amount: {}, min_mint_amount: {}\n",
+            mint_amount, min_mint_amount
+        );
         if mint_amount < min_mint_amount {
             return Err(SwapError::ExceededSlippage.into());
         }
@@ -548,16 +554,16 @@ impl Processor {
                 Self::process_swap(program_id, amount_in, minimum_amount_out, accounts)
             }
             SwapInstruction::Deposit {
-                pool_token_amount,
-                maximum_token_a_amount,
-                maximum_token_b_amount,
+                token_a_amount,
+                token_b_amount,
+                min_mint_amount,
             } => {
                 info!("Instruction: Deposit");
                 Self::process_deposit(
                     program_id,
-                    pool_token_amount,
-                    maximum_token_a_amount,
-                    maximum_token_b_amount,
+                    token_a_amount,
+                    token_b_amount,
+                    min_mint_amount,
                     accounts,
                 )
             }
@@ -667,7 +673,8 @@ solana_sdk::program_stubs!();
 mod tests {
     use super::*;
     use crate::{
-        curve::{SwapResult, INITIAL_SWAP_POOL_AMOUNT},
+        // curve::{SwapResult, INITIAL_SWAP_POOL_AMOUNT},
+        curve::SwapResult,
         instruction::{deposit, initialize, swap, withdraw},
     };
     use solana_sdk::{
@@ -937,9 +944,9 @@ mod tests {
             mut depositor_token_b_account: &mut Account,
             depositor_pool_key: &Pubkey,
             mut depositor_pool_account: &mut Account,
-            pool_amount: u64,
             amount_a: u64,
             amount_b: u64,
+            min_mint_amount: u64,
         ) -> ProgramResult {
             do_process_instruction(
                 approve(
@@ -989,9 +996,9 @@ mod tests {
                     &self.token_b_key,
                     &self.pool_mint_key,
                     &depositor_pool_key,
-                    pool_amount,
                     amount_a,
                     amount_b,
+                    min_mint_amount,
                 )
                 .unwrap(),
                 vec![
@@ -1227,7 +1234,7 @@ mod tests {
     #[test]
     fn test_initialize() {
         let user_key = pubkey_rand();
-        let amp_factor = 0;
+        let amp_factor = 1;
         let fee_numerator = 1;
         let fee_denominator = 2;
         let token_a_amount = 1000;
@@ -1597,7 +1604,7 @@ mod tests {
     fn test_deposit() {
         let user_key = pubkey_rand();
         let depositor_key = pubkey_rand();
-        let amp_factor = 0;
+        let amp_factor = 1;
         let fee_numerator = 1;
         let fee_denominator = 2;
         let token_a_amount = 1000;
@@ -1613,7 +1620,8 @@ mod tests {
 
         let deposit_a = token_a_amount / 10;
         let deposit_b = token_b_amount / 10;
-        let pool_amount = INITIAL_SWAP_POOL_AMOUNT / 10;
+        // let pool_amount = INITIAL_SWAP_POOL_AMOUNT / 10;
+        let min_mint_amount = 0;
 
         // swap not initialized
         {
@@ -1635,9 +1643,9 @@ mod tests {
                     &mut token_b_account,
                     &pool_key,
                     &mut pool_account,
-                    pool_amount,
                     deposit_a,
                     deposit_b,
+                    min_mint_amount,
                 )
             );
         }
@@ -1670,9 +1678,9 @@ mod tests {
                     &mut token_b_account,
                     &pool_key,
                     &mut pool_account,
-                    pool_amount,
                     deposit_a,
                     deposit_b,
+                    min_mint_amount,
                 )
             );
             accounts.authority_key = old_authority;
@@ -1704,9 +1712,9 @@ mod tests {
                     &mut token_b_account,
                     &pool_key,
                     &mut pool_account,
-                    pool_amount,
                     deposit_a,
                     deposit_b,
+                    min_mint_amount,
                 )
             );
         }
@@ -1737,9 +1745,9 @@ mod tests {
                     &mut token_b_account,
                     &pool_key,
                     &mut pool_account,
-                    pool_amount,
                     deposit_a,
                     deposit_b,
+                    min_mint_amount,
                 )
             );
         }
@@ -1764,9 +1772,9 @@ mod tests {
                     &mut token_a_account,
                     &pool_key,
                     &mut pool_account,
-                    pool_amount,
                     deposit_a,
                     deposit_b,
+                    min_mint_amount,
                 )
             );
         }
@@ -1799,9 +1807,9 @@ mod tests {
                     &mut token_b_account,
                     &wrong_token_key,
                     &mut wrong_token_account,
-                    pool_amount,
                     deposit_a,
                     deposit_b,
+                    min_mint_amount,
                 )
             );
         }
@@ -1830,9 +1838,9 @@ mod tests {
                         &accounts.token_b_key,
                         &accounts.pool_mint_key,
                         &pool_key,
-                        pool_amount,
                         deposit_a,
                         deposit_b,
+                        min_mint_amount,
                     )
                     .unwrap(),
                     vec![
@@ -1875,9 +1883,9 @@ mod tests {
                         &accounts.token_b_key,
                         &accounts.pool_mint_key,
                         &pool_key,
-                        pool_amount,
                         deposit_a,
                         deposit_b,
+                        min_mint_amount,
                     )
                     .unwrap(),
                     vec![
@@ -1923,9 +1931,9 @@ mod tests {
                     &mut token_b_account,
                     &pool_key,
                     &mut pool_account,
-                    pool_amount,
                     deposit_a,
                     deposit_b,
+                    min_mint_amount,
                 )
             );
 
@@ -1949,9 +1957,9 @@ mod tests {
                     &mut token_b_account,
                     &pool_key,
                     &mut pool_account,
-                    pool_amount,
                     deposit_a,
                     deposit_b,
+                    min_mint_amount,
                 )
             );
 
@@ -1986,9 +1994,9 @@ mod tests {
                     &mut token_b_account,
                     &pool_key,
                     &mut pool_account,
-                    pool_amount,
                     deposit_a,
                     deposit_b,
+                    min_mint_amount,
                 )
             );
 
@@ -2006,7 +2014,8 @@ mod tests {
                 pool_key,
                 mut pool_account,
             ) = accounts.setup_token_accounts(&user_key, &depositor_key, deposit_a, deposit_b, 0);
-            // maximum A amount in too low
+            // min mint_amount in too high
+            let high_min_mint_amount = 10000000000000;
             assert_eq!(
                 Err(SwapError::ExceededSlippage.into()),
                 accounts.deposit(
@@ -2017,27 +2026,44 @@ mod tests {
                     &mut token_a_account,
                     &token_b_key,
                     &mut token_b_account,
-                    pool_amount,
-                    deposit_a / 10,
-                    deposit_b,
-                )
-            );
-            // maximum B amount in too low
-            assert_eq!(
-                Err(SwapError::ExceededSlippage.into()),
-                accounts.deposit(
-                    &depositor_key,
-                    &pool_key,
-                    &mut pool_account,
-                    &token_a_key,
-                    &mut token_a_account,
-                    &token_b_key,
-                    &mut token_b_account,
-                    pool_amount,
                     deposit_a,
-                    deposit_b / 10,
+                    deposit_b,
+                    high_min_mint_amount,
                 )
             );
+
+            // maximum A amount in too low
+            // assert_eq!(
+            //     Err(SwapError::ExceededSlippage.into()),
+            //     accounts.deposit(
+            //         &depositor_key,
+            //         &pool_key,
+            //         &mut pool_account,
+            //         &token_a_key,
+            //         &mut token_a_account,
+            //         &token_b_key,
+            //         &mut token_b_account,
+            //         deposit_a / 10,
+            //         deposit_b,
+            //         min_mint_amount,
+            //     )
+            // );
+            // // maximum B amount in too low
+            // assert_eq!(
+            //     Err(SwapError::ExceededSlippage.into()),
+            //     accounts.deposit(
+            //         &depositor_key,
+            //         &pool_key,
+            //         &mut pool_account,
+            //         &token_a_key,
+            //         &mut token_a_account,
+            //         &token_b_key,
+            //         &mut token_b_account,
+            //         deposit_a,
+            //         deposit_b / 10,
+            //         min_mint_amount,
+            //     )
+            // );
         }
 
         // correctly deposit
@@ -2059,14 +2085,18 @@ mod tests {
                     &mut token_b_account,
                     &pool_key,
                     &mut pool_account,
-                    pool_amount,
                     deposit_a,
                     deposit_b,
+                    min_mint_amount,
                 )
                 .unwrap();
 
             let swap_token_a =
                 Processor::unpack_token_account(&accounts.token_a_account.data).unwrap();
+            print!(
+                "swap_token_a.amount: {}, deposit_a: {}, token_a_amount: {}\n",
+                swap_token_a.amount, deposit_a, token_a_amount
+            );
             assert_eq!(swap_token_a.amount, deposit_a + token_a_amount);
             let swap_token_b =
                 Processor::unpack_token_account(&accounts.token_b_account.data).unwrap();
@@ -2091,7 +2121,7 @@ mod tests {
         let user_key = pubkey_rand();
         let fee_numerator = 1;
         let fee_denominator = 2;
-        let amp_factor = 0;
+        let amp_factor = 1;
         let token_a_amount = 1000;
         let token_b_amount = 2000;
         let mut accounts = SwapAccountInfo::new(
@@ -2607,7 +2637,7 @@ mod tests {
     fn test_swap() {
         let user_key = pubkey_rand();
         let swapper_key = pubkey_rand();
-        let amp_factor = 0;
+        let amp_factor = 1;
         let fee_numerator = 1;
         let fee_denominator = 10;
         let token_a_amount = 1000;

@@ -141,7 +141,7 @@ impl PoolTokenConverter {
             .checked_div(self.supply)
     }
 
-    /// Compute stable swap invariante invariant
+    /// Compute stable swap invariant
     pub fn compute_d(&self, amount_a: u64, amount_b: u64) -> u64 {
         // Sourced from https://github.com/curvefi/curve-contract/blob/0fd801df7488d89f0e2fc81e760942d7858b01d6/contracts/pool-templates/StableSwapBase.vy#L196
         // XXX: Curve uses u256

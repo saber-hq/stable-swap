@@ -58,6 +58,9 @@ pub enum SwapError {
     /// Swap instruction exceeds desired slippage limit
     #[error("Swap instruction exceeds desired slippage limit")]
     ExceededSlippage,
+    /// Initial deposit requires all tokens
+    #[error("Initial deposit requires all tokens")]
+    InvalidBootstrap,
 }
 impl From<SwapError> for ProgramError {
     fn from(e: SwapError) -> Self {

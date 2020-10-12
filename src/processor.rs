@@ -202,7 +202,7 @@ impl Processor {
             return Err(SwapError::InvalidSupply.into());
         }
 
-        let converter = PoolTokenConverter::new_pool(amp_factor, token_a.amount, token_b.amount);
+        let converter = PoolTokenConverter::new_pool(token_a.amount, token_b.amount);
         let initial_amount = converter.supply;
 
         Self::token_mint_to(
@@ -268,6 +268,7 @@ impl Processor {
 
         let amount_out = if *swap_source_info.key == token_swap.token_a {
             let mut invariant = StableSwap {
+                amp_factor: token_swap.amp_factor,
                 token_a: source_account.amount,
                 token_b: dest_account.amount,
                 fee_numerator: token_swap.fee_numerator,
@@ -278,6 +279,7 @@ impl Processor {
                 .ok_or(SwapError::CalculationFailure)?
         } else {
             let mut invariant = StableSwap {
+                amp_factor: token_swap.amp_factor,
                 token_a: dest_account.amount,
                 token_b: source_account.amount,
                 fee_numerator: token_swap.fee_numerator,
@@ -352,17 +354,17 @@ impl Processor {
         if pool_mint.supply == 0 && (token_a_amount == 0 || token_b_amount == 0) {
             return Err(SwapError::InvalidBootstrap.into());
         }
-
-        let converter = PoolTokenConverter::new_existing(
-            token_swap.amp_factor,
-            pool_mint.supply,
-            vault_a.amount,
-            vault_b.amount,
-        );
+        let invariant = StableSwap {
+            amp_factor: token_swap.amp_factor,
+            token_a: vault_a.amount,
+            token_b: vault_b.amount,
+            fee_numerator: token_swap.fee_numerator,
+            fee_denominator: token_swap.fee_denominator,
+        };
         // Initial invariant
         let mut d_0: u64 = 0; // XXX: Curve uses u256
         if pool_mint.supply > 0 {
-            d_0 = converter.compute_d(vault_a.amount, vault_b.amount);
+            d_0 = invariant.compute_d(vault_a.amount, vault_b.amount);
         }
 
         let old_balances = [vault_a.amount, vault_b.amount];
@@ -371,7 +373,7 @@ impl Processor {
             vault_b.amount + token_b_amount,
         ];
         // Invariant after change
-        let d_1 = converter.compute_d(new_balances[0], new_balances[1]);
+        let d_1 = invariant.compute_d(new_balances[0], new_balances[1]);
         assert!(d_1 > d_0);
 
         // Recalculate the invariant accounting for fees
@@ -388,7 +390,7 @@ impl Processor {
                 let fee = token_swap.fee_numerator * difference / token_swap.fee_denominator;
                 new_balances[i] -= fee;
             }
-            d_2 = converter.compute_d(new_balances[0], new_balances[1]);
+            d_2 = invariant.compute_d(new_balances[0], new_balances[1]);
         }
 
         let mint_amount = if pool_mint.supply == 0 {
@@ -469,12 +471,8 @@ impl Processor {
         let token_b = Self::unpack_token_account(&token_b_info.data.borrow())?;
         let pool_mint = Self::unpack_mint(&pool_mint_info.data.borrow())?;
 
-        let converter = PoolTokenConverter::new_existing(
-            token_swap.amp_factor,
-            pool_mint.supply,
-            token_a.amount,
-            token_b.amount,
-        );
+        let converter =
+            PoolTokenConverter::new_existing(pool_mint.supply, token_a.amount, token_b.amount);
 
         let a_amount = converter
             .token_a_rate(pool_token_amount)
@@ -2091,8 +2089,7 @@ mod tests {
             token_b_amount,
         );
         let withdrawer_key = pubkey_rand();
-        let pool_converter =
-            PoolTokenConverter::new_pool(amp_factor, token_a_amount, token_b_amount);
+        let pool_converter = PoolTokenConverter::new_pool(token_a_amount, token_b_amount);
         let initial_a = token_a_amount / 10;
         let initial_b = token_b_amount / 10;
         let initial_pool = pool_converter.supply / 10;
@@ -2572,7 +2569,6 @@ mod tests {
                 Processor::unpack_token_account(&accounts.token_b_account.data).unwrap();
             let pool_mint = Processor::unpack_mint(&accounts.pool_mint_account.data).unwrap();
             let pool_converter = PoolTokenConverter::new_existing(
-                amp_factor,
                 pool_mint.supply,
                 swap_token_a.amount,
                 swap_token_b.amount,

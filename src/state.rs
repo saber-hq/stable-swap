@@ -27,7 +27,7 @@ pub struct SwapInfo {
     /// Pool tokens are issued when A or B tokens are deposited.
     /// Pool tokens can be withdrawn back to the original A or B token.
     pub pool_mint: Pubkey,
-    /// Amplification factor (A)
+    /// Amplification coefficient (A)
     pub amp_factor: u64,
     /// Numerator of fee applied to the input token amount prior to output calculation.
     pub fee_numerator: u64,

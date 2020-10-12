@@ -6,6 +6,14 @@
 /// input amounts, and Balancer uses 100 * 10 ^ 18.
 pub const INITIAL_SWAP_POOL_AMOUNT: u64 = 1_000_000_000; // TODO: Remove
 
+/// Enum defining the direction of the swap
+pub enum SwapDenomination {
+    /// ...
+    TokenA,
+    /// ...
+    TokenB,
+}
+
 /// Encodes all results of swapping from a source token to a destination token
 pub struct SwapResult {
     /// New amount of source token
@@ -53,9 +61,9 @@ pub struct StableSwap {
     /// Amplification coefficient (A)
     pub amp_factor: u64,
     /// Token A
-    pub token_a: u64,   // TODO: Remove
+    pub token_a: u64, // TODO: Remove
     /// Token B
-    pub token_b: u64,   // TODO: Remove
+    pub token_b: u64, // TODO: Remove
     /// Fee numerator
     pub fee_numerator: u64,
     /// Fee denominator
@@ -95,6 +103,35 @@ impl StableSwap {
 
             d
         }
+    }
+
+    /// Compute swap amount `y` in proportion to `x`
+    pub fn compute_y(&self, x: u64, d: u64) -> u64 {
+        // XXX: Curve uses u256
+        let n_coins = 2;
+        let leverage = self.amp_factor * n_coins; // A * n
+
+        // c =  D ** (n + 1) / (n ** (2 * n) * prod' * A)
+        let c = d * d * d / (x * n_coins * leverage);
+        // b = sum' - (A*n**n - 1) * D / (A * n**n)
+        let b = x + d / leverage - d;
+
+        // Solve for y by approximating: y**2 + b*y = c
+        let mut y_prev: u64;
+        let mut y = d;
+        for _ in 0..63 {
+            y_prev = y;
+            y = (y * y + c) / (2 * y + b);
+            if y > y_prev {
+                if y - y_prev <= 1 {
+                    break;
+                }
+            } else if y_prev - y <= 1 {
+                break;
+            }
+        }
+
+        y
     }
 
     /// Swap token a to b

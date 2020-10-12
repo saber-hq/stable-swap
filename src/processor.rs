@@ -2025,39 +2025,6 @@ mod tests {
                     high_min_mint_amount,
                 )
             );
-
-            // maximum A amount in too low
-            // assert_eq!(
-            //     Err(SwapError::ExceededSlippage.into()),
-            //     accounts.deposit(
-            //         &depositor_key,
-            //         &pool_key,
-            //         &mut pool_account,
-            //         &token_a_key,
-            //         &mut token_a_account,
-            //         &token_b_key,
-            //         &mut token_b_account,
-            //         deposit_a / 10,
-            //         deposit_b,
-            //         min_mint_amount,
-            //     )
-            // );
-            // // maximum B amount in too low
-            // assert_eq!(
-            //     Err(SwapError::ExceededSlippage.into()),
-            //     accounts.deposit(
-            //         &depositor_key,
-            //         &pool_key,
-            //         &mut pool_account,
-            //         &token_a_key,
-            //         &mut token_a_account,
-            //         &token_b_key,
-            //         &mut token_b_account,
-            //         deposit_a,
-            //         deposit_b / 10,
-            //         min_mint_amount,
-            //     )
-            // );
         }
 
         // correctly deposit

@@ -24,37 +24,37 @@ pub struct SwapResult {
     pub amount_swapped: u64,
 }
 
-impl SwapResult {
-    /// SwapResult for swap from one currency into another, given pool information
-    /// and fee
-    pub fn swap_to(
-        source_amount: u64,
-        swap_source_amount: u64,
-        swap_destination_amount: u64,
-        fee_numerator: u64,
-        fee_denominator: u64,
-    ) -> Option<SwapResult> {
-        let invariant = swap_source_amount.checked_mul(swap_destination_amount)?;
-
-        // debit the fee to calculate the amount swapped
-        let fee = source_amount
-            .checked_mul(fee_numerator)?
-            .checked_div(fee_denominator)?;
-        let new_source_amount_less_fee = swap_source_amount
-            .checked_add(source_amount)?
-            .checked_sub(fee)?;
-        let new_destination_amount = invariant.checked_div(new_source_amount_less_fee)?;
-        let amount_swapped = swap_destination_amount.checked_sub(new_destination_amount)?;
-
-        // actually add the whole amount coming in
-        let new_source_amount = swap_source_amount.checked_add(source_amount)?;
-        Some(SwapResult {
-            new_source_amount,
-            new_destination_amount,
-            amount_swapped,
-        })
-    }
-}
+// impl SwapResult {
+//     /// SwapResult for swap from one currency into another, given pool information
+//     /// and fee
+//     pub fn swap_to(
+//         source_amount: u64,
+//         swap_source_amount: u64,
+//         swap_destination_amount: u64,
+//         fee_numerator: u64,
+//         fee_denominator: u64,
+//     ) -> Option<SwapResult> {
+//         let invariant = swap_source_amount.checked_mul(swap_destination_amount)?;
+//
+//         // debit the fee to calculate the amount swapped
+//         let fee = source_amount
+//             .checked_mul(fee_numerator)?
+//             .checked_div(fee_denominator)?;
+//         let new_source_amount_less_fee = swap_source_amount
+//             .checked_add(source_amount)?
+//             .checked_sub(fee)?;
+//         let new_destination_amount = invariant.checked_div(new_source_amount_less_fee)?;
+//         let amount_swapped = swap_destination_amount.checked_sub(new_destination_amount)?;
+//
+//         // actually add the whole amount coming in
+//         let new_source_amount = swap_source_amount.checked_add(source_amount)?;
+//         Some(SwapResult {
+//             new_source_amount,
+//             new_destination_amount,
+//             amount_swapped,
+//         })
+//     }
+// }
 
 /// The StableSwap invariant calculator.
 pub struct StableSwap {
@@ -106,14 +106,14 @@ impl StableSwap {
         // c =  D ** (n + 1) / (n ** (2 * n) * prod' * A)
         let c = d * d * d / (x * n_coins * leverage);
         // b = sum' - (A*n**n - 1) * D / (A * n**n)
-        let b = x + d / leverage - d;
+        let b = x + d / leverage; // - d
 
         // Solve for y by approximating: y**2 + b*y = c
         let mut y_prev: u64;
         let mut y = d;
         for _ in 0..63 {
             y_prev = y;
-            y = (y * y + c) / (2 * y + b);
+            y = (y * y + c) / (2 * y + b - d);
             if y > y_prev {
                 if y - y_prev <= 1 {
                     break;

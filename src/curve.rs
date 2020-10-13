@@ -6,23 +6,15 @@
 /// input amounts, and Balancer uses 100 * 10 ^ 18.
 pub const INITIAL_SWAP_POOL_AMOUNT: u64 = 1_000_000_000; // TODO: Remove
 
-/// Enum defining the direction of the swap
-pub enum SwapDenomination {
-    /// ...
-    TokenA,
-    /// ...
-    TokenB,
-}
-
 /// Encodes all results of swapping from a source token to a destination token
-pub struct SwapResult {
-    /// New amount of source token
-    pub new_source_amount: u64,
-    /// New amount of destination token
-    pub new_destination_amount: u64,
-    /// Amount of destination token swapped
-    pub amount_swapped: u64,
-}
+// pub struct SwapResult {
+//     /// New amount of source token
+//     pub new_source_amount: u64,
+//     /// New amount of destination token
+//     pub new_destination_amount: u64,
+//     /// Amount of destination token swapped
+//     pub amount_swapped: u64,
+// }
 
 // impl SwapResult {
 //     /// SwapResult for swap from one currency into another, given pool information

@@ -263,35 +263,25 @@ impl Processor {
         if *swap_source_info.key == *swap_destination_info.key {
             return Err(SwapError::InvalidInput.into());
         }
+
         let source_account = Self::unpack_token_account(&swap_source_info.data.borrow())?;
         let dest_account = Self::unpack_token_account(&swap_destination_info.data.borrow())?;
-
-        let amount_out = if *swap_source_info.key == token_swap.token_a {
-            let mut invariant = StableSwap {
-                amp_factor: token_swap.amp_factor,
-                token_a: source_account.amount,
-                token_b: dest_account.amount,
-                fee_numerator: token_swap.fee_numerator,
-                fee_denominator: token_swap.fee_denominator,
-            };
-            invariant
-                .swap_a_to_b(amount_in)
-                .ok_or(SwapError::CalculationFailure)?
-        } else {
-            let mut invariant = StableSwap {
-                amp_factor: token_swap.amp_factor,
-                token_a: dest_account.amount,
-                token_b: source_account.amount,
-                fee_numerator: token_swap.fee_numerator,
-                fee_denominator: token_swap.fee_denominator,
-            };
-            invariant
-                .swap_b_to_a(amount_in)
-                .ok_or(SwapError::CalculationFailure)?
+        let invariant = StableSwap {
+            amp_factor: token_swap.amp_factor,
         };
+
+        let y = invariant.compute_y(
+            source_account.amount + amount_in,
+            invariant.compute_d(source_account.amount, dest_account.amount),
+        );
+        let dy = dest_account.amount - y - 1; // -1 just in case there were some rounding errors
+        let dy_fee = dy * token_swap.fee_numerator / token_swap.fee_denominator;
+        let amount_out = dy - dy_fee;
+
         if amount_out < minimum_amount_out {
             return Err(SwapError::ExceededSlippage.into());
         }
+
         Self::token_transfer(
             swap_info.key,
             token_program_info.clone(),
@@ -301,6 +291,7 @@ impl Processor {
             token_swap.nonce,
             amount_in,
         )?;
+
         Self::token_transfer(
             swap_info.key,
             token_program_info.clone(),
@@ -356,10 +347,6 @@ impl Processor {
         }
         let invariant = StableSwap {
             amp_factor: token_swap.amp_factor,
-            token_a: vault_a.amount,
-            token_b: vault_b.amount,
-            fee_numerator: token_swap.fee_numerator,
-            fee_denominator: token_swap.fee_denominator,
         };
         // Initial invariant
         let mut d_0: u64 = 0; // XXX: Curve uses u256

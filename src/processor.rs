@@ -274,7 +274,6 @@ impl Processor {
             source_account.amount + amount_in,
             invariant.compute_d(source_account.amount, dest_account.amount),
         );
-        println!("dest_account amount: {}, y: {}", dest_account.amount, y);
         let dy = dest_account.amount - y - 1; // -1 just in case there were some rounding errors
         let dy_fee = dy * token_swap.fee_numerator / token_swap.fee_denominator;
         let amount_out = dy - dy_fee;

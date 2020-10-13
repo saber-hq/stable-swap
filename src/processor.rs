@@ -2968,8 +2968,7 @@ mod tests {
             //     token_a.amount,
             //     initial_a - a_to_b_amount + results.amount_swapped
             // );
-            assert_eq!(token_a.amount, 939);  // XXX: Asserted value may be incorrect
-
+            assert_eq!(token_a.amount, 939); // XXX: Asserted value may be incorrect
 
             let swap_token_b =
                 Processor::unpack_token_account(&accounts.token_b_account.data).unwrap();

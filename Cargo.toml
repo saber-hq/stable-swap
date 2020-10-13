@@ -30,5 +30,5 @@ thiserror = "1.0"
 rand = { version = "0.7.0"}
 
 [lib]
-name = "spl_token_swap"
+name = "stable_swap"
 crate-type = ["cdylib", "lib"]

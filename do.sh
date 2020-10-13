@@ -32,7 +32,7 @@ perform_action() {
           "$sdkDir"/rust/build.sh "$projectDir"
 
           so_path="$targetDir/$profile"
-          so_name="${2//\-/_}"
+          so_name="stable_swap"
           cp "$so_path/${so_name}.so" "$so_path/${so_name}_debug.so"
           "$sdkDir"/dependencies/llvm-native/bin/llvm-objcopy --strip-all "$so_path/${so_name}.so" "$so_path/$so_name.so"
         else

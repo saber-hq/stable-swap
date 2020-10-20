@@ -1,5 +1,4 @@
-// use pyo3::prelude::*;
-// use pyo3::types::IntoPyDict;
+// TODO: Remove this
 use sim::Model;
 
 fn main() {

@@ -24,7 +24,7 @@ pub struct Properties {
 
 impl Model {
     pub fn new(amp_factor: u64, balances: Vec<u64>, n_coins: u64) -> Model {
-        let src_file = File::open("simulation.py");
+        let src_file = File::open("sim/simulation.py");
         let mut src_file = match src_file {
             Ok(file) => file,
             Err(error) => {panic!("{:?}\n Please run `curl -L https://raw.githubusercontent.com/curvefi/curve-contract/master/tests/simulation.py > sim/simulation.py`", error)}

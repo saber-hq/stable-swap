@@ -2925,10 +2925,10 @@ mod tests {
                 Processor::unpack_token_account(&accounts.token_b_account.data).unwrap();
             let token_b_amount = swap_token_b.amount;
             // assert_eq!(token_b_amount, results.new_destination_amount);
-            assert_eq!(token_b_amount, 4961); // XXX:  Asserted value may be incorrect
+            assert_eq!(token_b_amount, 4906); // XXX:  Asserted value may be incorrect
             let token_b = Processor::unpack_token_account(&token_b_account.data).unwrap();
             // assert_eq!(token_b.amount, initial_b + results.amount_swapped);
-            assert_eq!(token_b.amount, 1039); // XXX: Asserted value may be incorrect
+            assert_eq!(token_b.amount, 1094); // XXX: Asserted value may be incorrect
 
             // let first_swap_amount = results.amount_swapped;
 
@@ -2961,24 +2961,24 @@ mod tests {
             let swap_token_a =
                 Processor::unpack_token_account(&accounts.token_a_account.data).unwrap();
             // assert_eq!(swap_token_a.amount, results.new_destination_amount);
-            assert_eq!(swap_token_a.amount, 5061); // XXX: Asserted value may be incorrect
+            assert_eq!(swap_token_a.amount, 5006); // XXX: Asserted value may be incorrect
             let token_a = Processor::unpack_token_account(&token_a_account.data).unwrap();
             // assert_eq!(
             //     token_a.amount,
             //     initial_a - a_to_b_amount + results.amount_swapped
             // );
-            assert_eq!(token_a.amount, 939); // XXX: Asserted value may be incorrect
+            assert_eq!(token_a.amount, 994); // XXX: Asserted value may be incorrect
 
             let swap_token_b =
                 Processor::unpack_token_account(&accounts.token_b_account.data).unwrap();
             // assert_eq!(swap_token_b.amount, results.new_source_amount);
-            assert_eq!(swap_token_b.amount, 5061); // XXX: Asserted value may be incorrect
+            assert_eq!(swap_token_b.amount, 5006); // XXX: Asserted value may be incorrect
             let token_b = Processor::unpack_token_account(&token_b_account.data).unwrap();
             // assert_eq!(
             //     token_b.amount,
             //     initial_b + first_swap_amount - b_to_a_amount
             // );
-            assert_eq!(token_b.amount, 939);
+            assert_eq!(token_b.amount, 994);
         }
     }
 }

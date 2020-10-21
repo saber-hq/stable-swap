@@ -68,7 +68,7 @@ impl StableSwap {
             let leverage = self.amp_factor * n_coins; // A * n
 
             // Newton's method to approximate D
-            for _ in 0..63 {
+            for _ in 0..64 {
                 let mut d_p = d;
                 d_p = d_p * d / (amount_a * n_coins);
                 d_p = d_p * d / (amount_b * n_coins);
@@ -96,14 +96,14 @@ impl StableSwap {
         let leverage = self.amp_factor * n_coins; // A * n
 
         // c =  D ** (n + 1) / (n ** (2 * n) * prod' * A)
-        let c = d * d * d / (x * n_coins * leverage);
+        let c = d * d * d / (x * n_coins * n_coins * leverage);
         // b = sum' - (A*n**n - 1) * D / (A * n**n)
         let b = x + d / leverage; // - d
 
         // Solve for y by approximating: y**2 + b*y = c
         let mut y_prev: u64;
         let mut y = d;
-        for _ in 0..63 {
+        for _ in 0..64 {
             y_prev = y;
             y = (y * y + c) / (2 * y + b - d);
             if y > y_prev {
@@ -170,6 +170,7 @@ impl PoolTokenConverter {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use sim::Model;
 
     #[test]
     fn initial_pool_amount() {
@@ -195,6 +196,29 @@ mod tests {
         check_pool_token_a_rate(5, 100, 5, 10, Some(2));
         check_pool_token_a_rate(5, u64::MAX, 5, 10, Some(2));
         check_pool_token_a_rate(u64::MAX, u64::MAX, 5, 10, None);
+    }
+
+    fn check_d(model: &Model, amount_a: u64, amount_b: u64) -> u64 {
+        let swap = StableSwap{amp_factor: model.get_properties().A};
+        let d = swap.compute_d(amount_a, amount_b);
+        assert_eq!(d, model.sim_d());
+        d
+    }
+
+    fn check_y(model: &Model, x: u64, d: u64) {
+        let swap = StableSwap{amp_factor: model.get_properties().A};
+        assert_eq!(swap.compute_y(x, d), model.sim_y(0, 1, x))
+    }
+
+    #[test]
+    fn test_curve_math() {
+        let n_coin = 2;
+        let amount_a = 100000;
+        let amount_b = 100000;
+        let amp_factor = 100;
+        let model_a100 = Model::new(amp_factor, vec![amount_a, amount_b], n_coin);
+        let d = check_d(&model_a100, amount_a, amount_b);
+        check_y(&model_a100, 100, d);
     }
 
     // #[test]

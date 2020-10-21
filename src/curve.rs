@@ -218,6 +218,10 @@ mod tests {
     #[test]
     fn test_curve_math() {
         let n_coin = 2;
+
+        let model_no_balance = Model::new(1, vec![0, 0], n_coin);
+        check_d(&model_no_balance, 0, 0);
+
         let amount_a = 100000;
         let amount_b = 100000;
         let model_a1 = Model::new(1, vec![amount_a, amount_b], n_coin);

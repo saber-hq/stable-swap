@@ -2889,7 +2889,7 @@ mod tests {
             ) = accounts.setup_token_accounts(&user_key, &swapper_key, initial_a, initial_b, 0);
             // swap one way
             let a_to_b_amount = initial_a / 10;
-            let minimum_b_amount = initial_b / 30; // XXX: 20 -> 30; Revisit this splippage param
+            let minimum_b_amount = initial_b / 20;
             accounts
                 .swap(
                     &swapper_key,
@@ -2934,7 +2934,7 @@ mod tests {
 
             // swap the other way
             let b_to_a_amount = initial_b / 10;
-            let minimum_a_amount = initial_a / 30; // XXX: 20 -> 30; Revisit this splippage param
+            let minimum_a_amount = initial_a / 20;
             accounts
                 .swap(
                     &swapper_key,

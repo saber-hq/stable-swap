@@ -86,7 +86,7 @@ impl StableSwap {
         y
     }
 
-    /// Compute new source/dest token amounts after an exchange
+    /// Compute SwapResult after an exchange
     pub fn swap_to(
         &self,
         source_amount: u64,

@@ -250,7 +250,6 @@ mod tests {
         let model = Model::new(amp_factor, vec![amount_a, amount_b], n_coin);
         let d = check_d(&model, amount_a, amount_b);
         check_y(&model, rng.gen_range(0, amount_a), d);
-        check_y(&model, rng.gen_range(0, amount_b), d);
     }
 
     // #[test]

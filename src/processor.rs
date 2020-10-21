@@ -264,21 +264,24 @@ impl Processor {
             return Err(SwapError::InvalidInput.into());
         }
 
-        let source_account = Self::unpack_token_account(&swap_source_info.data.borrow())?;
-        let dest_account = Self::unpack_token_account(&swap_destination_info.data.borrow())?;
+        let swap_source_account = Self::unpack_token_account(&swap_source_info.data.borrow())?;
+        let swap_destination_account =
+            Self::unpack_token_account(&swap_destination_info.data.borrow())?;
         let invariant = StableSwap {
             amp_factor: token_swap.amp_factor,
         };
 
-        let y = invariant.compute_y(
-            source_account.amount + amount_in,
-            invariant.compute_d(source_account.amount, dest_account.amount),
-        );
-        let dy = dest_account.amount - y - 1; // -1 just in case there were some rounding errors
-        let dy_fee = dy * token_swap.fee_numerator / token_swap.fee_denominator;
-        let amount_out = dy - dy_fee;
+        let result = invariant
+            .swap_to(
+                amount_in,
+                swap_source_account.amount,
+                swap_destination_account.amount,
+                token_swap.fee_numerator,
+                token_swap.fee_denominator,
+            )
+            .ok_or(SwapError::CalculationFailure)?;
 
-        if amount_out < minimum_amount_out {
+        if result.amount_swapped < minimum_amount_out {
             return Err(SwapError::ExceededSlippage.into());
         }
 
@@ -299,7 +302,7 @@ impl Processor {
             destination_info.clone(),
             authority_info.clone(),
             token_swap.nonce,
-            amount_out,
+            result.amount_swapped,
         )?;
         Ok(())
     }

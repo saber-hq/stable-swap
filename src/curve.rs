@@ -4,7 +4,7 @@
 /// "sensible" given a maximum of u64.
 /// Note that on Ethereum, Uniswap uses the geometric mean of all provided
 /// input amounts, and Balancer uses 100 * 10 ^ 18.
-pub const INITIAL_SWAP_POOL_AMOUNT: u64 = 1_000_000_000; // TODO: Remove
+pub const INITIAL_SWAP_POOL_AMOUNT: u64 = 1_000_000_000;
 
 /// Encodes all results of swapping from a source token to a destination token
 // pub struct SwapResult {
@@ -170,6 +170,7 @@ impl PoolTokenConverter {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use rand::Rng;
     use sim::Model;
 
     #[test]
@@ -199,14 +200,18 @@ mod tests {
     }
 
     fn check_d(model: &Model, amount_a: u64, amount_b: u64) -> u64 {
-        let swap = StableSwap{amp_factor: model.get_properties().A};
+        let swap = StableSwap {
+            amp_factor: model.get_properties().A,
+        };
         let d = swap.compute_d(amount_a, amount_b);
         assert_eq!(d, model.sim_d());
         d
     }
 
     fn check_y(model: &Model, x: u64, d: u64) {
-        let swap = StableSwap{amp_factor: model.get_properties().A};
+        let swap = StableSwap {
+            amp_factor: model.get_properties().A,
+        };
         assert_eq!(swap.compute_y(x, d), model.sim_y(0, 1, x))
     }
 
@@ -215,10 +220,37 @@ mod tests {
         let n_coin = 2;
         let amount_a = 100000;
         let amount_b = 100000;
-        let amp_factor = 100;
-        let model_a100 = Model::new(amp_factor, vec![amount_a, amount_b], n_coin);
+        let model_a1 = Model::new(1, vec![amount_a, amount_b], n_coin);
+        let d = check_d(&model_a1, amount_a, amount_b);
+        check_y(&model_a1, 1, d);
+        check_y(&model_a1, 1000, d);
+        check_y(&model_a1, amount_a, d);
+
+        let model_a100 = Model::new(100, vec![amount_a, amount_b], n_coin);
         let d = check_d(&model_a100, amount_a, amount_b);
-        check_y(&model_a100, 100, d);
+        check_y(&model_a100, 1, d);
+        check_y(&model_a100, 1000, d);
+        check_y(&model_a100, amount_a, d);
+
+        let model_a1000 = Model::new(1000, vec![amount_a, amount_b], n_coin);
+        let d = check_d(&model_a1000, amount_a, amount_b);
+        check_y(&model_a1000, 1, d);
+        check_y(&model_a1000, 1000, d);
+        check_y(&model_a1000, amount_a, d);
+    }
+
+    #[test]
+    fn test_curve_math_with_random_inputs() {
+        let mut rng = rand::thread_rng();
+
+        let n_coin = 2;
+        let amount_a: u64 = rng.gen_range(1, 100000);
+        let amount_b: u64 = rng.gen_range(1, 100000);
+        let amp_factor: u64 = rng.gen_range(1, 5000);
+        let model = Model::new(amp_factor, vec![amount_a, amount_b], n_coin);
+        let d = check_d(&model, amount_a, amount_b);
+        check_y(&model, rng.gen_range(0, amount_a), d);
+        check_y(&model, rng.gen_range(0, amount_b), d);
     }
 
     // #[test]

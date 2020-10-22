@@ -349,6 +349,7 @@ impl Processor {
         let invariant = StableSwap {
             amp_factor: token_swap.amp_factor,
         };
+        // TODO: Handle overflows
         // Initial invariant
         let mut d_0: u64 = 0; // XXX: Curve uses u256
         if pool_mint.supply > 0 {

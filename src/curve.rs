@@ -26,6 +26,7 @@ impl StableSwap {
     /// Compute stable swap invariant
     pub fn compute_d(&self, amount_a: u64, amount_b: u64) -> u64 {
         // XXX: Curve uses u256
+        // TODO: Handle overflows
         let n_coins: u64 = 2; // n
         let sum_x = amount_a + amount_b; // sum(x_i), a.k.a S
         if sum_x == 0 {
@@ -60,6 +61,7 @@ impl StableSwap {
     /// Compute swap amount `y` in proportion to `x`
     pub fn compute_y(&self, x: u64, d: u64) -> u64 {
         // XXX: Curve uses u256
+        // TODO: Handle overflows
         let n_coins = 2;
         let leverage = self.amp_factor * n_coins; // A * n
 

@@ -99,13 +99,15 @@ impl StableSwap {
             swap_source_amount + source_amount,
             self.compute_d(swap_source_amount, swap_destination_amount),
         );
-        let new_source_amount = swap_source_amount.checked_add(source_amount)?;
         let dy = swap_destination_amount.checked_sub(y)?.checked_sub(1)?; // -1 just in case there were some rounding errors
         let dy_fee = dy
             .checked_mul(fee_numerator)?
             .checked_div(fee_denominator)?;
+
         let amount_swapped = dy - dy_fee;
-        let new_destination_amount = swap_destination_amount - amount_swapped;
+        let new_destination_amount = swap_destination_amount.checked_sub(amount_swapped)?;
+        let new_source_amount = swap_source_amount.checked_add(source_amount)?;
+
         Some(SwapResult {
             new_source_amount,
             new_destination_amount,

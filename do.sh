@@ -47,7 +47,7 @@ perform_action() {
         )
         ;;
     clean)
-        "$sdkDir"/rust/clean.sh
+        "$sdkDir"/rust/clean.sh $PWD
         ;;
     clippy)
         (

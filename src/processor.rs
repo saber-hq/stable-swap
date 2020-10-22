@@ -267,10 +267,10 @@ impl Processor {
         let swap_source_account = Self::unpack_token_account(&swap_source_info.data.borrow())?;
         let swap_destination_account =
             Self::unpack_token_account(&swap_destination_info.data.borrow())?;
+
         let invariant = StableSwap {
             amp_factor: token_swap.amp_factor,
         };
-
         let result = invariant
             .swap_to(
                 amount_in,
@@ -280,7 +280,6 @@ impl Processor {
                 token_swap.fee_denominator,
             )
             .ok_or(SwapError::CalculationFailure)?;
-
         if result.amount_swapped < minimum_amount_out {
             return Err(SwapError::ExceededSlippage.into());
         }
@@ -294,7 +293,6 @@ impl Processor {
             token_swap.nonce,
             amount_in,
         )?;
-
         Self::token_transfer(
             swap_info.key,
             token_program_info.clone(),
@@ -420,7 +418,6 @@ impl Processor {
             token_swap.nonce,
             mint_amount,
         )?;
-
         Ok(())
     }
 

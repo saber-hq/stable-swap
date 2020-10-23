@@ -156,7 +156,6 @@ impl Processor {
         let token_b_info = next_account_info(account_info_iter)?;
         let pool_mint_info = next_account_info(account_info_iter)?;
         let destination_info = next_account_info(account_info_iter)?;
-        let token_program_info = next_account_info(account_info_iter)?;
 
         let token_swap = SwapInfo::unpack_unchecked(&swap_info.data.borrow())?;
         if token_swap.is_initialized {
@@ -201,19 +200,6 @@ impl Processor {
         if pool_mint.supply != 0 {
             return Err(SwapError::InvalidSupply.into());
         }
-
-        let converter = PoolTokenConverter::new(0, token_a.amount, token_b.amount);
-        let initial_amount = converter.supply;
-
-        Self::token_mint_to(
-            swap_info.key,
-            token_program_info.clone(),
-            pool_mint_info.clone(),
-            destination_info.clone(),
-            authority_info.clone(),
-            nonce,
-            initial_amount,
-        )?;
 
         let obj = SwapInfo {
             is_initialized: true,
@@ -756,7 +742,6 @@ mod tests {
             do_process_instruction(
                 initialize(
                     &SWAP_PROGRAM_ID,
-                    &TOKEN_PROGRAM_ID,
                     &self.swap_key,
                     &self.authority_key,
                     &self.token_a_key,
@@ -1491,40 +1476,6 @@ mod tests {
                 vec![&mut accounts.token_b_account, &mut Account::default()],
             )
             .unwrap();
-        }
-
-        // wrong token program id
-        {
-            let wrong_program_id = pubkey_rand();
-            assert_eq!(
-                Err(ProgramError::InvalidAccountData),
-                do_process_instruction(
-                    initialize(
-                        &SWAP_PROGRAM_ID,
-                        &wrong_program_id,
-                        &accounts.swap_key,
-                        &accounts.authority_key,
-                        &accounts.token_a_key,
-                        &accounts.token_b_key,
-                        &accounts.pool_mint_key,
-                        &accounts.pool_token_key,
-                        accounts.nonce,
-                        accounts.amp_factor,
-                        accounts.fee_numerator,
-                        accounts.fee_denominator,
-                    )
-                    .unwrap(),
-                    vec![
-                        &mut accounts.swap_account,
-                        &mut Account::default(),
-                        &mut accounts.token_a_account,
-                        &mut accounts.token_b_account,
-                        &mut accounts.pool_mint_account,
-                        &mut accounts.pool_token_account,
-                        &mut Account::default(),
-                    ],
-                )
-            );
         }
 
         // create swap with same token A and B

@@ -635,7 +635,6 @@ solana_sdk::program_stubs!();
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::curve::INITIAL_SWAP_POOL_AMOUNT;
     use crate::instruction::{deposit, initialize, swap, withdraw};
     use solana_sdk::{
         account::Account, account_info::create_is_signer_account_infos, instruction::Instruction,
@@ -647,6 +646,12 @@ mod tests {
         processor::Processor as SplProcessor,
         state::{Account as SplAccount, Mint as SplMint},
     };
+
+    /// Initial amount of pool tokens for swap contract, hard-coded to something
+    /// "sensible" given a maximum of u64.
+    /// Note that on Ethereum, Uniswap uses the geometric mean of all provided
+    /// input amounts, and Balancer uses 100 * 10 ^ 18.
+    pub const INITIAL_SWAP_POOL_AMOUNT: u64 = 1_000_000_000;
 
     struct SwapAccountInfo {
         nonce: u8,
@@ -1545,7 +1550,6 @@ mod tests {
 
         let deposit_a = token_a_amount / 10;
         let deposit_b = token_b_amount / 10;
-        // let pool_amount = INITIAL_SWAP_POOL_AMOUNT / 10;
         let min_mint_amount = 0;
 
         // swap not initialized
@@ -2444,7 +2448,7 @@ mod tests {
                     &token_b_key,
                     &mut token_b_account,
                     withdraw_amount,
-                    minimum_a_amount * 30, // XXX: 10 -> 30: Revisit this spliiage multiplier
+                    minimum_a_amount * 30, // XXX: 10 -> 30: Revisit this slippage multiplier
                     minimum_b_amount,
                 )
             );

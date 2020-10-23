@@ -1,12 +1,5 @@
 //! Swap calculations and curve implementations
 
-/// THIS CONSTANT IS ONLY USED FOR TESTING
-/// Initial amount of pool tokens for swap contract, hard-coded to something
-/// "sensible" given a maximum of u64.
-/// Note that on Ethereum, Uniswap uses the geometric mean of all provided
-/// input amounts, and Balancer uses 100 * 10 ^ 18.
-pub const INITIAL_SWAP_POOL_AMOUNT: u64 = 1_000_000_000;
-
 /// Encodes all results of swapping from a source token to a destination token
 pub struct SwapResult {
     /// New amount of source token

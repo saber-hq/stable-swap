@@ -346,8 +346,8 @@ mod tests {
         let swap_source_amount: u64 = rng.gen_range(1, 100000);
         let swap_destination_amount: u64 = rng.gen_range(1, 100000);
         println!(
-            "source_amount: {}, swap_source_amount: {}, swap_source_amount: {}",
-            source_amount, swap_source_amount, swap_destination_amount
+            "amp_factor: {}, source_amount: {}, swap_source_amount: {}, swap_source_amount: {}",
+            amp_factor, source_amount, swap_source_amount, swap_destination_amount
         );
 
         check_swap(

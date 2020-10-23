@@ -23,7 +23,8 @@ pub struct StableSwap {
 }
 
 impl StableSwap {
-    /// Compute stable swap invariant
+    /// Compute stable swap invariant (D):
+    /// A * sum(x_i) * n**n + D = A * D * n**n + D**(n+1) / (n**n * prod(x_i))
     pub fn compute_d(&self, amount_a: u64, amount_b: u64) -> u64 {
         // XXX: Curve uses u256
         // TODO: Handle overflows
@@ -59,16 +60,20 @@ impl StableSwap {
     }
 
     /// Compute swap amount `y` in proportion to `x`
+    /// Solve for y:
+    /// y**2 + y * (sum' - (A*n**n - 1) * D / (A * n**n)) = D ** (n + 1) / (n ** (2 * n) * prod' * A)
+    /// y**2 + b*y = c
     pub fn compute_y(&self, x: u64, d: u64) -> u64 {
         // XXX: Curve uses u256
         // TODO: Handle overflows
         let n_coins = 2;
         let leverage = self.amp_factor * n_coins; // A * n
 
+        // sum' = prod' = x
         // c =  D ** (n + 1) / (n ** (2 * n) * prod' * A)
         let c = d * d * d / (x * n_coins * n_coins * leverage);
         // b = sum' - (A*n**n - 1) * D / (A * n**n)
-        let b = x + d / leverage; // - d
+        let b = x + d / leverage; // - d is subtracted on line 82
 
         // Solve for y by approximating: y**2 + b*y = c
         let mut y_prev: u64;
@@ -101,7 +106,7 @@ impl StableSwap {
             swap_source_amount + source_amount,
             self.compute_d(swap_source_amount, swap_destination_amount),
         );
-        let dy = swap_destination_amount.checked_sub(y)?; // -1 just in case there were some rounding errors
+        let dy = swap_destination_amount.checked_sub(y)?;
         let dy_fee = dy
             .checked_mul(fee_numerator)?
             .checked_div(fee_denominator)?;

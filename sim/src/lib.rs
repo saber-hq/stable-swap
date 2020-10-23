@@ -6,6 +6,9 @@ use std::io::prelude::*;
 const FILE_NAME: &str = "simulation.py";
 const MODULE_NAME: &str = "simulation";
 
+pub const MODEL_FEE_NUMERATOR: u64 = 1;
+pub const MODEL_FEE_DENOMINATOR: u64 = 1000;
+
 pub struct Model {
     py_src: String,
     amp_factor: u64,

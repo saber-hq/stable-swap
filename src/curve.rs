@@ -23,7 +23,9 @@ pub struct StableSwap {
 }
 
 impl StableSwap {
-    /// Compute stable swap invariant
+    /// Compute stable swap invariant (D)
+    /// Equation:
+    /// A * sum(x_i) * n**n + D = A * D * n**n + D**(n+1) / (n**n * prod(x_i))
     pub fn compute_d(&self, amount_a: u64, amount_b: u64) -> u64 {
         // XXX: Curve uses u256
         // TODO: Handle overflows
@@ -59,16 +61,20 @@ impl StableSwap {
     }
 
     /// Compute swap amount `y` in proportion to `x`
+    /// Solve for y:
+    /// y**2 + y * (sum' - (A*n**n - 1) * D / (A * n**n)) = D ** (n + 1) / (n ** (2 * n) * prod' * A)
+    /// y**2 + b*y = c
     pub fn compute_y(&self, x: u64, d: u64) -> u64 {
         // XXX: Curve uses u256
         // TODO: Handle overflows
         let n_coins = 2;
         let leverage = self.amp_factor * n_coins; // A * n
 
+        // sum' = prod' = x
         // c =  D ** (n + 1) / (n ** (2 * n) * prod' * A)
         let c = d * d * d / (x * n_coins * n_coins * leverage);
         // b = sum' - (A*n**n - 1) * D / (A * n**n)
-        let b = x + d / leverage; // - d
+        let b = x + d / leverage; // d is subtracted on line 82
 
         // Solve for y by approximating: y**2 + b*y = c
         let mut y_prev: u64;
@@ -101,7 +107,7 @@ impl StableSwap {
             swap_source_amount + source_amount,
             self.compute_d(swap_source_amount, swap_destination_amount),
         );
-        let dy = swap_destination_amount.checked_sub(y)?.checked_sub(1)?; // -1 just in case there were some rounding errors
+        let dy = swap_destination_amount.checked_sub(y)?;
         let dy_fee = dy
             .checked_mul(fee_numerator)?
             .checked_div(fee_denominator)?;
@@ -170,7 +176,7 @@ impl PoolTokenConverter {
 mod tests {
     use super::*;
     use rand::Rng;
-    use sim::Model;
+    use sim::{Model, MODEL_FEE_DENOMINATOR, MODEL_FEE_NUMERATOR};
 
     #[test]
     fn initial_pool_amount() {
@@ -249,97 +255,107 @@ mod tests {
         let n_coin = 2;
         let amount_a: u64 = rng.gen_range(1, 100000);
         let amount_b: u64 = rng.gen_range(1, 100000);
-        let amp_factor: u64 = rng.gen_range(1, 5000);
+        let amp_factor: u64 = rng.gen_range(1, 100000);
+        println!(
+            "amount_a: {}, amount_b: {}, amp_factor: {}",
+            amount_a, amount_b, amp_factor
+        );
+
         let model = Model::new(amp_factor, vec![amount_a, amount_b], n_coin);
         let d = check_d(&model, amount_a, amount_b);
         check_y(&model, rng.gen_range(0, amount_a), d);
     }
 
-    #[test]
-    fn swap_calculation() {
+    fn check_swap(
+        amp_factor: u64,
+        source_amount: u64,
+        swap_source_amount: u64,
+        swap_destination_amount: u64,
+    ) {
         let n_coin = 2;
+        let swap = StableSwap { amp_factor };
+        let result = swap
+            .swap_to(
+                source_amount,
+                swap_source_amount,
+                swap_destination_amount,
+                MODEL_FEE_NUMERATOR,
+                MODEL_FEE_DENOMINATOR,
+            )
+            .unwrap();
+        let model = Model::new(
+            swap.amp_factor,
+            vec![swap_source_amount, swap_destination_amount],
+            n_coin,
+        );
+
+        assert_eq!(
+            result.amount_swapped,
+            model.sim_exchange(0, 1, source_amount)
+        );
+        assert_eq!(result.new_source_amount, swap_source_amount + source_amount);
+        assert_eq!(
+            result.new_destination_amount,
+            swap_destination_amount - result.amount_swapped
+        );
+    }
+
+    #[test]
+    fn test_swap_calculation() {
+        let source_amount: u64 = 100;
         let swap_source_amount: u64 = 1000;
         let swap_destination_amount: u64 = 50000;
-        let fee_numerator: u64 = 0;
-        let fee_denominator: u64 = 100;
-        let source_amount: u64 = 100;
 
-        let amp_factor = 1;
-        let swap_a1 = StableSwap { amp_factor };
-        let result = swap_a1
-            .swap_to(
-                source_amount,
-                swap_source_amount,
-                swap_destination_amount,
-                fee_numerator,
-                fee_denominator,
-            )
-            .unwrap();
-        let model_a1 = Model::new(
-            amp_factor,
-            vec![swap_source_amount, swap_destination_amount],
-            n_coin,
+        check_swap(
+            1,
+            source_amount,
+            swap_source_amount,
+            swap_destination_amount,
         );
-        assert_eq!(
-            result.amount_swapped,
-            model_a1.sim_exchange(0, 1, source_amount) + 1 // HACK: Amount swapped seems to be always off by one against simulation, should revisit
+        check_swap(
+            10,
+            source_amount,
+            swap_source_amount,
+            swap_destination_amount,
         );
-        assert_eq!(result.new_source_amount, swap_source_amount + source_amount);
-        assert_eq!(
-            result.new_destination_amount,
-            swap_destination_amount - result.amount_swapped
+        check_swap(
+            100,
+            source_amount,
+            swap_source_amount,
+            swap_destination_amount,
         );
+        check_swap(
+            1000,
+            source_amount,
+            swap_source_amount,
+            swap_destination_amount,
+        );
+        check_swap(
+            10000,
+            source_amount,
+            swap_source_amount,
+            swap_destination_amount,
+        );
+    }
 
-        let amp_factor = 100;
-        let swap_a100 = StableSwap { amp_factor };
-        let result = swap_a100
-            .swap_to(
-                source_amount,
-                swap_source_amount,
-                swap_destination_amount,
-                fee_numerator,
-                fee_denominator,
-            )
-            .unwrap();
-        let model_a100 = Model::new(
-            amp_factor,
-            vec![swap_source_amount, swap_destination_amount],
-            n_coin,
-        );
-        assert_eq!(
-            result.amount_swapped,
-            model_a100.sim_exchange(0, 1, source_amount) - 1 // HACK: Compuation seems to be always off by one against simulation, should revisit
-        );
-        assert_eq!(result.new_source_amount, swap_source_amount + source_amount);
-        assert_eq!(
-            result.new_destination_amount,
-            swap_destination_amount - result.amount_swapped
+    #[test]
+    fn test_swap_calculation_with_random_inputs() {
+        let mut rng = rand::thread_rng();
+
+        let amp_factor: u64 = rng.gen_range(1, 100000);
+        let source_amount: u64 = rng.gen_range(1, 100000);
+        let swap_source_amount: u64 = rng.gen_range(1, 100000);
+        let swap_destination_amount: u64 = rng.gen_range(1, 100000);
+        println!(
+            "amp_factor: {}, source_amount: {}, swap_source_amount: {}, swap_source_amount: {}",
+            amp_factor, source_amount, swap_source_amount, swap_destination_amount
         );
 
-        let amp_factor = 1000;
-        let swap_a100 = StableSwap { amp_factor };
-        let result = swap_a100
-            .swap_to(
-                source_amount,
-                swap_source_amount,
-                swap_destination_amount,
-                fee_numerator,
-                fee_denominator,
-            )
-            .unwrap();
-        let model_a1000 = Model::new(
+        check_swap(
             amp_factor,
-            vec![swap_source_amount, swap_destination_amount],
-            n_coin,
-        );
-        assert_eq!(
-            result.amount_swapped,
-            model_a1000.sim_exchange(0, 1, source_amount) - 1 // HACK: Compuation seems to be always off by one against simulation, should revisit
-        );
-        assert_eq!(result.new_source_amount, swap_source_amount + source_amount);
-        assert_eq!(
-            result.new_destination_amount,
-            swap_destination_amount - result.amount_swapped
+            source_amount,
+            swap_source_amount,
+            swap_destination_amount,
         );
     }
 }

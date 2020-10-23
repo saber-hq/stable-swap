@@ -2965,10 +2965,10 @@ mod tests {
 
             let swap_token_a =
                 Processor::unpack_token_account(&accounts.token_a_account.data).unwrap();
-            assert_eq!(swap_token_a.amount, 5006);
+            assert_eq!(swap_token_a.amount, 5005);
             assert_eq!(swap_token_a.amount, results.new_destination_amount);
             let token_a = Processor::unpack_token_account(&token_a_account.data).unwrap();
-            assert_eq!(token_a.amount, 994);
+            assert_eq!(token_a.amount, 995);
             assert_eq!(
                 token_a.amount,
                 initial_a - a_to_b_amount + results.amount_swapped

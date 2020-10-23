@@ -254,7 +254,7 @@ mod tests {
         let n_coin = 2;
         let amount_a: u64 = rng.gen_range(1, 100000);
         let amount_b: u64 = rng.gen_range(1, 100000);
-        let amp_factor: u64 = rng.gen_range(1, 5000);
+        let amp_factor: u64 = rng.gen_range(1, 100000);
         println!(
             "amount_a: {}, amount_b: {}, amp_factor: {}",
             amount_a, amount_b, amp_factor

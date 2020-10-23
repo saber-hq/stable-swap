@@ -202,7 +202,7 @@ impl Processor {
             return Err(SwapError::InvalidSupply.into());
         }
 
-        let converter = PoolTokenConverter::new_pool(token_a.amount, token_b.amount);
+        let converter = PoolTokenConverter::new(0, token_a.amount, token_b.amount);
         let initial_amount = converter.supply;
 
         Self::token_mint_to(
@@ -458,9 +458,7 @@ impl Processor {
         let token_a = Self::unpack_token_account(&token_a_info.data.borrow())?;
         let token_b = Self::unpack_token_account(&token_b_info.data.borrow())?;
         let pool_mint = Self::unpack_mint(&pool_mint_info.data.borrow())?;
-
-        let converter =
-            PoolTokenConverter::new_existing(pool_mint.supply, token_a.amount, token_b.amount);
+        let converter = PoolTokenConverter::new(pool_mint.supply, token_a.amount, token_b.amount);
 
         let a_amount = converter
             .token_a_rate(pool_token_amount)
@@ -651,6 +649,7 @@ solana_sdk::program_stubs!();
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::curve::INITIAL_SWAP_POOL_AMOUNT;
     use crate::instruction::{deposit, initialize, swap, withdraw};
     use solana_sdk::{
         account::Account, account_info::create_is_signer_account_infos, instruction::Instruction,
@@ -2073,7 +2072,8 @@ mod tests {
             token_b_amount,
         );
         let withdrawer_key = pubkey_rand();
-        let pool_converter = PoolTokenConverter::new_pool(token_a_amount, token_b_amount);
+        let pool_converter =
+            PoolTokenConverter::new(INITIAL_SWAP_POOL_AMOUNT, token_a_amount, token_b_amount);
         let initial_a = token_a_amount / 10;
         let initial_b = token_b_amount / 10;
         let initial_pool = pool_converter.supply / 10;
@@ -2493,7 +2493,7 @@ mod tests {
                     &token_b_key,
                     &mut token_b_account,
                     withdraw_amount,
-                    minimum_a_amount * 10,
+                    minimum_a_amount * 30, // XXX: 10 -> 30: Revisit this spliiage multiplier
                     minimum_b_amount,
                 )
             );
@@ -2510,7 +2510,7 @@ mod tests {
                     &mut token_b_account,
                     withdraw_amount,
                     minimum_a_amount,
-                    minimum_b_amount * 10,
+                    minimum_b_amount * 30, // XXX: 10 -> 30; Revisit this splippage multiplier
                 )
             );
         }
@@ -2552,11 +2552,8 @@ mod tests {
             let swap_token_b =
                 Processor::unpack_token_account(&accounts.token_b_account.data).unwrap();
             let pool_mint = Processor::unpack_mint(&accounts.pool_mint_account.data).unwrap();
-            let pool_converter = PoolTokenConverter::new_existing(
-                pool_mint.supply,
-                swap_token_a.amount,
-                swap_token_b.amount,
-            );
+            let pool_converter =
+                PoolTokenConverter::new(pool_mint.supply, swap_token_a.amount, swap_token_b.amount);
 
             let withdrawn_a = pool_converter.token_a_rate(withdraw_amount).unwrap();
             assert_eq!(swap_token_a.amount, token_a_amount - withdrawn_a);

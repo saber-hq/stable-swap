@@ -1,10 +1,11 @@
 //! Swap calculations and curve implementations
 
+/// THIS CONSTANT IS ONLY USED FOR TESTING
 /// Initial amount of pool tokens for swap contract, hard-coded to something
 /// "sensible" given a maximum of u64.
 /// Note that on Ethereum, Uniswap uses the geometric mean of all provided
 /// input amounts, and Balancer uses 100 * 10 ^ 18.
-pub const INITIAL_SWAP_POOL_AMOUNT: u64 = 1_000_000_000; // TODO: Revisit this parameter.
+pub const INITIAL_SWAP_POOL_AMOUNT: u64 = 1_000_000_000;
 
 /// Encodes all results of swapping from a source token to a destination token
 pub struct SwapResult {
@@ -128,7 +129,7 @@ impl StableSwap {
 /// proper initialization
 pub struct PoolTokenConverter {
     /// Total supply
-    pub supply: u64, // TODO: Remove
+    pub supply: u64,
     /// Token A amount
     pub token_a: u64,
     /// Token B amount
@@ -137,19 +138,7 @@ pub struct PoolTokenConverter {
 
 impl PoolTokenConverter {
     /// Create a converter based on existing market information
-    pub fn new_existing(supply: u64, token_a: u64, token_b: u64) -> Self {
-        Self {
-            supply,
-            token_a,
-            token_b,
-        }
-    }
-
-    /// Create a converter for a new pool token, no supply present yet.
-    /// According to Uniswap, the geometric mean protects the pool creator
-    /// in case the initial ratio is off the market.
-    pub fn new_pool(token_a: u64, token_b: u64) -> Self {
-        let supply = INITIAL_SWAP_POOL_AMOUNT;
+    pub fn new(supply: u64, token_a: u64, token_b: u64) -> Self {
         Self {
             supply,
             token_a,
@@ -178,12 +167,6 @@ mod tests {
     use rand::Rng;
     use sim::{Model, MODEL_FEE_DENOMINATOR, MODEL_FEE_NUMERATOR};
 
-    #[test]
-    fn initial_pool_amount() {
-        let token_converter = PoolTokenConverter::new_pool(1, 5);
-        assert_eq!(token_converter.supply, INITIAL_SWAP_POOL_AMOUNT);
-    }
-
     fn check_pool_token_a_rate(
         token_a: u64,
         token_b: u64,
@@ -191,7 +174,7 @@ mod tests {
         supply: u64,
         expected: Option<u64>,
     ) {
-        let calculator = PoolTokenConverter::new_existing(supply, token_a, token_b);
+        let calculator = PoolTokenConverter::new(supply, token_a, token_b);
         assert_eq!(calculator.token_a_rate(deposit), expected);
     }
 

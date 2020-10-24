@@ -156,7 +156,6 @@ impl Processor {
         let token_b_info = next_account_info(account_info_iter)?;
         let pool_mint_info = next_account_info(account_info_iter)?;
         let destination_info = next_account_info(account_info_iter)?;
-        let token_program_info = next_account_info(account_info_iter)?;
 
         let token_swap = SwapInfo::unpack_unchecked(&swap_info.data.borrow())?;
         if token_swap.is_initialized {
@@ -179,8 +178,7 @@ impl Processor {
         if *authority_info.key == destination.owner {
             return Err(SwapError::InvalidOutputOwner.into());
         }
-        // XXX: This needs to be revisted.
-        if *authority_info.key != pool_mint.mint_authority.unwrap_or_default() {
+        if pool_mint.mint_authority.is_some() && *authority_info.key != pool_mint.mint_authority.unwrap() {
             return Err(SwapError::InvalidOwner.into());
         }
         if token_a.mint == token_b.mint {
@@ -201,19 +199,6 @@ impl Processor {
         if pool_mint.supply != 0 {
             return Err(SwapError::InvalidSupply.into());
         }
-
-        let converter = PoolTokenConverter::new_pool(token_a.amount, token_b.amount);
-        let initial_amount = converter.supply;
-
-        Self::token_mint_to(
-            swap_info.key,
-            token_program_info.clone(),
-            pool_mint_info.clone(),
-            destination_info.clone(),
-            authority_info.clone(),
-            nonce,
-            initial_amount,
-        )?;
 
         let obj = SwapInfo {
             is_initialized: true,
@@ -458,9 +443,7 @@ impl Processor {
         let token_a = Self::unpack_token_account(&token_a_info.data.borrow())?;
         let token_b = Self::unpack_token_account(&token_b_info.data.borrow())?;
         let pool_mint = Self::unpack_mint(&pool_mint_info.data.borrow())?;
-
-        let converter =
-            PoolTokenConverter::new_existing(pool_mint.supply, token_a.amount, token_b.amount);
+        let converter = PoolTokenConverter::new(pool_mint.supply, token_a.amount, token_b.amount);
 
         let a_amount = converter
             .token_a_rate(pool_token_amount)
@@ -663,6 +646,12 @@ mod tests {
         state::{Account as SplAccount, Mint as SplMint},
     };
 
+    /// Initial amount of pool tokens for swap contract, hard-coded to something
+    /// "sensible" given a maximum of u64.
+    /// Note that on Ethereum, Uniswap uses the geometric mean of all provided
+    /// input amounts, and Balancer uses 100 * 10 ^ 18.
+    pub const INITIAL_SWAP_POOL_AMOUNT: u64 = 1_000_000_000;
+
     struct SwapAccountInfo {
         nonce: u8,
         authority_key: Pubkey,
@@ -757,7 +746,6 @@ mod tests {
             do_process_instruction(
                 initialize(
                     &SWAP_PROGRAM_ID,
-                    &TOKEN_PROGRAM_ID,
                     &self.swap_key,
                     &self.authority_key,
                     &self.token_a_key,
@@ -1494,40 +1482,6 @@ mod tests {
             .unwrap();
         }
 
-        // wrong token program id
-        {
-            let wrong_program_id = pubkey_rand();
-            assert_eq!(
-                Err(ProgramError::InvalidAccountData),
-                do_process_instruction(
-                    initialize(
-                        &SWAP_PROGRAM_ID,
-                        &wrong_program_id,
-                        &accounts.swap_key,
-                        &accounts.authority_key,
-                        &accounts.token_a_key,
-                        &accounts.token_b_key,
-                        &accounts.pool_mint_key,
-                        &accounts.pool_token_key,
-                        accounts.nonce,
-                        accounts.amp_factor,
-                        accounts.fee_numerator,
-                        accounts.fee_denominator,
-                    )
-                    .unwrap(),
-                    vec![
-                        &mut accounts.swap_account,
-                        &mut Account::default(),
-                        &mut accounts.token_a_account,
-                        &mut accounts.token_b_account,
-                        &mut accounts.pool_mint_account,
-                        &mut accounts.pool_token_account,
-                        &mut Account::default(),
-                    ],
-                )
-            );
-        }
-
         // create swap with same token A and B
         {
             let (_token_a_repeat_key, token_a_repeat_account) = mint_token(
@@ -1595,7 +1549,6 @@ mod tests {
 
         let deposit_a = token_a_amount / 10;
         let deposit_b = token_b_amount / 10;
-        // let pool_amount = INITIAL_SWAP_POOL_AMOUNT / 10;
         let min_mint_amount = 0;
 
         // swap not initialized
@@ -2073,7 +2026,8 @@ mod tests {
             token_b_amount,
         );
         let withdrawer_key = pubkey_rand();
-        let pool_converter = PoolTokenConverter::new_pool(token_a_amount, token_b_amount);
+        let pool_converter =
+            PoolTokenConverter::new(INITIAL_SWAP_POOL_AMOUNT, token_a_amount, token_b_amount);
         let initial_a = token_a_amount / 10;
         let initial_b = token_b_amount / 10;
         let initial_pool = pool_converter.supply / 10;
@@ -2493,7 +2447,7 @@ mod tests {
                     &token_b_key,
                     &mut token_b_account,
                     withdraw_amount,
-                    minimum_a_amount * 10,
+                    minimum_a_amount * 30, // XXX: 10 -> 30: Revisit this slippage multiplier
                     minimum_b_amount,
                 )
             );
@@ -2510,7 +2464,7 @@ mod tests {
                     &mut token_b_account,
                     withdraw_amount,
                     minimum_a_amount,
-                    minimum_b_amount * 10,
+                    minimum_b_amount * 30, // XXX: 10 -> 30; Revisit this splippage multiplier
                 )
             );
         }
@@ -2552,11 +2506,8 @@ mod tests {
             let swap_token_b =
                 Processor::unpack_token_account(&accounts.token_b_account.data).unwrap();
             let pool_mint = Processor::unpack_mint(&accounts.pool_mint_account.data).unwrap();
-            let pool_converter = PoolTokenConverter::new_existing(
-                pool_mint.supply,
-                swap_token_a.amount,
-                swap_token_b.amount,
-            );
+            let pool_converter =
+                PoolTokenConverter::new(pool_mint.supply, swap_token_a.amount, swap_token_b.amount);
 
             let withdrawn_a = pool_converter.token_a_rate(withdraw_amount).unwrap();
             assert_eq!(swap_token_a.amount, token_a_amount - withdrawn_a);

@@ -178,7 +178,9 @@ impl Processor {
         if *authority_info.key == destination.owner {
             return Err(SwapError::InvalidOutputOwner.into());
         }
-        if pool_mint.mint_authority.is_some() && *authority_info.key != pool_mint.mint_authority.unwrap() {
+        if pool_mint.mint_authority.is_some()
+            && *authority_info.key != pool_mint.mint_authority.unwrap()
+        {
             return Err(SwapError::InvalidOwner.into());
         }
         if token_a.mint == token_b.mint {

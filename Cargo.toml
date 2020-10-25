@@ -28,7 +28,7 @@ thiserror = "1.0"
 
 [dev-dependencies]
 rand = { version = "0.7.0"}
-sim =  { path = "./sim" }
+sim =  { path = "./lib/sim" }
 
 [lib]
 name = "stable_swap"

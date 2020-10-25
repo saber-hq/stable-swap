@@ -4,6 +4,8 @@
   "main": "lib/index.js",
   "license": "MIT",
   "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf lib",
     "lint": "tslint -c tslint.json 'src/**/*.ts'",
     "prettier": "prettier -w src"
   },

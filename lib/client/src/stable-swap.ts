@@ -204,7 +204,6 @@ export class StableSwap {
    * Create a new StableSwap instance
    * @param connection
    * @param payer
-   * @param stableSwapAccount
    * @param authority
    * @param tokenAccountA
    * @param tokenAccountB
@@ -237,7 +236,6 @@ export class StableSwap {
     feeNumerator: number,
     feeDenominator: number
   ): Promise<StableSwap> {
-    let transaction;
     const stableSwap = new StableSwap(
       connection,
       stableSwapAccount.publicKey,
@@ -259,7 +257,7 @@ export class StableSwap {
     const balanceNeeded = await StableSwap.getMinBalanceRentForExemptStableSwap(
       connection
     );
-    transaction = new Transaction().add(
+    let transaction = new Transaction().add(
       SystemProgram.createAccount({
         fromPubkey: payer.publicKey,
         newAccountPubkey: stableSwapAccount.publicKey,
@@ -282,8 +280,8 @@ export class StableSwap {
       feeNumerator,
       feeDenominator
     );
-
     transaction.add(instruction);
+
     await sendAndConfirmTransaction(
       "createAccount and InitializeSwap",
       connection,

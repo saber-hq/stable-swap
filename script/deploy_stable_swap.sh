@@ -14,6 +14,6 @@ if ! hash solana 2>/dev/null; then
 fi
 solana config set --url "http://localhost:8899"
 sleep 1
-solana airdrop 10000
+solana airdrop 100000
 STABLE_SWAP_ID="$(solana deploy target/bpfel-unknown-unknown/release/stable_swap.so | jq .programId -r)"
 echo "StableSwap ProgramID:" $STABLE_SWAP_ID

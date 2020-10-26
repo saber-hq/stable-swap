@@ -22,7 +22,6 @@ pub enum SwapInstruction {
     ///   2. `[]` token_a Account. Must be non zero, owned by $authority.
     ///   3. `[]` token_b Account. Must be non zero, owned by $authority.
     ///   4. `[writable]` Pool Token Mint. Must be empty, owned by $authority.
-    ///   5. `[writable]` Pool Token Account to deposit the minted tokens. Must be empty, owned by user.
     Initialize {
         /// Amplification coefficient (A)
         amp_factor: u64,

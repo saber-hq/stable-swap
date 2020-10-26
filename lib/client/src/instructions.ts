@@ -9,7 +9,6 @@ export const createInitSwapInstruction = (
   tokenAccountA: PublicKey,
   tokenAccountB: PublicKey,
   tokenPool: PublicKey,
-  tokenAccountPool: PublicKey,
   swapProgramId: PublicKey,
   nonce: number,
   ampFactor: number,
@@ -22,7 +21,6 @@ export const createInitSwapInstruction = (
     { pubkey: tokenAccountA, isSigner: false, isWritable: false },
     { pubkey: tokenAccountB, isSigner: false, isWritable: false },
     { pubkey: tokenPool, isSigner: false, isWritable: true },
-    { pubkey: tokenAccountPool, isSigner: false, isWritable: true },
   ];
   const dataLayout = BufferLayout.struct([
     BufferLayout.u8("instruction"),

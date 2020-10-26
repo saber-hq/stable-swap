@@ -15,8 +15,8 @@ export const sendAndConfirmTransaction = async (
   console.debug(`Sending ${title} transaction`);
   let txSig = await realSendAndConfirmTransaction(connection, transaction, signers, {
     skipPreflight: false,
-    commitment: "max",
-    preflightCommitment: "max",
+    commitment: "single",
+    preflightCommitment: "single",
   });
   console.debug(`TxSig: ${txSig}`)
   return txSig

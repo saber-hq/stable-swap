@@ -246,7 +246,7 @@ describe("e2e test", () => {
     expect(fetchedStableSwap.stableSwap).toEqual(stableSwapAccount.publicKey);
     expect(fetchedStableSwap.tokenAccountA).toEqual(tokenAccountA);
     expect(fetchedStableSwap.tokenAccountB).toEqual(tokenAccountB);
-    // TODO: Uncomment after new spl-token client
+    // TODO: Uncomment after new spl-token client release
     // expect(fetchedStableSwap.mintA).toEqual(mintA.publicKey);
     // expect(fetchedStableSwap.mintB).toEqual(mintB.publicKey);
     // expect(fetchedStableSwap.poolToken).toEqual(tokenPool.publicKey);

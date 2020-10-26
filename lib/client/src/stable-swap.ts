@@ -204,6 +204,7 @@ export class StableSwap {
    * Create a new StableSwap instance
    * @param connection
    * @param payer
+   * @param stableSwapAccount
    * @param authority
    * @param tokenAccountA
    * @param tokenAccountB

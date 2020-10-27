@@ -31,6 +31,8 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - uses: borales/actions-yarn@v2.0.0
+    - name: Install deps
+      run: yarn --cwd lib/client install
     - name: Lint
       run: |
         yarn --cwd lib/client prettier -c

@@ -25,9 +25,9 @@ pub enum SwapError {
     /// The deserialization of the account returned something besides State::Account.
     #[error("Deserialized account is not an SPL Token account")]
     ExpectedAccount,
-    /// The input token account is empty.
-    #[error("Input token account empty")]
-    EmptySupply,
+    /// The pool supply is empty.
+    #[error("Pool token supply is 0")]
+    EmptyPool,
     /// The pool token mint has a non-zero supply.
     #[error("Pool token mint has a non-zero supply")]
     InvalidSupply,

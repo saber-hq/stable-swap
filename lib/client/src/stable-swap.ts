@@ -171,10 +171,9 @@ export class StableSwap {
       [address.toBuffer()],
       programId
     );
-    const poolToken = new PublicKey(stableSwapData.tokenPool);
     const tokenAccountA = new PublicKey(stableSwapData.tokenAccountA);
     const tokenAccountB = new PublicKey(stableSwapData.tokenAccountB);
-    // XXX: mintA/mintB current not in Swap state
+    const poolToken = new PublicKey(stableSwapData.tokenPool);
     const mintA = new PublicKey(stableSwapData.mintA);
     const mintB = new PublicKey(stableSwapData.mintB);
     const tokenProgramId = new PublicKey(stableSwapData.tokenProgramId);
@@ -232,9 +231,9 @@ export class StableSwap {
     swapProgramId: PublicKey,
     tokenProgramId: PublicKey,
     nonce: number,
-    ampFactor: number,
-    feeNumerator: number,
-    feeDenominator: number
+    ampFactor: number | NumberU64,
+    feeNumerator: number | NumberU64,
+    feeDenominator: number | NumberU64
   ): Promise<StableSwap> {
     const stableSwap = new StableSwap(
       connection,

@@ -170,12 +170,12 @@ describe("e2e test", () => {
       stableSwapProgramId,
       payer
     );
+
     expect(fetchedStableSwap.stableSwap).toEqual(stableSwapAccount.publicKey);
     expect(fetchedStableSwap.tokenAccountA).toEqual(tokenAccountA);
     expect(fetchedStableSwap.tokenAccountB).toEqual(tokenAccountB);
-    // TODO: Put mints back to swap state
-    // expect(fetchedStableSwap.mintA).toEqual(mintA.publicKey);
-    // expect(fetchedStableSwap.mintB).toEqual(mintB.publicKey);
+    expect(fetchedStableSwap.mintA).toEqual(mintA.publicKey);
+    expect(fetchedStableSwap.mintB).toEqual(mintB.publicKey);
     expect(fetchedStableSwap.poolToken).toEqual(tokenPool.publicKey);
     expect(fetchedStableSwap.ampFactor).toEqual(AMP_FACTOR);
     expect(fetchedStableSwap.feeNumerator).toEqual(FEE_NUMERATOR);
@@ -195,7 +195,6 @@ describe("e2e test", () => {
     await mintB.approve(userAccountB, authority, owner, [], depositAmountB);
     console.log("Creating depositor pool token account");
     const newAccountPool = await tokenPool.createAccount(owner.publicKey);
-
     // Make sure all token accounts are created and credited
     await sleep(500);
 

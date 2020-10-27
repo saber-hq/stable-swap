@@ -168,6 +168,9 @@ describe("e2e test", () => {
       console.error(e)
     }
 
+    // Sleep to make sure token accounts are credted
+    await sleep(15000);
+
     console.log("creating token swap");
     try {
       stableSwap = await StableSwap.createStableSwap(

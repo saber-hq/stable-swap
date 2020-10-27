@@ -212,7 +212,6 @@ pub fn initialize(
     token_a_pubkey: &Pubkey,
     token_b_pubkey: &Pubkey,
     pool_pubkey: &Pubkey,
-    destination_pubkey: &Pubkey,
     nonce: u8,
     amp_factor: u64,
     fee_numerator: u64,
@@ -232,7 +231,6 @@ pub fn initialize(
         AccountMeta::new(*token_a_pubkey, false),
         AccountMeta::new(*token_b_pubkey, false),
         AccountMeta::new(*pool_pubkey, false),
-        AccountMeta::new(*destination_pubkey, false),
     ];
 
     Ok(Instruction {

@@ -747,7 +747,6 @@ mod tests {
                     &self.token_a_key,
                     &self.token_b_key,
                     &self.pool_mint_key,
-                    &self.pool_token_key,
                     self.nonce,
                     self.amp_factor,
                     self.fee_numerator,

@@ -17,9 +17,6 @@ const BOOTSTRAP_TIMEOUT = 300000;
 const AMP_FACTOR = 100;
 const FEE_NUMERATOR = 1;
 const FEE_DENOMINATOR = 4;
-// Initial amount in each swap token
-let currentSwapTokenA = 1000;
-let currentSwapTokenB = 1000;
 
 const getStableSwapAddress = (): string => {
   let data = fs.readFileSync("../../localnet-address.json", "utf-8");
@@ -105,11 +102,6 @@ describe("e2e test", () => {
     } catch (e) {
       console.error(e);
     }
-    try {
-      await mintA.mintTo(tokenAccountA, owner, [], currentSwapTokenA);
-    } catch (e) {
-      console.error(e);
-    }
 
     console.log("creating token B");
     try {
@@ -132,14 +124,7 @@ describe("e2e test", () => {
       console.error(e);
     }
 
-    console.log("minting token B to swap");
-    try {
-      await mintB.mintTo(tokenAccountB, owner, [], currentSwapTokenB);
-    } catch (e) {
-      console.error(e);
-    }
-
-    // Sleep to make sure token accounts are credited ...
+    // Sleep to make sure token accounts are created ...
     await sleep(500);
 
     console.log("creating token swap");

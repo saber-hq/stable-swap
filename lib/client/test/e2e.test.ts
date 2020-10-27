@@ -1,17 +1,16 @@
-import fs from "mz/fs";
+import fs from "fs";
 
-// import { Glob } from "glob";
 import { Token } from "@solana/spl-token";
 import {
   Account,
   Connection,
-  // BpfLoader,
   PublicKey,
-  // BPF_LOADER_PROGRAM_ID,
 } from "@solana/web3.js";
 
 import { StableSwap } from "../src";
 
+// Token Program
+const TokenProgramId: PublicKey = new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
 // Cluster configs
 const CLUSTER_URL = "http://localhost:8899";
 const BOOTSTRAP_TIMEOUT = 300000;
@@ -22,6 +21,12 @@ const FEE_DENOMINATOR = 4;
 // Initial amount in each swap token
 let currentSwapTokenA = 1000;
 let currentSwapTokenB = 1000;
+
+const getStableSwapAddress = (): string => {
+  let data = fs.readFileSync("../../localnet-address.json", 'utf-8');
+  let addresses = JSON.parse(data);
+  return addresses.stableSwap as string
+}
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -51,59 +56,11 @@ async function newAccountWithLamports(
   throw new Error(`Airdrop of ${lamports} failed`);
 }
 
-// async function loadProgram(
-//   connection: Connection,
-//   path: string
-// ): Promise<PublicKey> {
-//   const NUM_RETRIES = 500; /* allow some number of retries */
-//   const data = await fs.readFile(path);
-//   const { feeCalculator } = await connection.getRecentBlockhash();
-//   const balanceNeeded =
-//     feeCalculator.lamportsPerSignature *
-//       (BpfLoader.getMinNumSignatures(data.length) + NUM_RETRIES) +
-//     (await connection.getMinimumBalanceForRentExemption(data.length));
-//   
-//   const from = await newAccountWithLamports(connection, balanceNeeded + 1000000000);
-//   const program_account = new Account();
-//   console.log("Loading program:", path);
-//   try {
-//     await BpfLoader.load(
-//       connection,
-//       from,
-//       program_account,
-//       data,
-//       BPF_LOADER_PROGRAM_ID
-//     );
-//   } catch(e) {
-//     console.error(e);
-//   }
-//   return program_account.publicKey;
-// }
-
-// async function GetStableSwapProgram(
-//   connection: Connection
-// ): Promise<PublicKey> {
-// // ): Promise<[PublicKey, PublicKey]> {
-//   return await loadProgram(
-//     connection,
-//     "../../target/bpfel-unknown-unknown/release/stable_swap.so"
-//   );
-//   // const findSPLTokenSol = new Glob("../../target/bpfel-unknown-unknown/release/deps/spl_token-*.so")
-//   // console.log(findSPLTokenSol);
-//   // const tokenProgramId = await loadProgram(
-//   //   connection,
-//   //   findSPLTokenSol.found[0]
-//   // );
-//   // return [tokenProgramId, tokenSwapProgramId];
-// }
-
 describe("e2e test", () => {
   // Cluster connection
   let connection: Connection;
   // Fee payer
   let payer: Account;
-  // Stable swap
-  let stableSwap: StableSwap;
   // authority of the token and accounts
   let authority: PublicKey;
   // nonce used to generate the authority public key
@@ -117,17 +74,18 @@ describe("e2e test", () => {
   let mintB: Token;
   let tokenAccountA: PublicKey;
   let tokenAccountB: PublicKey;
-  // Programs
+  // Stable swap
+  let stableSwap: StableSwap;
   let stableSwapAccount: Account;
-  // let stableSwapProgramId: PublicKey;
-  const stableSwapProgramId: PublicKey = new PublicKey("5EtkXMSgEtBNZpY8LenSYoYrDNxKPT3gCRfbTGm3vu5G")
-  const tokenProgramId: PublicKey = new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
+  let stableSwapProgramId: PublicKey;
 
   beforeAll(async done => {
+    // Bootstrap Test Environment ...
     connection = new Connection(CLUSTER_URL, "single");
-    // stableSwapProgramId = await GetStableSwapProgram(connection);
+
+    stableSwapProgramId = new PublicKey(getStableSwapAddress())
     
-    console.log("Token Program ID", tokenProgramId.toString());
+    console.log("Token Program ID", TokenProgramId.toString());
     console.log("StableSwap Program ID", stableSwapProgramId.toString());
 
     payer = await newAccountWithLamports(connection, 1000000000);
@@ -150,7 +108,7 @@ describe("e2e test", () => {
         authority,
         null,
         2,
-        tokenProgramId
+        TokenProgramId
       );
     } catch(e) {
       console.error(e)
@@ -164,7 +122,7 @@ describe("e2e test", () => {
         owner.publicKey,
         null,
         2,
-        tokenProgramId
+        TokenProgramId
       );
     } catch(e) {
       console.error(e)
@@ -190,7 +148,7 @@ describe("e2e test", () => {
         owner.publicKey,
         null,
         2,
-        tokenProgramId
+        TokenProgramId
       );
     } catch(e) {
       console.error(e)
@@ -223,7 +181,7 @@ describe("e2e test", () => {
         mintA.publicKey,
         mintB.publicKey,
         stableSwapProgramId,
-        tokenProgramId,
+        TokenProgramId,
         nonce,
         AMP_FACTOR,
         FEE_NUMERATOR,

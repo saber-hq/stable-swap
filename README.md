@@ -19,6 +19,12 @@ Unit tests contained within the project can be built via:
 ```bash
 $ ./do.sh test
 ```
+Running end-to-end tests:
+```
+$ docker-compose up -D  # Start local Solana network
+$ yarn --cwd lib/client install
+$ yarn --cwd lib/client test
+```
 
 ## Clippy
 

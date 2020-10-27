@@ -4,7 +4,6 @@ if [ ! -d "./target/bpfel-unknown-unknown" ]; then
     ./do.sh build
 fi
 
-docker-compose up -d
 if ! hash solana 2>/dev/null; then
     echo Installing Solana tool suite ...
     curl -sSf https://raw.githubusercontent.com/solana-labs/solana/v1.3.15/install/solana-install-init.sh | sh -s - v1.3.15
@@ -18,3 +17,4 @@ sleep 1
 solana airdrop 10 
 STABLE_SWAP_ID="$(solana deploy target/bpfel-unknown-unknown/release/stable_swap.so | jq .programId -r)"
 echo "StableSwap ProgramID:" $STABLE_SWAP_ID
+jq -n --arg STABLE_SWAP_ID "$STABLE_SWAP_ID" '{"stableSwap": $STABLE_SWAP_ID}' > localnet-address.json

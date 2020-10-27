@@ -4,7 +4,7 @@ import { Token } from "@solana/spl-token";
 import { Account, Connection, PublicKey } from "@solana/web3.js";
 
 import { StableSwap } from "../src";
-import { NumberU64 } from "../src/util/u64"
+import { NumberU64 } from "../src/util/u64";
 import { newAccountWithLamports, sleep } from "./helpers";
 
 // Token Program
@@ -85,10 +85,10 @@ describe("e2e test", () => {
       console.error(e);
     }
 
-    console.log('creating pool account');
+    console.log("creating pool account");
     try {
       tokenAccountPool = await tokenPool.createAccount(owner.publicKey);
-    } catch(e) {
+    } catch (e) {
       console.error(e);
     }
 
@@ -184,22 +184,22 @@ describe("e2e test", () => {
 
   it("deposit", async () => {
     const depositAmountA = oneSol;
-    const depositAmountB = oneSol; 
-    console.log('Creating depositor token a account');
+    const depositAmountB = oneSol;
+    console.log("Creating depositor token a account");
     const userAccountA = await mintA.createAccount(owner.publicKey);
     await mintA.mintTo(userAccountA, owner, [], depositAmountA);
     await mintA.approve(userAccountA, authority, owner, [], depositAmountA);
-    console.log('Creating depositor token b account');
+    console.log("Creating depositor token b account");
     const userAccountB = await mintB.createAccount(owner.publicKey);
     await mintB.mintTo(userAccountB, owner, [], depositAmountB);
     await mintB.approve(userAccountB, authority, owner, [], depositAmountB);
-    console.log('Creating depositor pool token account');
+    console.log("Creating depositor pool token account");
     const newAccountPool = await tokenPool.createAccount(owner.publicKey);
 
     // Make sure all token accounts are created and credited
-    await sleep(500)
+    await sleep(500);
 
-    console.log('Depositing into swap');
+    console.log("Depositing into swap");
     try {
       await stableSwap.deposit(
         userAccountA,
@@ -207,10 +207,10 @@ describe("e2e test", () => {
         newAccountPool,
         depositAmountA,
         depositAmountB,
-        0,   // To avoid slippage errors
+        0 // To avoid slippage errors
       );
-    } catch(e) {
-      throw new Error(e)
+    } catch (e) {
+      throw new Error(e);
     }
 
     let info = await mintA.getAccountInfo(userAccountA);
@@ -222,6 +222,6 @@ describe("e2e test", () => {
     info = await mintB.getAccountInfo(tokenAccountB);
     expect(info.amount.toNumber()).toBe(depositAmountB);
     info = await tokenPool.getAccountInfo(newAccountPool);
-    expect(info.amount.toNumber()).toBe(2010050251);  // TODO: Check this number
-  })
+    expect(info.amount.toNumber()).toBe(2010050251); // TODO: Check this number
+  });
 });

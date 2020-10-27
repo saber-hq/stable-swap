@@ -10,7 +10,7 @@ export const PublicKeyLayout = (property: string = "publicKey"): object => {
 /**
  * Layout for a 64bit unsigned value
  */
-export const Uint64Layout = (property: string = 'uint64'): Object => {
+export const Uint64Layout = (property: string = "uint64"): object => {
   return BufferLayout.blob(8, property);
 };
 

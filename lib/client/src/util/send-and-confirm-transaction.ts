@@ -20,8 +20,8 @@ export const sendAndConfirmTransaction = async (
     signers,
     {
       skipPreflight: false,
-      commitment: "single",
-      preflightCommitment: "single",
+      commitment: connection.commitment || "recent",
+      preflightCommitment: connection.commitment || "recent",
     }
   );
   console.debug(`TxSig: ${txSig}`);

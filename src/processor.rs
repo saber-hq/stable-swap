@@ -155,28 +155,22 @@ impl Processor {
         let token_a_info = next_account_info(account_info_iter)?;
         let token_b_info = next_account_info(account_info_iter)?;
         let pool_mint_info = next_account_info(account_info_iter)?;
-        let destination_info = next_account_info(account_info_iter)?;
 
         let token_swap = SwapInfo::unpack_unchecked(&swap_info.data.borrow())?;
         if token_swap.is_initialized {
             return Err(SwapError::AlreadyInUse.into());
         }
-
         if *authority_info.key != Self::authority_id(program_id, swap_info.key, nonce)? {
             return Err(SwapError::InvalidProgramAddress.into());
         }
         let token_a = Self::unpack_token_account(&token_a_info.data.borrow())?;
         let token_b = Self::unpack_token_account(&token_b_info.data.borrow())?;
-        let destination = Self::unpack_token_account(&destination_info.data.borrow())?;
         let pool_mint = Self::unpack_mint(&pool_mint_info.data.borrow())?;
         if *authority_info.key != token_a.owner {
             return Err(SwapError::InvalidOwner.into());
         }
         if *authority_info.key != token_b.owner {
             return Err(SwapError::InvalidOwner.into());
-        }
-        if *authority_info.key == destination.owner {
-            return Err(SwapError::InvalidOutputOwner.into());
         }
         if pool_mint.mint_authority.is_some()
             && *authority_info.key != pool_mint.mint_authority.unwrap()
@@ -753,7 +747,6 @@ mod tests {
                     &self.token_a_key,
                     &self.token_b_key,
                     &self.pool_mint_key,
-                    &self.pool_token_key,
                     self.nonce,
                     self.amp_factor,
                     self.fee_numerator,
@@ -1294,25 +1287,6 @@ mod tests {
                 accounts.initialize_swap()
             );
             accounts.token_b_account = old_account;
-        }
-
-        // pool token account owner is swap authority
-        {
-            let (_pool_token_key, pool_token_account) = mint_token(
-                &TOKEN_PROGRAM_ID,
-                &accounts.pool_mint_key,
-                &mut accounts.pool_mint_account,
-                &accounts.authority_key,
-                &accounts.authority_key,
-                0,
-            );
-            let old_account = accounts.pool_token_account;
-            accounts.pool_token_account = pool_token_account;
-            assert_eq!(
-                Err(SwapError::InvalidOutputOwner.into()),
-                accounts.initialize_swap()
-            );
-            accounts.pool_token_account = old_account;
         }
 
         // pool mint authority is not swap authority

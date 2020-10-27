@@ -12,10 +12,18 @@ export const sendAndConfirmTransaction = async (
   transaction: Transaction,
   ...signers: Account[]
 ): Promise<TransactionSignature> => {
-  // console.debug(`Sending ${title} transaction`);
-  return realSendAndConfirmTransaction(connection, transaction, signers, {
-    skipPreflight: false,
-    commitment: "recent",
-    preflightCommitment: "recent",
-  });
+  /* tslint:disable:no-console */
+  console.debug(`Sending ${title} transaction`);
+  const txSig = await realSendAndConfirmTransaction(
+    connection,
+    transaction,
+    signers,
+    {
+      skipPreflight: false,
+      commitment: "single",
+      preflightCommitment: "single",
+    }
+  );
+  console.debug(`TxSig: ${txSig}`);
+  return txSig;
 };

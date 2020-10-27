@@ -6,3 +6,5 @@ config.json
 node_modules
 ./package-lock.json
 lib/client/lib/*
+lib/client/yarn-error.log
+localnet-address.json

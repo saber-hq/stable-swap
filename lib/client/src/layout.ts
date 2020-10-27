@@ -14,12 +14,9 @@ export const StableSwapLayout: typeof BufferLayout.Structure = BufferLayout.stru
   [
     BufferLayout.u8("isInitialized"),
     BufferLayout.u8("nonce"),
-    PublicKeyLayout("tokenProgramId"),
     PublicKeyLayout("tokenAccountA"),
     PublicKeyLayout("tokenAccountB"),
     PublicKeyLayout("tokenPool"),
-    PublicKeyLayout("mintA"),
-    PublicKeyLayout("mintB"),
     BufferLayout.nu64("ampFactor"),
     BufferLayout.nu64("feeNumerator"),
     BufferLayout.nu64("feeDenominator"),

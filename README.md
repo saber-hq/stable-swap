@@ -19,6 +19,10 @@ Unit tests contained within the project can be built via:
 ```bash
 $ ./do.sh test
 ```
+Running end-to-end tests:
+```
+$ ./do.sh e2e-test
+```
 
 ## Clippy
 

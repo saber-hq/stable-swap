@@ -22,7 +22,6 @@ pub enum SwapInstruction {
     ///   2. `[]` token_a Account. Must be non zero, owned by $authority.
     ///   3. `[]` token_b Account. Must be non zero, owned by $authority.
     ///   4. `[writable]` Pool Token Mint. Must be empty, owned by $authority.
-    ///   5. `[writable]` Pool Token Account to deposit the minted tokens. Must be empty, owned by user.
     Initialize {
         /// Amplification coefficient (A)
         amp_factor: u64,
@@ -213,7 +212,6 @@ pub fn initialize(
     token_a_pubkey: &Pubkey,
     token_b_pubkey: &Pubkey,
     pool_pubkey: &Pubkey,
-    destination_pubkey: &Pubkey,
     nonce: u8,
     amp_factor: u64,
     fee_numerator: u64,
@@ -233,7 +231,6 @@ pub fn initialize(
         AccountMeta::new(*token_a_pubkey, false),
         AccountMeta::new(*token_b_pubkey, false),
         AccountMeta::new(*pool_pubkey, false),
-        AccountMeta::new(*destination_pubkey, false),
     ];
 
     Ok(Instruction {

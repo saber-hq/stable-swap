@@ -13,7 +13,7 @@ const TokenProgramId: PublicKey = new PublicKey(
 // Cluster configs
 const CLUSTER_URL = "http://localhost:8899";
 const BOOTSTRAP_TIMEOUT = 300000;
-// Pool confgs
+// Pool configs
 const AMP_FACTOR = 100;
 const FEE_NUMERATOR = 1;
 const FEE_DENOMINATOR = 4;

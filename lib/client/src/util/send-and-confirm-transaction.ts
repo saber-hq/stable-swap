@@ -14,11 +14,16 @@ export const sendAndConfirmTransaction = async (
 ): Promise<TransactionSignature> => {
   /* tslint:disable:no-console */
   console.debug(`Sending ${title} transaction`);
-  const txSig = await realSendAndConfirmTransaction(connection, transaction, signers, {
-    skipPreflight: false,
-    commitment: "single",
-    preflightCommitment: "single",
-  });
-  console.debug(`TxSig: ${txSig}`)
-  return txSig
+  const txSig = await realSendAndConfirmTransaction(
+    connection,
+    transaction,
+    signers,
+    {
+      skipPreflight: false,
+      commitment: "single",
+      preflightCommitment: "single",
+    }
+  );
+  console.debug(`TxSig: ${txSig}`);
+  return txSig;
 };

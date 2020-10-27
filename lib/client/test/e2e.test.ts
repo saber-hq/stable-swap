@@ -1,16 +1,15 @@
 import fs from "fs";
 
 import { Token } from "@solana/spl-token";
-import {
-  Account,
-  Connection,
-  PublicKey,
-} from "@solana/web3.js";
+import { Account, Connection, PublicKey } from "@solana/web3.js";
 
 import { StableSwap } from "../src";
+import { newAccountWithLamports, sleep } from "./helpers";
 
 // Token Program
-const TokenProgramId: PublicKey = new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
+const TokenProgramId: PublicKey = new PublicKey(
+  "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+);
 // Cluster configs
 const CLUSTER_URL = "http://localhost:8899";
 const BOOTSTRAP_TIMEOUT = 300000;
@@ -23,38 +22,10 @@ let currentSwapTokenA = 1000;
 let currentSwapTokenB = 1000;
 
 const getStableSwapAddress = (): string => {
-  let data = fs.readFileSync("../../localnet-address.json", 'utf-8');
+  let data = fs.readFileSync("../../localnet-address.json", "utf-8");
   let addresses = JSON.parse(data);
-  return addresses.stableSwap as string
-}
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-async function newAccountWithLamports(
-  connection: Connection,
-  lamports: number = 1000000
-): Promise<Account> {
-  const account = new Account();
-
-  let retries = 30;
-  try {
-    await connection.requestAirdrop(account.publicKey, lamports);
-  } catch(e) {
-    console.error(e)
-  }
-  for (;;) {
-    await sleep(500);
-    if (lamports == (await connection.getBalance(account.publicKey))) {
-      return account;
-    }
-    if (--retries <= 0) {
-      break;
-    }
-  }
-  throw new Error(`Airdrop of ${lamports} failed`);
-}
+  return addresses.stableSwap as string;
+};
 
 describe("e2e test", () => {
   // Cluster connection
@@ -79,12 +50,12 @@ describe("e2e test", () => {
   let stableSwapAccount: Account;
   let stableSwapProgramId: PublicKey;
 
-  beforeAll(async done => {
+  beforeAll(async (done) => {
     // Bootstrap Test Environment ...
     connection = new Connection(CLUSTER_URL, "single");
 
-    stableSwapProgramId = new PublicKey(getStableSwapAddress())
-    
+    stableSwapProgramId = new PublicKey(getStableSwapAddress());
+
     console.log("Token Program ID", TokenProgramId.toString());
     console.log("StableSwap Program ID", stableSwapProgramId.toString());
 
@@ -96,8 +67,8 @@ describe("e2e test", () => {
         [stableSwapAccount.publicKey.toBuffer()],
         stableSwapProgramId
       );
-    } catch(e) {
-      console.error(e)
+    } catch (e) {
+      console.error(e);
     }
 
     console.log("creating pool mint");
@@ -110,8 +81,8 @@ describe("e2e test", () => {
         2,
         TokenProgramId
       );
-    } catch(e) {
-      console.error(e)
+    } catch (e) {
+      console.error(e);
     }
 
     console.log("creating token A");
@@ -124,20 +95,20 @@ describe("e2e test", () => {
         2,
         TokenProgramId
       );
-    } catch(e) {
-      console.error(e)
+    } catch (e) {
+      console.error(e);
     }
 
     console.log("creating token A account");
     try {
       tokenAccountA = await mintA.createAccount(authority);
-    } catch(e) {
-      console.error(e)
+    } catch (e) {
+      console.error(e);
     }
-    try{
+    try {
       await mintA.mintTo(tokenAccountA, owner, [], currentSwapTokenA);
-    } catch(e) {
-      console.error(e)
+    } catch (e) {
+      console.error(e);
     }
 
     console.log("creating token B");
@@ -150,22 +121,22 @@ describe("e2e test", () => {
         2,
         TokenProgramId
       );
-    } catch(e) {
-      console.error(e)
+    } catch (e) {
+      console.error(e);
     }
 
     console.log("creating token B account");
     try {
       tokenAccountB = await mintB.createAccount(authority);
-    } catch(e) {
-      console.error(e)
+    } catch (e) {
+      console.error(e);
     }
 
     console.log("minting token B to swap");
     try {
       await mintB.mintTo(tokenAccountB, owner, [], currentSwapTokenB);
-    } catch(e) {
-      console.error(e)
+    } catch (e) {
+      console.error(e);
     }
 
     // Sleep to make sure token accounts are credited ...
@@ -188,21 +159,21 @@ describe("e2e test", () => {
         nonce,
         AMP_FACTOR,
         FEE_NUMERATOR,
-        FEE_DENOMINATOR,
+        FEE_DENOMINATOR
       );
-    } catch(e) {
-      console.error(e)
+    } catch (e) {
+      console.error(e);
     }
 
-    done()
+    done();
   }, BOOTSTRAP_TIMEOUT);
 
-  it("loadStableSwap", async() => {
+  it("loadStableSwap", async () => {
     const fetchedStableSwap = await StableSwap.loadStableSwap(
       connection,
       stableSwapAccount.publicKey,
       stableSwapProgramId,
-      payer,
+      payer
     );
     expect(fetchedStableSwap.stableSwap).toEqual(stableSwapAccount.publicKey);
     expect(fetchedStableSwap.tokenAccountA).toEqual(tokenAccountA);
@@ -211,14 +182,8 @@ describe("e2e test", () => {
     // expect(fetchedStableSwap.mintA).toEqual(mintA.publicKey);
     // expect(fetchedStableSwap.mintB).toEqual(mintB.publicKey);
     // expect(fetchedStableSwap.poolToken).toEqual(tokenPool.publicKey);
-    expect(
-      fetchedStableSwap.ampFactor.toNumber()
-    ).toBe(AMP_FACTOR);
-    expect(
-      fetchedStableSwap.feeNumerator.toNumber(),
-    ).toBe(FEE_NUMERATOR);
-    expect(
-      fetchedStableSwap.feeDenominator.toNumber(),
-    ).toBe(FEE_DENOMINATOR);
-  })
+    expect(fetchedStableSwap.ampFactor.toNumber()).toBe(AMP_FACTOR);
+    expect(fetchedStableSwap.feeNumerator.toNumber()).toBe(FEE_NUMERATOR);
+    expect(fetchedStableSwap.feeDenominator.toNumber()).toBe(FEE_DENOMINATOR);
+  });
 });

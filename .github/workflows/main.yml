@@ -27,5 +27,6 @@ jobs:
         ./scripts/deploy_stable_swap.sh
         yarn --cwd lib/client install
         yarn --cwd lib/client test
+        docker-compose down
 
 

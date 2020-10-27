@@ -10,7 +10,7 @@ import * as instructions from "./instructions";
 import * as layout from "./layout";
 import { loadAccount } from "./util/account";
 import { sendAndConfirmTransaction } from "./util/send-and-confirm-transaction";
-import { Numberu64 } from "./util/u64";
+import { NumberU64 } from "./util/u64";
 
 /**
  * A program to exchange tokens against a pool of liquidity
@@ -69,17 +69,17 @@ export class StableSwap {
   /**
    * Amplification coefficient (A)
    */
-  ampFactor: Numberu64;
+  ampFactor: NumberU64;
 
   /**
    * Trading fee numerator
    */
-  feeNumerator: Numberu64;
+  feeNumerator: NumberU64;
 
   /**
    * Trading fee denominator
    */
-  feeDenominator: Numberu64;
+  feeDenominator: NumberU64;
 
   /**
    * Fee payer
@@ -114,9 +114,9 @@ export class StableSwap {
     tokenAccountB: PublicKey,
     mintA: PublicKey,
     mintB: PublicKey,
-    ampFactor: Numberu64,
-    feeNumerator: Numberu64,
-    feeDenominator: Numberu64,
+    ampFactor: number | NumberU64,
+    feeNumerator: number | NumberU64,
+    feeDenominator: number | NumberU64,
     payer: Account
   ) {
     this.connection = connection;
@@ -129,9 +129,9 @@ export class StableSwap {
     this.tokenAccountB = tokenAccountB;
     this.mintA = mintA;
     this.mintB = mintB;
-    this.ampFactor = ampFactor;
-    this.feeNumerator = feeNumerator;
-    this.feeDenominator = feeDenominator;
+    this.ampFactor = new NumberU64(ampFactor);
+    this.feeNumerator = new NumberU64(feeNumerator);
+    this.feeDenominator = new NumberU64(feeDenominator);
     this.payer = payer;
   }
 
@@ -171,16 +171,16 @@ export class StableSwap {
       [address.toBuffer()],
       programId
     );
-
     const poolToken = new PublicKey(stableSwapData.tokenPool);
     const tokenAccountA = new PublicKey(stableSwapData.tokenAccountA);
     const tokenAccountB = new PublicKey(stableSwapData.tokenAccountB);
+    // XXX: mintA/mintB current not in Swap state
     const mintA = new PublicKey(stableSwapData.mintA);
     const mintB = new PublicKey(stableSwapData.mintB);
     const tokenProgramId = new PublicKey(stableSwapData.tokenProgramId);
-    const ampFactor = new Numberu64(stableSwapData.ampFactor);
-    const feeNumerator = new Numberu64(stableSwapData.feeNumerator);
-    const feeDenominator = new Numberu64(stableSwapData.feeDenominator);
+    const ampFactor = new NumberU64(stableSwapData.ampFactor);
+    const feeNumerator = new NumberU64(stableSwapData.feeNumerator);
+    const feeDenominator = new NumberU64(stableSwapData.feeDenominator);
 
     return new StableSwap(
       connection,
@@ -247,9 +247,9 @@ export class StableSwap {
       tokenAccountB,
       mintA,
       mintB,
-      new Numberu64(ampFactor),
-      new Numberu64(feeNumerator),
-      new Numberu64(feeDenominator),
+      new NumberU64(ampFactor),
+      new NumberU64(feeNumerator),
+      new NumberU64(feeDenominator),
       payer
     );
 
@@ -306,8 +306,8 @@ export class StableSwap {
     poolSource: PublicKey,
     poolDestination: PublicKey,
     userDestination: PublicKey,
-    amountIn: number | Numberu64,
-    minimumAmountOut: number | Numberu64
+    amountIn: number | NumberU64,
+    minimumAmountOut: number | NumberU64
   ): Promise<TransactionSignature> {
     return await sendAndConfirmTransaction(
       "swap",
@@ -343,9 +343,9 @@ export class StableSwap {
     userAccountA: PublicKey,
     userAccountB: PublicKey,
     poolAccount: PublicKey,
-    tokenAmountA: number | Numberu64,
-    tokenAmountB: number | Numberu64,
-    minimumPoolTokenAmount: number | Numberu64
+    tokenAmountA: number | NumberU64,
+    tokenAmountB: number | NumberU64,
+    minimumPoolTokenAmount: number | NumberU64
   ): Promise<TransactionSignature> {
     return await sendAndConfirmTransaction(
       "deposit",
@@ -384,9 +384,9 @@ export class StableSwap {
     userAccountA: PublicKey,
     userAccountB: PublicKey,
     poolAccount: PublicKey,
-    poolTokenAmount: number | Numberu64,
-    minimumTokenA: number | Numberu64,
-    minimumTokenB: number | Numberu64
+    poolTokenAmount: number | NumberU64,
+    minimumTokenA: number | NumberU64,
+    minimumTokenB: number | NumberU64
   ): Promise<TransactionSignature> {
     return await sendAndConfirmTransaction(
       "withdraw",

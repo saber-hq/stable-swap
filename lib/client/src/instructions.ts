@@ -1,7 +1,8 @@
 import * as BufferLayout from "buffer-layout";
 import { Account, PublicKey, TransactionInstruction } from "@solana/web3.js";
 
-import { Numberu64 } from "./util/u64";
+import { NumberU64 } from "./util/u64";
+import { Uint64Layout } from "./layout";
 
 export const createInitSwapInstruction = (
   tokenSwapAccount: Account,
@@ -11,9 +12,9 @@ export const createInitSwapInstruction = (
   tokenPool: PublicKey,
   swapProgramId: PublicKey,
   nonce: number,
-  ampFactor: number,
-  feeNumerator: number,
-  feeDenominator: number
+  ampFactor: number | NumberU64,
+  feeNumerator: number | NumberU64,
+  feeDenominator: number | NumberU64
 ): TransactionInstruction => {
   const keys = [
     { pubkey: tokenSwapAccount.publicKey, isSigner: false, isWritable: true },
@@ -24,9 +25,9 @@ export const createInitSwapInstruction = (
   ];
   const dataLayout = BufferLayout.struct([
     BufferLayout.u8("instruction"),
-    BufferLayout.nu64("ampFactor"),
-    BufferLayout.nu64("feeNumerator"),
-    BufferLayout.nu64("feeDenominator"),
+    Uint64Layout("ampFactor"),
+    Uint64Layout("feeNumerator"),
+    Uint64Layout("feeDenominator"),
     BufferLayout.u8("nonce"),
   ]);
   let data = Buffer.alloc(dataLayout.span);
@@ -35,9 +36,9 @@ export const createInitSwapInstruction = (
       {
         instruction: 0, // InitializeSwap instruction
         nonce,
-        ampFactor,
-        feeNumerator,
-        feeDenominator,
+        ampFactor: new NumberU64(ampFactor).toBuffer(),
+        feeNumerator: new NumberU64(feeNumerator).toBuffer(),
+        feeDenominator: new NumberU64(feeDenominator).toBuffer(),
       },
       data
     );
@@ -59,21 +60,21 @@ export const swapInstruction = (
   userDestination: PublicKey,
   swapProgramId: PublicKey,
   tokenProgramId: PublicKey,
-  amountIn: number | Numberu64,
-  minimumAmountOut: number | Numberu64
+  amountIn: number | NumberU64,
+  minimumAmountOut: number | NumberU64
 ): TransactionInstruction => {
   const dataLayout = BufferLayout.struct([
     BufferLayout.u8("instruction"),
-    BufferLayout.nu64("amountIn"),
-    BufferLayout.nu64("minimumAmountOut"),
+    Uint64Layout("amountIn"),
+    Uint64Layout("minimumAmountOut"),
   ]);
 
   const data = Buffer.alloc(dataLayout.span);
   dataLayout.encode(
     {
       instruction: 1, // Swap instruction
-      amountIn: new Numberu64(amountIn).toBuffer(),
-      minimumAmountOut: new Numberu64(minimumAmountOut).toBuffer(),
+      amountIn: new NumberU64(amountIn).toBuffer(),
+      minimumAmountOut: new NumberU64(minimumAmountOut).toBuffer(),
     },
     data
   );
@@ -105,24 +106,23 @@ export const depositInstruction = (
   poolAccount: PublicKey,
   swapProgramId: PublicKey,
   tokenProgramId: PublicKey,
-  tokenAmountA: number | Numberu64,
-  tokenAmountB: number | Numberu64,
-  minimumPoolTokenAmount: number | Numberu64
+  tokenAmountA: number | NumberU64,
+  tokenAmountB: number | NumberU64,
+  minimumPoolTokenAmount: number | NumberU64
 ): TransactionInstruction => {
   const dataLayout = BufferLayout.struct([
     BufferLayout.u8("instruction"),
-    BufferLayout.nu64("poolTokenAmount"),
-    BufferLayout.nu64("maximumTokenA"),
-    BufferLayout.nu64("maximumTokenB"),
+    Uint64Layout("tokenAmountA"),
+    Uint64Layout("tokenAmountB"),
+    Uint64Layout("minimumPoolTokenAmount"),
   ]);
-
   const data = Buffer.alloc(dataLayout.span);
   dataLayout.encode(
     {
       instruction: 2, // Deposit instruction
-      tokenAmountA: new Numberu64(tokenAmountA).toBuffer(),
-      tokenAmountB: new Numberu64(tokenAmountB).toBuffer(),
-      minimumPoolTokenAmount: new Numberu64(minimumPoolTokenAmount).toBuffer(),
+      tokenAmountA: new NumberU64(tokenAmountA).toBuffer(),
+      tokenAmountB: new NumberU64(tokenAmountB).toBuffer(),
+      minimumPoolTokenAmount: new NumberU64(minimumPoolTokenAmount).toBuffer(),
     },
     data
   );
@@ -156,24 +156,24 @@ export const withdrawInstruction = (
   userAccountB: PublicKey,
   swapProgramId: PublicKey,
   tokenProgramId: PublicKey,
-  poolTokenAmount: number | Numberu64,
-  minimumTokenA: number | Numberu64,
-  minimumTokenB: number | Numberu64
+  poolTokenAmount: number | NumberU64,
+  minimumTokenA: number | NumberU64,
+  minimumTokenB: number | NumberU64
 ): TransactionInstruction => {
   const dataLayout = BufferLayout.struct([
     BufferLayout.u8("instruction"),
-    BufferLayout.nu64("poolTokenAmount"),
-    BufferLayout.nu64("minimumTokenA"),
-    BufferLayout.nu64("minimumTokenB"),
+    Uint64Layout("poolTokenAmount"),
+    Uint64Layout("minimumTokenA"),
+    Uint64Layout("minimumTokenB"),
   ]);
 
   const data = Buffer.alloc(dataLayout.span);
   dataLayout.encode(
     {
       instruction: 3, // Withdraw instruction
-      poolTokenAmount: new Numberu64(poolTokenAmount).toBuffer(),
-      minimumTokenA: new Numberu64(minimumTokenA).toBuffer(),
-      minimumTokenB: new Numberu64(minimumTokenB).toBuffer(),
+      poolTokenAmount: new NumberU64(poolTokenAmount).toBuffer(),
+      minimumTokenA: new NumberU64(minimumTokenA).toBuffer(),
+      minimumTokenB: new NumberU64(minimumTokenB).toBuffer(),
     },
     data
   );

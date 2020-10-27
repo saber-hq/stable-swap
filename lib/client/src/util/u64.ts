@@ -4,8 +4,8 @@ import BN from "bn.js";
 /**
  * Some amount of tokens
  */
-export class Numberu64 extends BN {
-  constructor(n: number | Numberu64) {
+export class NumberU64 extends BN {
+  constructor(n: number | NumberU64) {
     super(n);
   }
 
@@ -28,7 +28,7 @@ export class Numberu64 extends BN {
   /**
    * Construct a Numberu64 from Buffer representation
    */
-  static fromBuffer(buffer: Buffer): Numberu64 {
+  static fromBuffer(buffer: Buffer): NumberU64 {
     assert(buffer.length === 8, `Invalid buffer length: ${buffer.length}`);
     return new BN(
       [...buffer]

@@ -16,7 +16,16 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+    - uses: borales/actions-yarn@v2.0.0
     - name: Build
       run: ./do.sh build
-    - name: Run tests
+    - name: Run unit tests
       run: ./do.sh test
+    - name: Run e2e tests
+      run: |
+        docker-compose up -D
+        ./scripts/deploy_swap_swap.sh
+        yarn --cwd lib/client install
+        yarn --cwd lib/client test
+
+

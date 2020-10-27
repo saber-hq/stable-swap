@@ -168,7 +168,7 @@ describe("e2e test", () => {
       console.error(e)
     }
 
-    // Sleep to make sure token accounts are credted
+    // Sleep to make sure token accounts are credited
     await sleep(15000);
 
     console.log("creating token swap");

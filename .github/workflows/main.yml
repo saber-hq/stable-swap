@@ -23,6 +23,3 @@ jobs:
       run: ./do.sh test
     - name: Run e2e tests
       run: ./do.sh e2e-test
-
-
-

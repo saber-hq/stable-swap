@@ -257,7 +257,7 @@ export class StableSwap {
     const balanceNeeded = await StableSwap.getMinBalanceRentForExemptStableSwap(
       connection
     );
-    let transaction = new Transaction().add(
+    const transaction = new Transaction().add(
       SystemProgram.createAccount({
         fromPubkey: payer.publicKey,
         newAccountPubkey: stableSwapAccount.publicKey,

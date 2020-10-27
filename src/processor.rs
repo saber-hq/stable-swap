@@ -385,15 +385,15 @@ impl Processor {
             token_swap.nonce,
             token_b_amount,
         )?;
-        // Self::token_mint_to(
-        //     swap_info.key,
-        //     token_program_info.clone(),
-        //     pool_mint_info.clone(),
-        //     dest_info.clone(),
-        //     authority_info.clone(),
-        //     token_swap.nonce,
-        //     mint_amount,
-        // )?;
+        Self::token_mint_to(
+            swap_info.key,
+            token_program_info.clone(),
+            pool_mint_info.clone(),
+            dest_info.clone(),
+            authority_info.clone(),
+            token_swap.nonce,
+            mint_amount,
+        )?;
         Ok(())
     }
 

@@ -180,12 +180,6 @@ impl Processor {
         if token_a.mint == token_b.mint {
             return Err(SwapError::RepeatedMint.into());
         }
-        if token_b.amount == 0 {
-            return Err(SwapError::EmptySupply.into());
-        }
-        if token_a.amount == 0 {
-            return Err(SwapError::EmptySupply.into());
-        }
         if token_a.delegate.is_some() {
             return Err(SwapError::InvalidDelegate.into());
         }
@@ -436,11 +430,14 @@ impl Processor {
             return Err(SwapError::IncorrectPoolMint.into());
         }
 
+        let pool_mint = Self::unpack_mint(&pool_mint_info.data.borrow())?;
+        if pool_mint.supply == 0 {
+            return Err(SwapError::EmptyPool.into());
+        }
+
         let token_a = Self::unpack_token_account(&token_a_info.data.borrow())?;
         let token_b = Self::unpack_token_account(&token_b_info.data.borrow())?;
-        let pool_mint = Self::unpack_mint(&pool_mint_info.data.borrow())?;
         let converter = PoolTokenConverter::new(pool_mint.supply, token_a.amount, token_b.amount);
-
         let a_amount = converter
             .token_a_rate(pool_token_amount)
             .ok_or(SwapError::CalculationFailure)?;
@@ -601,7 +598,7 @@ impl PrintProgramError for SwapError {
             SwapError::ExpectedAccount => {
                 info!("Error: Deserialized account is not an SPL Token account")
             }
-            SwapError::EmptySupply => info!("Error: Input token account empty"),
+            SwapError::EmptyPool => info!("Error: Pool token supply is 0"),
             SwapError::InvalidSupply => info!("Error: Pool token mint has a non-zero supply"),
             SwapError::RepeatedMint => info!("Error: Swap input token accounts have the same mint"),
             SwapError::InvalidDelegate => info!("Error: Token account has a delegate"),
@@ -1299,44 +1296,6 @@ mod tests {
                 accounts.initialize_swap()
             );
             accounts.pool_mint_account = old_mint;
-        }
-
-        // empty token A account
-        {
-            let (_token_a_key, token_a_account) = mint_token(
-                &TOKEN_PROGRAM_ID,
-                &accounts.token_a_mint_key,
-                &mut accounts.token_a_mint_account,
-                &user_key,
-                &accounts.authority_key,
-                0,
-            );
-            let old_account = accounts.token_a_account;
-            accounts.token_a_account = token_a_account;
-            assert_eq!(
-                Err(SwapError::EmptySupply.into()),
-                accounts.initialize_swap()
-            );
-            accounts.token_a_account = old_account;
-        }
-
-        // empty token B account
-        {
-            let (_token_b_key, token_b_account) = mint_token(
-                &TOKEN_PROGRAM_ID,
-                &accounts.token_b_mint_key,
-                &mut accounts.token_b_mint_account,
-                &user_key,
-                &accounts.authority_key,
-                0,
-            );
-            let old_account = accounts.token_b_account;
-            accounts.token_b_account = token_b_account;
-            assert_eq!(
-                Err(SwapError::EmptySupply.into()),
-                accounts.initialize_swap()
-            );
-            accounts.token_b_account = old_account;
         }
 
         // invalid pool tokens

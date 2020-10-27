@@ -14,6 +14,7 @@ Supported actions:
     dump
     fmt
     test
+    e2e-test
     update
 EOF
 }
@@ -54,6 +55,15 @@ perform_action() {
             cargo +nightly clippy  --features=program ${@:2}
         )
         ;;
+    e2e-test)
+        (
+            docker-compose up -d
+            ./scripts/deploy_stable_swap.sh
+            yarn --cwd lib/client install
+            yarn --cwd lib/client test
+            docker-compose down
+        )
+    ;;
     doc)
         (
             echo "generating docs ..."

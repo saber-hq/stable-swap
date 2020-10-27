@@ -22,11 +22,7 @@ jobs:
     - name: Run unit tests
       run: ./do.sh test
     - name: Run e2e tests
-      run: |
-        docker-compose up -d
-        ./scripts/deploy_stable_swap.sh
-        yarn --cwd lib/client install
-        yarn --cwd lib/client test
-        docker-compose down
+      run: ./do.sh e2e-test
+
 
 

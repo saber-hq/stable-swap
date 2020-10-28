@@ -44,7 +44,7 @@ describe("e2e test", () => {
   let owner: Account;
   // Token pool
   let tokenPool: Token;
-  let tokenPoolAccount: PublicKey;
+  let userPoolAccount: PublicKey;
   // Tokens swapped
   let mintA: Token;
   let mintB: Token;
@@ -91,7 +91,7 @@ describe("e2e test", () => {
 
     console.log("creating pool account");
     try {
-      tokenPoolAccount = await tokenPool.createAccount(owner.publicKey);
+      userPoolAccount = await tokenPool.createAccount(owner.publicKey);
     } catch (e) {
       console.error(e);
     }
@@ -204,7 +204,7 @@ describe("e2e test", () => {
       await stableSwap.deposit(
         userAccountA,
         userAccountB,
-        tokenPoolAccount,
+        userPoolAccount,
         depositAmountA,
         depositAmountB,
         0 // To avoid slippage errors
@@ -221,7 +221,7 @@ describe("e2e test", () => {
     expect(info.amount.toNumber()).toBe(depositAmountA);
     info = await mintB.getAccountInfo(tokenAccountB);
     expect(info.amount.toNumber()).toBe(depositAmountB);
-    info = await tokenPool.getAccountInfo(tokenPoolAccount);
+    info = await tokenPool.getAccountInfo(userPoolAccount);
     expect(info.amount.toNumber()).toBe(2010050251); // TODO: Check this number
   });
 
@@ -231,7 +231,7 @@ describe("e2e test", () => {
     const oldSupply = poolMintInfo.supply.toNumber();
     const oldSwapTokenA = await mintA.getAccountInfo(tokenAccountA);
     const oldSwapTokenB = await mintB.getAccountInfo(tokenAccountB);
-    const oldPoolToken = await tokenPool.getAccountInfo(tokenPoolAccount);
+    const oldPoolToken = await tokenPool.getAccountInfo(userPoolAccount);
     const expectedWithdrawA = Math.floor(
       (oldSwapTokenA.amount.toNumber() * withdrawalAmount) / oldSupply
     );
@@ -245,7 +245,7 @@ describe("e2e test", () => {
     const userAccountB = await mintB.createAccount(owner.publicKey);
     console.log("Approving withdrawal from pool account");
     await tokenPool.approve(
-      tokenPoolAccount,
+      userPoolAccount,
       authority,
       owner,
       [],
@@ -259,7 +259,7 @@ describe("e2e test", () => {
     await stableSwap.withdraw(
       userAccountA,
       userAccountB,
-      tokenPoolAccount,
+      userPoolAccount,
       withdrawalAmount,
       0, // To avoid slippage errors
       0 // To avoid spliiage errors
@@ -269,7 +269,7 @@ describe("e2e test", () => {
     expect(info.amount.toNumber()).toBe(expectedWithdrawA);
     info = await mintB.getAccountInfo(userAccountB);
     expect(info.amount.toNumber()).toBe(expectedWithdrawB);
-    info = await tokenPool.getAccountInfo(tokenPoolAccount);
+    info = await tokenPool.getAccountInfo(userPoolAccount);
     expect(info.amount.toNumber()).toBe(
       oldPoolToken.amount.toNumber() - withdrawalAmount
     );

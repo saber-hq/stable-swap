@@ -22,8 +22,8 @@ const FEE_DENOMINATOR = new NumberU64(4);
 const oneSol = 1000000000;
 
 const getStableSwapAddress = (): string => {
-  let data = fs.readFileSync("../../localnet-address.json", "utf-8");
-  let addresses = JSON.parse(data);
+  const data = fs.readFileSync("../../localnet-address.json", "utf-8");
+  const addresses = JSON.parse(data);
   return addresses.stableSwap as string;
 };
 
@@ -54,13 +54,10 @@ describe("e2e test", () => {
   beforeAll(async (done) => {
     // Bootstrap Test Environment ...
     connection = new Connection(CLUSTER_URL, "single");
-
-    stableSwapProgramId = new PublicKey(getStableSwapAddress());
-
-    console.log("Token Program ID", TokenProgramId.toString());
-    console.log("StableSwap Program ID", stableSwapProgramId.toString());
     payer = await newAccountWithLamports(connection, oneSol);
     owner = await newAccountWithLamports(connection, oneSol);
+
+    stableSwapProgramId = new PublicKey(getStableSwapAddress());
     stableSwapAccount = new Account();
     try {
       [authority, nonce] = await PublicKey.findProgramAddress(
@@ -68,10 +65,9 @@ describe("e2e test", () => {
         stableSwapProgramId
       );
     } catch (e) {
-      console.error(e);
+      throw new Error(e);
     }
-
-    console.log("creating pool mint");
+    // creating pool mint
     try {
       tokenPool = await Token.createMint(
         connection,
@@ -82,17 +78,15 @@ describe("e2e test", () => {
         TokenProgramId
       );
     } catch (e) {
-      console.error(e);
+      throw new Error(e);
     }
-
-    console.log("creating pool account");
+    // creating pool account
     try {
       userPoolAccount = await tokenPool.createAccount(owner.publicKey);
     } catch (e) {
-      console.error(e);
+      throw new Error(e);
     }
-
-    console.log("creating token A");
+    // creating token A
     try {
       mintA = await Token.createMint(
         connection,
@@ -103,17 +97,15 @@ describe("e2e test", () => {
         TokenProgramId
       );
     } catch (e) {
-      console.error(e);
+      throw new Error(e);
     }
-
-    console.log("creating token A account");
+    // creating token A account
     try {
       tokenAccountA = await mintA.createAccount(authority);
     } catch (e) {
-      console.error(e);
+      throw new Error(e);
     }
-
-    console.log("creating token B");
+    // creating token B
     try {
       mintB = await Token.createMint(
         connection,
@@ -126,18 +118,16 @@ describe("e2e test", () => {
     } catch (e) {
       throw new Error(e);
     }
-
-    console.log("creating token B account");
+    // creating token B account
     try {
       tokenAccountB = await mintB.createAccount(authority);
     } catch (e) {
       throw new Error(e);
     }
-
     // Sleep to make sure token accounts are created ...
     await sleep(500);
 
-    console.log("creating token swap");
+    // creating token swap
     try {
       stableSwap = await StableSwap.createStableSwap(
         connection,
@@ -185,18 +175,18 @@ describe("e2e test", () => {
   it("deposit", async () => {
     const depositAmountA = oneSol;
     const depositAmountB = oneSol;
-    console.log("Creating depositor token a account");
+    // Creating depositor token a account
     const userAccountA = await mintA.createAccount(owner.publicKey);
     await mintA.mintTo(userAccountA, owner, [], depositAmountA);
     await mintA.approve(userAccountA, authority, owner, [], depositAmountA);
-    console.log("Creating depositor token b account");
+    // Creating depositor token b account
     const userAccountB = await mintB.createAccount(owner.publicKey);
     await mintB.mintTo(userAccountB, owner, [], depositAmountB);
     await mintB.approve(userAccountB, authority, owner, [], depositAmountB);
     // Make sure all token accounts are created and approved
     await sleep(500);
 
-    console.log("Depositing into swap");
+    // Depositing into swap
     try {
       await stableSwap.deposit(
         userAccountA,
@@ -236,11 +226,11 @@ describe("e2e test", () => {
       (oldSwapTokenB.amount.toNumber() * withdrawalAmount) / oldSupply
     );
 
-    console.log("Creating withdraw token A account");
+    // Creating withdraw token A account
     const userAccountA = await mintA.createAccount(owner.publicKey);
-    console.log("Creating withdraw token B account");
+    // Creating withdraw token B account
     const userAccountB = await mintB.createAccount(owner.publicKey);
-    console.log("Approving withdrawal from pool account");
+    // Approving withdrawal from pool account
     await tokenPool.approve(
       userPoolAccount,
       authority,
@@ -251,7 +241,7 @@ describe("e2e test", () => {
     // Make sure all token accounts are created and approved
     await sleep(500);
 
-    console.log("Withdrawing pool tokens for A and B tokens");
+    // Withdrawing pool tokens for A and B tokens
     await stableSwap.withdraw(
       userAccountA,
       userAccountB,
@@ -285,16 +275,16 @@ describe("e2e test", () => {
     const oldSwapTokenB = await mintB.getAccountInfo(tokenAccountB);
     // Amount passed to swap instruction
     const SWAP_AMOUNT_IN = 100000;
-    console.log("Creating swap token a account");
-    let userAccountA = await mintA.createAccount(owner.publicKey);
+    // Creating swap token a account
+    const userAccountA = await mintA.createAccount(owner.publicKey);
     await mintA.mintTo(userAccountA, owner, [], SWAP_AMOUNT_IN);
     await mintA.approve(userAccountA, authority, owner, [], SWAP_AMOUNT_IN);
-    console.log("Creating swap token b account");
-    let userAccountB = await mintB.createAccount(owner.publicKey);
+    // Creating swap token b account
+    const userAccountB = await mintB.createAccount(owner.publicKey);
     // Make sure all token accounts are created and approved
     await sleep(500);
 
-    console.log("Swapping");
+    // Swapping
     await stableSwap.swap(
       userAccountA, // User source token account       | User source -> Swap source
       tokenAccountA, // Swap source token account
@@ -327,16 +317,16 @@ describe("e2e test", () => {
     const oldSwapTokenB = await mintB.getAccountInfo(tokenAccountB);
     // Amount passed to swap instruction
     const SWAP_AMOUNT_IN = 100000;
-    console.log("Creating swap token b account");
-    let userAccountB = await mintB.createAccount(owner.publicKey);
+    // Creating swap token b account
+    const userAccountB = await mintB.createAccount(owner.publicKey);
     await mintB.mintTo(userAccountB, owner, [], SWAP_AMOUNT_IN);
     await mintB.approve(userAccountB, authority, owner, [], SWAP_AMOUNT_IN);
-    console.log("Creating swap token a account");
-    let userAccountA = await mintA.createAccount(owner.publicKey);
+    // Creating swap token a account
+    const userAccountA = await mintA.createAccount(owner.publicKey);
     // Make sure all token accounts are created and approved
     await sleep(500);
 
-    console.log("Swapping");
+    // Swapping");
     await stableSwap.swap(
       userAccountB, // User source token account       | User source -> Swap source
       tokenAccountB, // Swap source token account

@@ -15,11 +15,12 @@ export async function newAccountWithLamports(
   try {
     await connection.requestAirdrop(account.publicKey, lamports);
   } catch (e) {
+    // tslint:disable:no-console
     console.error(e);
   }
   for (;;) {
     await sleep(500);
-    if (lamports == (await connection.getBalance(account.publicKey))) {
+    if (lamports === (await connection.getBalance(account.publicKey))) {
       return account;
     }
     if (--retries <= 0) {

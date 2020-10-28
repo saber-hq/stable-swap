@@ -653,7 +653,6 @@ mod tests {
         swap_account: Account,
         pool_mint_key: Pubkey,
         pool_mint_account: Account,
-        pool_token_key: Pubkey,
         pool_token_account: Account,
         token_a_key: Pubkey,
         token_a_account: Account,
@@ -681,7 +680,7 @@ mod tests {
 
             let (pool_mint_key, mut pool_mint_account) =
                 create_mint(&TOKEN_PROGRAM_ID, &authority_key);
-            let (pool_token_key, pool_token_account) = mint_token(
+            let (_pool_token_key, pool_token_account) = mint_token(
                 &TOKEN_PROGRAM_ID,
                 &pool_mint_key,
                 &mut pool_mint_account,
@@ -720,7 +719,6 @@ mod tests {
                 swap_account,
                 pool_mint_key,
                 pool_mint_account,
-                pool_token_key,
                 pool_token_account,
                 token_a_key,
                 token_a_account,

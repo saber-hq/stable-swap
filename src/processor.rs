@@ -295,8 +295,8 @@ impl Processor {
         let authority_info = next_account_info(account_info_iter)?;
         let source_a_info = next_account_info(account_info_iter)?;
         let source_b_info = next_account_info(account_info_iter)?;
-        let vault_a_info = next_account_info(account_info_iter)?;
-        let vault_b_info = next_account_info(account_info_iter)?;
+        let token_a_info = next_account_info(account_info_iter)?;
+        let token_b_info = next_account_info(account_info_iter)?;
         let pool_mint_info = next_account_info(account_info_iter)?;
         let dest_info = next_account_info(account_info_iter)?;
         let token_program_info = next_account_info(account_info_iter)?;
@@ -305,18 +305,18 @@ impl Processor {
         if *authority_info.key != Self::authority_id(program_id, swap_info.key, token_swap.nonce)? {
             return Err(SwapError::InvalidProgramAddress.into());
         }
-        if *vault_a_info.key != token_swap.token_a {
+        if *token_a_info.key != token_swap.token_a {
             return Err(SwapError::IncorrectSwapAccount.into());
         }
-        if *vault_b_info.key != token_swap.token_b {
+        if *token_b_info.key != token_swap.token_b {
             return Err(SwapError::IncorrectSwapAccount.into());
         }
         if *pool_mint_info.key != token_swap.pool_mint {
             return Err(SwapError::IncorrectPoolMint.into());
         }
 
-        let vault_a = Self::unpack_token_account(&vault_a_info.data.borrow())?;
-        let vault_b = Self::unpack_token_account(&vault_b_info.data.borrow())?;
+        let token_a = Self::unpack_token_account(&token_a_info.data.borrow())?;
+        let token_b = Self::unpack_token_account(&token_b_info.data.borrow())?;
         let pool_mint = Self::unpack_mint(&pool_mint_info.data.borrow())?;
 
         // Initial deposit requires both token_a and token_b
@@ -330,13 +330,13 @@ impl Processor {
         // Initial invariant
         let mut d_0: u64 = 0; // XXX: Curve uses u256
         if pool_mint.supply > 0 {
-            d_0 = invariant.compute_d(vault_a.amount, vault_b.amount);
+            d_0 = invariant.compute_d(token_a.amount, token_b.amount);
         }
 
-        let old_balances = [vault_a.amount, vault_b.amount];
+        let old_balances = [token_a.amount, token_b.amount];
         let mut new_balances = [
-            vault_a.amount + token_a_amount,
-            vault_b.amount + token_b_amount,
+            token_a.amount + token_a_amount,
+            token_b.amount + token_b_amount,
         ];
         // Invariant after change
         let d_1 = invariant.compute_d(new_balances[0], new_balances[1]);
@@ -373,7 +373,7 @@ impl Processor {
             swap_info.key,
             token_program_info.clone(),
             source_a_info.clone(),
-            vault_a_info.clone(),
+            token_a_info.clone(),
             authority_info.clone(),
             token_swap.nonce,
             token_a_amount,
@@ -382,7 +382,7 @@ impl Processor {
             swap_info.key,
             token_program_info.clone(),
             source_b_info.clone(),
-            vault_b_info.clone(),
+            token_b_info.clone(),
             authority_info.clone(),
             token_swap.nonce,
             token_b_amount,
@@ -591,9 +591,6 @@ impl PrintProgramError for SwapError {
             SwapError::InvalidOwner => {
                 info!("Error: The input account owner is not the program address")
             }
-            SwapError::InvalidOutputOwner => {
-                info!("Error: Output pool account owner cannot be the program address")
-            }
             SwapError::ExpectedMint => {
                 info!("Error: Deserialized account is not an SPL Token mint")
             }
@@ -611,7 +608,6 @@ impl PrintProgramError for SwapError {
             SwapError::IncorrectPoolMint => {
                 info!("Error: Address of the provided pool token mint is incorrect")
             }
-            SwapError::InvalidOutput => info!("Error: InvalidOutput"),
             SwapError::CalculationFailure => info!("Error: CalculationFailure"),
             SwapError::InvalidInstruction => info!("Error: InvalidInstruction"),
             SwapError::ExceededSlippage => {
@@ -657,7 +653,6 @@ mod tests {
         swap_account: Account,
         pool_mint_key: Pubkey,
         pool_mint_account: Account,
-        pool_token_key: Pubkey,
         pool_token_account: Account,
         token_a_key: Pubkey,
         token_a_account: Account,
@@ -685,7 +680,7 @@ mod tests {
 
             let (pool_mint_key, mut pool_mint_account) =
                 create_mint(&TOKEN_PROGRAM_ID, &authority_key);
-            let (pool_token_key, pool_token_account) = mint_token(
+            let (_pool_token_key, pool_token_account) = mint_token(
                 &TOKEN_PROGRAM_ID,
                 &pool_mint_key,
                 &mut pool_mint_account,
@@ -724,7 +719,6 @@ mod tests {
                 swap_account,
                 pool_mint_key,
                 pool_mint_account,
-                pool_token_key,
                 pool_token_account,
                 token_a_key,
                 token_a_account,

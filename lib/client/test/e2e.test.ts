@@ -312,13 +312,54 @@ describe("e2e test", () => {
     expect(info.amount.toNumber()).toBe(
       oldSwapTokenA.amount.toNumber() + SWAP_AMOUNT_IN
     );
-    console.log(FEE_NUMERATOR.div(FEE_DENOMINATOR).toNumber());
     const EXPECTED_AMOUNT_OUT = 75000; // EXPECTED_AMOUNT_OUT = SWAP_AMOUNT_IN * (1 - FEES)
     info = await mintB.getAccountInfo(userAccountB);
     expect(info.amount.toNumber()).toBe(EXPECTED_AMOUNT_OUT);
     info = await mintB.getAccountInfo(tokenAccountB);
     expect(info.amount.toNumber()).toBe(
       oldSwapTokenB.amount.toNumber() - EXPECTED_AMOUNT_OUT
+    );
+  });
+
+  it("swap B->A", async () => {
+    // Swap accounts before swap
+    const oldSwapTokenA = await mintA.getAccountInfo(tokenAccountA);
+    const oldSwapTokenB = await mintB.getAccountInfo(tokenAccountB);
+    // Amount passed to swap instruction
+    const SWAP_AMOUNT_IN = 100000;
+    console.log("Creating swap token b account");
+    let userAccountB = await mintB.createAccount(owner.publicKey);
+    await mintB.mintTo(userAccountB, owner, [], SWAP_AMOUNT_IN);
+    await mintB.approve(userAccountB, authority, owner, [], SWAP_AMOUNT_IN);
+    console.log("Creating swap token a account");
+    let userAccountA = await mintA.createAccount(owner.publicKey);
+    // Make sure all token accounts are created and approved
+    await sleep(500);
+
+    console.log("Swapping");
+    await stableSwap.swap(
+      userAccountB, // User source token account       | User source -> Swap source
+      tokenAccountB, // Swap source token account
+      tokenAccountA, // Swap destination token account | Swap dest -> User dest
+      userAccountA, // User destination token account
+      SWAP_AMOUNT_IN,
+      0 // To avoid slippage errors
+    );
+    // Make sure swap was complete
+    await sleep(500);
+
+    let info = await mintB.getAccountInfo(userAccountB);
+    expect(info.amount.toNumber()).toBe(0);
+    info = await mintB.getAccountInfo(tokenAccountB);
+    expect(info.amount.toNumber()).toBe(
+      oldSwapTokenB.amount.toNumber() + SWAP_AMOUNT_IN
+    );
+    const EXPECTED_AMOUNT_OUT = 75000; // EXPECTED_AMOUNT_OUT = SWAP_AMOUNT_IN * (1 - FEES)
+    info = await mintA.getAccountInfo(userAccountA);
+    expect(info.amount.toNumber()).toBe(EXPECTED_AMOUNT_OUT);
+    info = await mintA.getAccountInfo(tokenAccountA);
+    expect(info.amount.toNumber()).toBe(
+      oldSwapTokenA.amount.toNumber() - EXPECTED_AMOUNT_OUT
     );
   });
 });

@@ -1,7 +1,11 @@
 import fs from "fs";
 
 import { Token } from "@solana/spl-token";
-import { Account, Connection, PublicKey } from "@solana/web3.js";
+import {
+  Account,
+  Connection,
+  PublicKey,
+} from "@solana/web3.js";
 
 import { StableSwap } from "../src";
 import { NumberU64 } from "../src/util/u64";
@@ -40,7 +44,7 @@ describe("e2e test", () => {
   let owner: Account;
   // Token pool
   let tokenPool: Token;
-  let tokenAccountPool: PublicKey;
+  let userPoolAccount: PublicKey;
   // Tokens swapped
   let mintA: Token;
   let mintB: Token;
@@ -87,7 +91,7 @@ describe("e2e test", () => {
 
     console.log("creating pool account");
     try {
-      tokenAccountPool = await tokenPool.createAccount(owner.publicKey);
+      userPoolAccount = await tokenPool.createAccount(owner.publicKey);
     } catch (e) {
       console.error(e);
     }
@@ -193,9 +197,6 @@ describe("e2e test", () => {
     const userAccountB = await mintB.createAccount(owner.publicKey);
     await mintB.mintTo(userAccountB, owner, [], depositAmountB);
     await mintB.approve(userAccountB, authority, owner, [], depositAmountB);
-    console.log("Creating depositor pool token account");
-    const newAccountPool = await tokenPool.createAccount(owner.publicKey);
-    // Make sure all token accounts are created and credited
     await sleep(500);
 
     console.log("Depositing into swap");
@@ -203,7 +204,7 @@ describe("e2e test", () => {
       await stableSwap.deposit(
         userAccountA,
         userAccountB,
-        newAccountPool,
+        userPoolAccount,
         depositAmountA,
         depositAmountB,
         0 // To avoid slippage errors
@@ -220,7 +221,65 @@ describe("e2e test", () => {
     expect(info.amount.toNumber()).toBe(depositAmountA);
     info = await mintB.getAccountInfo(tokenAccountB);
     expect(info.amount.toNumber()).toBe(depositAmountB);
-    info = await tokenPool.getAccountInfo(newAccountPool);
+    info = await tokenPool.getAccountInfo(userPoolAccount);
     expect(info.amount.toNumber()).toBe(2010050251); // TODO: Check this number
+  });
+
+  it("withdraw", async () => {
+    const withdrawalAmount = 100000;
+    const poolMintInfo = await tokenPool.getMintInfo();
+    const oldSupply = poolMintInfo.supply.toNumber();
+    const oldSwapTokenA = await mintA.getAccountInfo(tokenAccountA);
+    const oldSwapTokenB = await mintB.getAccountInfo(tokenAccountB);
+    const oldPoolToken = await tokenPool.getAccountInfo(userPoolAccount);
+    const expectedWithdrawA = Math.floor(
+      (oldSwapTokenA.amount.toNumber() * withdrawalAmount) / oldSupply
+    );
+    const expectedWithdrawB = Math.floor(
+      (oldSwapTokenB.amount.toNumber() * withdrawalAmount) / oldSupply
+    );
+
+    console.log("Creating withdraw token A account");
+    const userAccountA = await mintA.createAccount(owner.publicKey);
+    console.log("Creating withdraw token B account");
+    const userAccountB = await mintB.createAccount(owner.publicKey);
+    console.log("Approving withdrawal from pool account");
+    await tokenPool.approve(
+      userPoolAccount,
+      authority,
+      owner,
+      [],
+      withdrawalAmount
+    );
+
+    // Make sure all token accounts are created and approved
+    await sleep(500);
+
+    console.log("Withdrawing pool tokens for A and B tokens");
+    await stableSwap.withdraw(
+      userAccountA,
+      userAccountB,
+      userPoolAccount,
+      withdrawalAmount,
+      0, // To avoid slippage errors
+      0 // To avoid spliiage errors
+    );
+
+    let info = await mintA.getAccountInfo(userAccountA);
+    expect(info.amount.toNumber()).toBe(expectedWithdrawA);
+    info = await mintB.getAccountInfo(userAccountB);
+    expect(info.amount.toNumber()).toBe(expectedWithdrawB);
+    info = await tokenPool.getAccountInfo(userPoolAccount);
+    expect(info.amount.toNumber()).toBe(
+      oldPoolToken.amount.toNumber() - withdrawalAmount
+    );
+    const newSwapTokenA = await mintA.getAccountInfo(tokenAccountA);
+    expect(newSwapTokenA.amount.toNumber()).toBe(
+      oldSwapTokenA.amount.toNumber() - expectedWithdrawA
+    );
+    const newSwapTokenB = await mintB.getAccountInfo(tokenAccountB);
+    expect(newSwapTokenB.amount.toNumber()).toBe(
+      oldSwapTokenB.amount.toNumber() - expectedWithdrawB
+    );
   });
 });

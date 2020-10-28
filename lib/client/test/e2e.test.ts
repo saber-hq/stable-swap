@@ -5,7 +5,6 @@ import {
   Account,
   Connection,
   PublicKey,
-  TokenAccountsFilter,
 } from "@solana/web3.js";
 
 import { StableSwap } from "../src";

@@ -591,9 +591,6 @@ impl PrintProgramError for SwapError {
             SwapError::InvalidOwner => {
                 info!("Error: The input account owner is not the program address")
             }
-            SwapError::InvalidOutputOwner => {
-                info!("Error: Output pool account owner cannot be the program address")
-            }
             SwapError::ExpectedMint => {
                 info!("Error: Deserialized account is not an SPL Token mint")
             }
@@ -611,7 +608,6 @@ impl PrintProgramError for SwapError {
             SwapError::IncorrectPoolMint => {
                 info!("Error: Address of the provided pool token mint is incorrect")
             }
-            SwapError::InvalidOutput => info!("Error: InvalidOutput"),
             SwapError::CalculationFailure => info!("Error: CalculationFailure"),
             SwapError::InvalidInstruction => info!("Error: InvalidInstruction"),
             SwapError::ExceededSlippage => {

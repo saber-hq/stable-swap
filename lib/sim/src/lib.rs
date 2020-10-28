@@ -17,7 +17,7 @@ pub struct Model {
 }
 
 pub struct Properties {
-    pub A: u64,
+    pub amp: u64,
     pub n: u64,
     pub fee: u64,
     pub p: Vec<u64>,
@@ -54,7 +54,7 @@ impl Model {
             )
             .unwrap();
         Properties {
-            A: model
+            amp: model
                 .getattr("A")
                 .unwrap()
                 .to_object(py)
@@ -141,11 +141,11 @@ impl Model {
             .unwrap();
     }
 
-    pub fn sim_remove_liquidity_imbalance(&self, amounts: Vec<u64>) -> u64 {
+    pub fn sim_remove_liquidity_imbalance(&self, _amounts: Vec<u64>) -> u64 {
         unimplemented!("sim_remove_liquidity_imbalance not implemented")
     }
 
-    pub fn sim_calc_withdraw_one_coin(&self, token_amount: u64, i: u64) -> u64 {
+    pub fn sim_calc_withdraw_one_coin(&self, _token_amount: u64, _i: u64) -> u64 {
         unimplemented!("sim_remove_liquidity_imbalance not implemented")
     }
 

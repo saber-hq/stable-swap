@@ -124,14 +124,14 @@ describe("e2e test", () => {
         TokenProgramId
       );
     } catch (e) {
-      console.error(e);
+      throw new Error(e);
     }
 
     console.log("creating token B account");
     try {
       tokenAccountB = await mintB.createAccount(authority);
     } catch (e) {
-      console.error(e);
+      throw new Error(e);
     }
 
     // Sleep to make sure token accounts are created ...
@@ -157,7 +157,7 @@ describe("e2e test", () => {
         FEE_DENOMINATOR
       );
     } catch (e) {
-      console.error(e);
+      throw new Error(e);
     }
 
     done();

@@ -120,8 +120,8 @@ perform_action() {
         )
         ;;
     help)
-        usage
-        exit
+            usage
+            exit
         ;;
     test)
         (
@@ -129,8 +129,8 @@ perform_action() {
         )
         ;;
     update)
-        mkdir -p $sdkParentDir
-        ./bpf-sdk-install.sh $sdkParentDir
+            mkdir -p $sdkParentDir
+            ./scripts/bpf-sdk-install.sh $sdkParentDir
         ;;
     *)
         echo "Error: Unknown command"

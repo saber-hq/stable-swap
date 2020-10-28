@@ -2,7 +2,7 @@
 set -e
 
 channel=beta
-installDir="$(dirname "$0")"/bin
+installDir=$PWD/bin
 cacheDir=~/.cache/solana-bpf-sdk/"$channel"
 
 echo "Installing $channel BPF SDK into $installDir"

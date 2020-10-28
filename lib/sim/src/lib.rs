@@ -146,7 +146,7 @@ impl Model {
     }
 
     pub fn sim_calc_withdraw_one_coin(&self, _token_amount: u64, _i: u64) -> u64 {
-        unimplemented!("sim_remove_liquidity_imbalance not implemented")
+        unimplemented!("sim_calc_withdraw_one_coin not implemented")
     }
 
     fn call0(&self, py: Python, method_name: &str) -> Result<PyObject, PyErr> {

@@ -6,7 +6,7 @@ use std::io::prelude::*;
 const FILE_NAME: &str = "simulation.py";
 const MODULE_NAME: &str = "simulation";
 
-const DEFAULT_POOL_TOKENS: u64 = 1000;
+const DEFAULT_POOL_TOKENS: u64 = 0;
 const DEFAULT_TARGET_PRICE: u64 = 1000000000000000000;
 pub const MODEL_FEE_NUMERATOR: u64 = 1;
 pub const MODEL_FEE_DENOMINATOR: u64 = 1000;
@@ -38,6 +38,31 @@ impl Model {
             n_coins: n_coins,
             target_prices: vec![DEFAULT_TARGET_PRICE, DEFAULT_TARGET_PRICE],
             pool_tokens: DEFAULT_POOL_TOKENS,
+        }
+    }
+
+    pub fn new_with_pool_tokens(
+        amp_factor: u64,
+        balances: Vec<u64>,
+        n_coins: u64,
+        pool_token_amount: u64,
+    ) -> Model {
+        let src_file = File::open("lib/sim/simulation.py");
+        let mut src_file = match src_file {
+            Ok(file) => file,
+            Err(error) => {panic!("{:?}\n Please run `curl -L
+            https://raw.githubusercontent.com/curvefi/curve-contract/master/tests/simulation.py > sim/lib/simulation.py`", error)}
+        };
+        let mut src_content = String::new();
+        let _ = src_file.read_to_string(&mut src_content);
+
+        Self {
+            py_src: src_content,
+            amp_factor: amp_factor,
+            balances: balances,
+            n_coins: n_coins,
+            target_prices: vec![DEFAULT_TARGET_PRICE, DEFAULT_TARGET_PRICE],
+            pool_tokens: pool_token_amount,
         }
     }
 

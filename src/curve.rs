@@ -182,7 +182,7 @@ mod tests {
 
     fn check_d(model: &Model, amount_a: u64, amount_b: u64) -> u64 {
         let swap = StableSwap {
-            amp_factor: model.get_properties().amp,
+            amp_factor: model.amp_factor,
         };
         let d = swap.compute_d(amount_a, amount_b);
         assert_eq!(d, model.sim_d());
@@ -191,7 +191,7 @@ mod tests {
 
     fn check_y(model: &Model, x: u64, d: u64) {
         let swap = StableSwap {
-            amp_factor: model.get_properties().amp,
+            amp_factor: model.amp_factor,
         };
         assert_eq!(swap.compute_y(x, d), model.sim_y(0, 1, x))
     }

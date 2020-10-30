@@ -6,23 +6,18 @@ use std::io::prelude::*;
 const FILE_NAME: &str = "simulation.py";
 const MODULE_NAME: &str = "simulation";
 
+const DEFAULT_POOL_TOKENS: u64 = 1000;
+const DEFAULT_TARGET_PRICE: u64 = 1000000000000000000;
 pub const MODEL_FEE_NUMERATOR: u64 = 1;
 pub const MODEL_FEE_DENOMINATOR: u64 = 1000;
 
 pub struct Model {
     py_src: String,
-    amp_factor: u64,
-    balances: Vec<u64>,
-    n_coins: u64,
-}
-
-pub struct Properties {
-    pub amp: u64,
-    pub n: u64,
-    pub fee: u64,
-    pub p: Vec<u64>,
-    pub x: Vec<u64>,
-    // tokens: Vec<u64>,
+    pub amp_factor: u64,
+    pub balances: Vec<u64>,
+    pub n_coins: u64,
+    pub target_prices: Vec<u64>,
+    pub pool_tokens: u64,
 }
 
 impl Model {
@@ -35,55 +30,14 @@ impl Model {
         };
         let mut src_content = String::new();
         let _ = src_file.read_to_string(&mut src_content);
+
         Self {
             py_src: src_content,
             amp_factor: amp_factor,
             balances: balances,
             n_coins: n_coins,
-        }
-    }
-
-    pub fn get_properties(&self) -> Properties {
-        let gil = Python::acquire_gil();
-        let py = gil.python();
-        let sim = PyModule::from_code(py, &self.py_src, FILE_NAME, MODULE_NAME).unwrap();
-        let model = sim
-            .call1(
-                "Curve",
-                (self.amp_factor, self.balances.to_vec(), self.n_coins),
-            )
-            .unwrap();
-        Properties {
-            amp: model
-                .getattr("A")
-                .unwrap()
-                .to_object(py)
-                .extract(py)
-                .unwrap(),
-            n: model
-                .getattr("n")
-                .unwrap()
-                .to_object(py)
-                .extract(py)
-                .unwrap(),
-            fee: model
-                .getattr("fee")
-                .unwrap()
-                .to_object(py)
-                .extract(py)
-                .unwrap(),
-            p: model
-                .getattr("p")
-                .unwrap()
-                .to_object(py)
-                .extract(py)
-                .unwrap(),
-            x: model
-                .getattr("x")
-                .unwrap()
-                .to_object(py)
-                .extract(py)
-                .unwrap(),
+            target_prices: vec![DEFAULT_TARGET_PRICE, DEFAULT_TARGET_PRICE],
+            pool_tokens: DEFAULT_POOL_TOKENS,
         }
     }
 
@@ -141,12 +95,26 @@ impl Model {
             .unwrap();
     }
 
-    pub fn sim_remove_liquidity_imbalance(&self, _amounts: Vec<u64>) -> u64 {
-        unimplemented!("sim_remove_liquidity_imbalance not implemented")
+    pub fn sim_remove_liquidity_imbalance(&self, amounts: Vec<u64>) -> u64 {
+        let gil = Python::acquire_gil();
+        return self
+            .call1(
+                gil.python(),
+                "remove_liquidity_imbalance",
+                PyTuple::new(gil.python(), amounts.to_vec()),
+            )
+            .unwrap()
+            .extract(gil.python())
+            .unwrap();
     }
 
-    pub fn sim_calc_withdraw_one_coin(&self, _token_amount: u64, _i: u64) -> u64 {
-        unimplemented!("sim_calc_withdraw_one_coin not implemented")
+    pub fn sim_calc_withdraw_one_coin(&self, token_amount: u64, i: u64) -> u64 {
+        let gil = Python::acquire_gil();
+        return self
+            .call1(gil.python(), "calc_withdraw_one_coin", (token_amount, i))
+            .unwrap()
+            .extract(gil.python())
+            .unwrap();
     }
 
     fn call0(&self, py: Python, method_name: &str) -> Result<PyObject, PyErr> {
@@ -154,7 +122,13 @@ impl Model {
         let model = sim
             .call1(
                 "Curve",
-                (self.amp_factor, self.balances.to_vec(), self.n_coins),
+                (
+                    self.amp_factor,
+                    self.balances.to_vec(),
+                    self.n_coins,
+                    self.target_prices.to_vec(),
+                    self.pool_tokens,
+                ),
             )
             .unwrap()
             .to_object(py);
@@ -172,7 +146,13 @@ impl Model {
         let model = sim
             .call1(
                 "Curve",
-                (self.amp_factor, self.balances.to_vec(), self.n_coins),
+                (
+                    self.amp_factor,
+                    self.balances.to_vec(),
+                    self.n_coins,
+                    self.target_prices.to_vec(),
+                    self.pool_tokens,
+                ),
             )
             .unwrap()
             .to_object(py);

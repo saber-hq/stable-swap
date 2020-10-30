@@ -615,7 +615,6 @@ impl PrintProgramError for SwapError {
             SwapError::ExceededSlippage => {
                 info!("Error: Swap instruction exceeds desired slippage limit")
             }
-            SwapError::InvalidBootstrap => info!("Error: Initial deposit requires all tokens"),
         }
     }
 }

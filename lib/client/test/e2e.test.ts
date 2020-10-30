@@ -20,6 +20,9 @@ const FEE_NUMERATOR = new NumberU64(1);
 const FEE_DENOMINATOR = new NumberU64(4);
 //  Other constants
 const oneSol = 1000000000;
+// Initial amount in each swap token
+const INITIAL_TOKEN_A_AMOUNT = oneSol;
+const INITIAL_TOKEN_B_AMOUNT = oneSol;
 
 const getStableSwapAddress = (): string => {
   const data = fs.readFileSync("../../localnet-address.json", "utf-8");
@@ -99,9 +102,10 @@ describe("e2e test", () => {
     } catch (e) {
       throw new Error(e);
     }
-    // creating token A account
+    // create token A account then mint to it
     try {
       tokenAccountA = await mintA.createAccount(authority);
+      await mintA.mintTo(tokenAccountA, owner, [], INITIAL_TOKEN_A_AMOUNT);
     } catch (e) {
       throw new Error(e);
     }
@@ -118,9 +122,10 @@ describe("e2e test", () => {
     } catch (e) {
       throw new Error(e);
     }
-    // creating token B account
+    // creating token B account then mint to it
     try {
       tokenAccountB = await mintB.createAccount(authority);
+      await mintB.mintTo(tokenAccountB, owner, [], INITIAL_TOKEN_B_AMOUNT);
     } catch (e) {
       throw new Error(e);
     }
@@ -137,6 +142,7 @@ describe("e2e test", () => {
         tokenAccountA,
         tokenAccountB,
         tokenPool.publicKey,
+        userPoolAccount,
         mintA.publicKey,
         mintB.publicKey,
         stableSwapProgramId,
@@ -153,13 +159,23 @@ describe("e2e test", () => {
     done();
   }, BOOTSTRAP_TIMEOUT);
 
+  it("bootstrapper's LP balance", async () => {
+    const info = await tokenPool.getAccountInfo(userPoolAccount);
+    expect(info.amount.toNumber()).toEqual(2010050251); // TODO: Check this number.
+  });
+
   it("loadStableSwap", async () => {
-    const fetchedStableSwap = await StableSwap.loadStableSwap(
-      connection,
-      stableSwapAccount.publicKey,
-      stableSwapProgramId,
-      payer
-    );
+    let fetchedStableSwap: StableSwap;
+    try {
+      fetchedStableSwap = await StableSwap.loadStableSwap(
+        connection,
+        stableSwapAccount.publicKey,
+        stableSwapProgramId,
+        payer
+      );
+    } catch (e) {
+      throw new Error(e);
+    }
 
     expect(fetchedStableSwap.stableSwap).toEqual(stableSwapAccount.publicKey);
     expect(fetchedStableSwap.tokenAccountA).toEqual(tokenAccountA);
@@ -205,11 +221,15 @@ describe("e2e test", () => {
     info = await mintB.getAccountInfo(userAccountB);
     expect(info.amount.toNumber()).toBe(0);
     info = await mintA.getAccountInfo(tokenAccountA);
-    expect(info.amount.toNumber()).toBe(depositAmountA);
+    expect(info.amount.toNumber()).toBe(
+      INITIAL_TOKEN_A_AMOUNT + depositAmountA
+    );
     info = await mintB.getAccountInfo(tokenAccountB);
-    expect(info.amount.toNumber()).toBe(depositAmountB);
+    expect(info.amount.toNumber()).toBe(
+      INITIAL_TOKEN_B_AMOUNT + depositAmountB
+    );
     info = await tokenPool.getAccountInfo(userPoolAccount);
-    expect(info.amount.toNumber()).toBe(2010050251); // TODO: Check this number
+    expect(info.amount.toNumber()).toBe(4020100473); // TODO: Check this number
   });
 
   it("withdraw", async () => {

@@ -9,7 +9,9 @@ export const createInitSwapInstruction = (
   authority: PublicKey,
   tokenAccountA: PublicKey,
   tokenAccountB: PublicKey,
-  tokenPool: PublicKey,
+  poolToken: PublicKey,
+  poolTokenAccount: PublicKey,
+  tokenProgramId: PublicKey,
   swapProgramId: PublicKey,
   nonce: number,
   ampFactor: number | NumberU64,
@@ -21,7 +23,9 @@ export const createInitSwapInstruction = (
     { pubkey: authority, isSigner: false, isWritable: false },
     { pubkey: tokenAccountA, isSigner: false, isWritable: false },
     { pubkey: tokenAccountB, isSigner: false, isWritable: false },
-    { pubkey: tokenPool, isSigner: false, isWritable: true },
+    { pubkey: poolToken, isSigner: false, isWritable: true },
+    { pubkey: poolTokenAccount, isSigner: false, isWritable: true },
+    { pubkey: tokenProgramId, isSigner: false, isWritable: false },
   ];
   const dataLayout = BufferLayout.struct([
     BufferLayout.u8("instruction"),
@@ -103,7 +107,7 @@ export const depositInstruction = (
   intoA: PublicKey,
   intoB: PublicKey,
   poolToken: PublicKey,
-  poolAccount: PublicKey,
+  poolTokenAccount: PublicKey,
   swapProgramId: PublicKey,
   tokenProgramId: PublicKey,
   tokenAmountA: number | NumberU64,
@@ -135,7 +139,7 @@ export const depositInstruction = (
     { pubkey: intoA, isSigner: false, isWritable: true },
     { pubkey: intoB, isSigner: false, isWritable: true },
     { pubkey: poolToken, isSigner: false, isWritable: true },
-    { pubkey: poolAccount, isSigner: false, isWritable: true },
+    { pubkey: poolTokenAccount, isSigner: false, isWritable: true },
     { pubkey: tokenProgramId, isSigner: false, isWritable: false },
   ];
   return new TransactionInstruction({

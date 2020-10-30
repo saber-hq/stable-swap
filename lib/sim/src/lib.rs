@@ -4,6 +4,7 @@ use std::fs::File;
 use std::io::prelude::*;
 
 const FILE_NAME: &str = "simulation.py";
+const FILE_PATH: &str = "lib/sim/simulation.py";
 const MODULE_NAME: &str = "simulation";
 
 const DEFAULT_POOL_TOKENS: u64 = 0;
@@ -22,7 +23,7 @@ pub struct Model {
 
 impl Model {
     pub fn new(amp_factor: u64, balances: Vec<u64>, n_coins: u64) -> Model {
-        let src_file = File::open("lib/sim/simulation.py");
+        let src_file = File::open(FILE_PATH);
         let mut src_file = match src_file {
             Ok(file) => file,
             Err(error) => {panic!("{:?}\n Please run `curl -L
@@ -47,7 +48,7 @@ impl Model {
         n_coins: u64,
         pool_token_amount: u64,
     ) -> Model {
-        let src_file = File::open("lib/sim/simulation.py");
+        let src_file = File::open(FILE_PATH);
         let mut src_file = match src_file {
             Ok(file) => file,
             Err(error) => {panic!("{:?}\n Please run `curl -L

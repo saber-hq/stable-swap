@@ -25,6 +25,9 @@ pub enum SwapError {
     /// The pool supply is empty.
     #[error("Pool token supply is 0")]
     EmptyPool,
+    /// The input token account is empty.
+    #[error("Input token account empty")]
+    EmptySupply,
     /// The pool token mint has a non-zero supply.
     #[error("Pool token mint has a non-zero supply")]
     InvalidSupply,
@@ -52,9 +55,6 @@ pub enum SwapError {
     /// Swap instruction exceeds desired slippage limit
     #[error("Swap instruction exceeds desired slippage limit")]
     ExceededSlippage,
-    /// Initial deposit requires all tokens
-    #[error("Initial deposit requires all tokens")]
-    InvalidBootstrap,
 }
 impl From<SwapError> for ProgramError {
     fn from(e: SwapError) -> Self {

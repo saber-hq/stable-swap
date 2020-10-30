@@ -155,6 +155,8 @@ impl Processor {
         let token_a_info = next_account_info(account_info_iter)?;
         let token_b_info = next_account_info(account_info_iter)?;
         let pool_mint_info = next_account_info(account_info_iter)?;
+        let destination_info = next_account_info(account_info_iter)?; // Destination account to mint LP tokens to
+        let token_program_info = next_account_info(account_info_iter)?; // Token program used for the pool token
 
         let token_swap = SwapInfo::unpack_unchecked(&swap_info.data.borrow())?;
         if token_swap.is_initialized {
@@ -180,6 +182,12 @@ impl Processor {
         if token_a.mint == token_b.mint {
             return Err(SwapError::RepeatedMint.into());
         }
+        if token_b.amount == 0 {
+            return Err(SwapError::EmptySupply.into());
+        }
+        if token_a.amount == 0 {
+            return Err(SwapError::EmptySupply.into());
+        }
         if token_a.delegate.is_some() {
             return Err(SwapError::InvalidDelegate.into());
         }
@@ -189,6 +197,19 @@ impl Processor {
         if pool_mint.supply != 0 {
             return Err(SwapError::InvalidSupply.into());
         }
+
+        // LP tokens for bootstrapper
+        let invariant = StableSwap { amp_factor };
+        let mint_amount = invariant.compute_d(token_a.amount, token_b.amount);
+        Self::token_mint_to(
+            swap_info.key,
+            token_program_info.clone(),
+            pool_mint_info.clone(),
+            destination_info.clone(),
+            authority_info.clone(),
+            nonce,
+            mint_amount,
+        )?;
 
         let obj = SwapInfo {
             is_initialized: true,
@@ -318,21 +339,12 @@ impl Processor {
         let token_a = Self::unpack_token_account(&token_a_info.data.borrow())?;
         let token_b = Self::unpack_token_account(&token_b_info.data.borrow())?;
         let pool_mint = Self::unpack_mint(&pool_mint_info.data.borrow())?;
-
-        // Initial deposit requires both token_a and token_b
-        if pool_mint.supply == 0 && (token_a_amount == 0 || token_b_amount == 0) {
-            return Err(SwapError::InvalidBootstrap.into());
-        }
         let invariant = StableSwap {
             amp_factor: token_swap.amp_factor,
         };
         // TODO: Handle overflows
         // Initial invariant
-        let mut d_0: u64 = 0; // XXX: Curve uses u256
-        if pool_mint.supply > 0 {
-            d_0 = invariant.compute_d(token_a.amount, token_b.amount);
-        }
-
+        let d_0 = invariant.compute_d(token_a.amount, token_b.amount);
         let old_balances = [token_a.amount, token_b.amount];
         let mut new_balances = [
             token_a.amount + token_a_amount,
@@ -341,30 +353,20 @@ impl Processor {
         // Invariant after change
         let d_1 = invariant.compute_d(new_balances[0], new_balances[1]);
         assert!(d_1 > d_0);
-
         // Recalculate the invariant accounting for fees
-        let mut d_2 = d_1;
-        if pool_mint.supply > 0 {
-            // Only account for fees if we are not the first to deposit
-            for i in 0..new_balances.len() {
-                let ideal_balance = d_1 * old_balances[i] / d_0;
-                let difference = if ideal_balance > new_balances[i] {
-                    ideal_balance - new_balances[i]
-                } else {
-                    new_balances[i] - ideal_balance
-                };
-                let fee = token_swap.fee_numerator * difference / token_swap.fee_denominator;
-                new_balances[i] -= fee;
-            }
-            d_2 = invariant.compute_d(new_balances[0], new_balances[1]);
+        for i in 0..new_balances.len() {
+            let ideal_balance = d_1 * old_balances[i] / d_0;
+            let difference = if ideal_balance > new_balances[i] {
+                ideal_balance - new_balances[i]
+            } else {
+                new_balances[i] - ideal_balance
+            };
+            let fee = token_swap.fee_numerator * difference / token_swap.fee_denominator;
+            new_balances[i] -= fee;
         }
+        let d_2 = invariant.compute_d(new_balances[0], new_balances[1]);
 
-        let mint_amount = if pool_mint.supply == 0 {
-            d_1
-        } else {
-            pool_mint.supply * (d_2 - d_0) / d_0
-        };
-
+        let mint_amount = pool_mint.supply * (d_2 - d_0) / d_0;
         if mint_amount < min_mint_amount {
             return Err(SwapError::ExceededSlippage.into());
         }
@@ -431,7 +433,6 @@ impl Processor {
         if *pool_mint_info.key != token_swap.pool_mint {
             return Err(SwapError::IncorrectPoolMint.into());
         }
-
         let pool_mint = Self::unpack_mint(&pool_mint_info.data.borrow())?;
         if pool_mint.supply == 0 {
             return Err(SwapError::EmptyPool.into());
@@ -597,6 +598,7 @@ impl PrintProgramError for SwapError {
             SwapError::ExpectedAccount => {
                 info!("Error: Deserialized account is not an SPL Token account")
             }
+            SwapError::EmptySupply => info!("Error: Input token account empty"),
             SwapError::EmptyPool => info!("Error: Pool token supply is 0"),
             SwapError::InvalidSupply => info!("Error: Pool token mint has a non-zero supply"),
             SwapError::RepeatedMint => info!("Error: Swap input token accounts have the same mint"),
@@ -613,7 +615,6 @@ impl PrintProgramError for SwapError {
             SwapError::ExceededSlippage => {
                 info!("Error: Swap instruction exceeds desired slippage limit")
             }
-            SwapError::InvalidBootstrap => info!("Error: Initial deposit requires all tokens"),
         }
     }
 }
@@ -653,6 +654,7 @@ mod tests {
         swap_account: Account,
         pool_mint_key: Pubkey,
         pool_mint_account: Account,
+        pool_token_key: Pubkey,
         pool_token_account: Account,
         token_a_key: Pubkey,
         token_a_account: Account,
@@ -680,7 +682,7 @@ mod tests {
 
             let (pool_mint_key, mut pool_mint_account) =
                 create_mint(&TOKEN_PROGRAM_ID, &authority_key);
-            let (_pool_token_key, pool_token_account) = mint_token(
+            let (pool_token_key, pool_token_account) = mint_token(
                 &TOKEN_PROGRAM_ID,
                 &pool_mint_key,
                 &mut pool_mint_account,
@@ -719,6 +721,7 @@ mod tests {
                 swap_account,
                 pool_mint_key,
                 pool_mint_account,
+                pool_token_key,
                 pool_token_account,
                 token_a_key,
                 token_a_account,
@@ -735,11 +738,13 @@ mod tests {
             do_process_instruction(
                 initialize(
                     &SWAP_PROGRAM_ID,
+                    &TOKEN_PROGRAM_ID,
                     &self.swap_key,
                     &self.authority_key,
                     &self.token_a_key,
                     &self.token_b_key,
                     &self.pool_mint_key,
+                    &self.pool_token_key,
                     self.nonce,
                     self.amp_factor,
                     self.fee_numerator,
@@ -1292,6 +1297,44 @@ mod tests {
                 accounts.initialize_swap()
             );
             accounts.pool_mint_account = old_mint;
+        }
+
+        // empty token A account
+        {
+            let (_token_a_key, token_a_account) = mint_token(
+                &TOKEN_PROGRAM_ID,
+                &accounts.token_a_mint_key,
+                &mut accounts.token_a_mint_account,
+                &user_key,
+                &accounts.authority_key,
+                0,
+            );
+            let old_account = accounts.token_a_account;
+            accounts.token_a_account = token_a_account;
+            assert_eq!(
+                Err(SwapError::EmptySupply.into()),
+                accounts.initialize_swap()
+            );
+            accounts.token_a_account = old_account;
+        }
+
+        // empty token B account
+        {
+            let (_token_b_key, token_b_account) = mint_token(
+                &TOKEN_PROGRAM_ID,
+                &accounts.token_b_mint_key,
+                &mut accounts.token_b_mint_account,
+                &user_key,
+                &accounts.authority_key,
+                0,
+            );
+            let old_account = accounts.token_b_account;
+            accounts.token_b_account = token_b_account;
+            assert_eq!(
+                Err(SwapError::EmptySupply.into()),
+                accounts.initialize_swap()
+            );
+            accounts.token_b_account = old_account;
         }
 
         // invalid pool tokens

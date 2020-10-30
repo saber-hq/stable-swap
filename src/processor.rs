@@ -155,6 +155,8 @@ impl Processor {
         let token_a_info = next_account_info(account_info_iter)?;
         let token_b_info = next_account_info(account_info_iter)?;
         let pool_mint_info = next_account_info(account_info_iter)?;
+        let destination_info = next_account_info(account_info_iter)?; // Destination account to mint LP tokens to
+        let token_program_info = next_account_info(account_info_iter)?; // Token program used for the pool token
 
         let token_swap = SwapInfo::unpack_unchecked(&swap_info.data.borrow())?;
         if token_swap.is_initialized {
@@ -195,6 +197,19 @@ impl Processor {
         if pool_mint.supply != 0 {
             return Err(SwapError::InvalidSupply.into());
         }
+
+        // LP tokens for bootstrapper
+        let invariant = StableSwap { amp_factor };
+        let mint_amount = invariant.compute_d(token_a.amount, token_b.amount);
+        Self::token_mint_to(
+            swap_info.key,
+            token_program_info.clone(),
+            pool_mint_info.clone(),
+            destination_info.clone(),
+            authority_info.clone(),
+            nonce,
+            mint_amount,
+        )?;
 
         let obj = SwapInfo {
             is_initialized: true,
@@ -640,6 +655,7 @@ mod tests {
         swap_account: Account,
         pool_mint_key: Pubkey,
         pool_mint_account: Account,
+        pool_token_key: Pubkey,
         pool_token_account: Account,
         token_a_key: Pubkey,
         token_a_account: Account,
@@ -667,7 +683,7 @@ mod tests {
 
             let (pool_mint_key, mut pool_mint_account) =
                 create_mint(&TOKEN_PROGRAM_ID, &authority_key);
-            let (_pool_token_key, pool_token_account) = mint_token(
+            let (pool_token_key, pool_token_account) = mint_token(
                 &TOKEN_PROGRAM_ID,
                 &pool_mint_key,
                 &mut pool_mint_account,
@@ -706,6 +722,7 @@ mod tests {
                 swap_account,
                 pool_mint_key,
                 pool_mint_account,
+                pool_token_key,
                 pool_token_account,
                 token_a_key,
                 token_a_account,
@@ -722,11 +739,13 @@ mod tests {
             do_process_instruction(
                 initialize(
                     &SWAP_PROGRAM_ID,
+                    &TOKEN_PROGRAM_ID,
                     &self.swap_key,
                     &self.authority_key,
                     &self.token_a_key,
                     &self.token_b_key,
                     &self.pool_mint_key,
+                    &self.pool_token_key,
                     self.nonce,
                     self.amp_factor,
                     self.fee_numerator,

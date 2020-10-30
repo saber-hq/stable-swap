@@ -207,11 +207,13 @@ impl SwapInstruction {
 /// Creates an 'initialize' instruction.
 pub fn initialize(
     program_id: &Pubkey,
+    token_program_id: &Pubkey, // Token program used for the pool token
     swap_pubkey: &Pubkey,
     authority_pubkey: &Pubkey,
     token_a_pubkey: &Pubkey,
     token_b_pubkey: &Pubkey,
     pool_pubkey: &Pubkey,
+    destination_pubkey: &Pubkey, // Desintation to mint pool tokens for bootstrapper
     nonce: u8,
     amp_factor: u64,
     fee_numerator: u64,
@@ -231,6 +233,8 @@ pub fn initialize(
         AccountMeta::new(*token_a_pubkey, false),
         AccountMeta::new(*token_b_pubkey, false),
         AccountMeta::new(*pool_pubkey, false),
+        AccountMeta::new(*destination_pubkey, false),
+        AccountMeta::new(*token_program_id, false),
     ];
 
     Ok(Instruction {

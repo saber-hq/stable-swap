@@ -329,11 +329,7 @@ impl Processor {
         };
         // TODO: Handle overflows
         // Initial invariant
-        let mut d_0: u64 = 0; // XXX: Curve uses u256
-        if pool_mint.supply > 0 {
-            d_0 = invariant.compute_d(token_a.amount, token_b.amount);
-        }
-
+        let d_0 = invariant.compute_d(token_a.amount, token_b.amount);
         let old_balances = [token_a.amount, token_b.amount];
         let mut new_balances = [
             token_a.amount + token_a_amount,
@@ -342,7 +338,6 @@ impl Processor {
         // Invariant after change
         let d_1 = invariant.compute_d(new_balances[0], new_balances[1]);
         assert!(d_1 > d_0);
-
         // Recalculate the invariant accounting for fees
         for i in 0..new_balances.len() {
             let ideal_balance = d_1 * old_balances[i] / d_0;

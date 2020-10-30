@@ -33,9 +33,9 @@ impl Model {
 
         Self {
             py_src: src_content,
-            amp_factor: amp_factor,
-            balances: balances,
-            n_coins: n_coins,
+            amp_factor,
+            balances,
+            n_coins,
             target_prices: vec![DEFAULT_TARGET_PRICE, DEFAULT_TARGET_PRICE],
             pool_tokens: DEFAULT_POOL_TOKENS,
         }
@@ -58,9 +58,9 @@ impl Model {
 
         Self {
             py_src: src_content,
-            amp_factor: amp_factor,
-            balances: balances,
-            n_coins: n_coins,
+            amp_factor,
+            balances,
+            n_coins,
             target_prices: vec![DEFAULT_TARGET_PRICE, DEFAULT_TARGET_PRICE],
             pool_tokens: pool_token_amount,
         }
@@ -158,7 +158,7 @@ impl Model {
             .unwrap()
             .to_object(py);
         let py_ret = model.as_ref(py).call_method0(method_name);
-        return self.extract_py_ret(py, py_ret);
+        self.extract_py_ret(py, py_ret)
     }
 
     fn call1(
@@ -182,7 +182,7 @@ impl Model {
             .unwrap()
             .to_object(py);
         let py_ret = model.as_ref(py).call_method1(method_name, args);
-        return self.extract_py_ret(py, py_ret);
+        self.extract_py_ret(py, py_ret)
     }
 
     fn extract_py_ret(&self, py: Python, ret: PyResult<&PyAny>) -> Result<PyObject, PyErr> {

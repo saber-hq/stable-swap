@@ -205,12 +205,14 @@ export class StableSwap {
    * @param payer
    * @param stableSwapAccount
    * @param authority
+   * @param adminFeeAccountA
+   * @param adminFeeAccountB
    * @param tokenAccountA
    * @param tokenAccountB
    * @param poolToken
+   * @param poolTokenAccount
    * @param mintA
    * @param mintB
-   * @param tokenAccountPool
    * @param swapProgramId
    * @param tokenProgramId
    * @param nonce

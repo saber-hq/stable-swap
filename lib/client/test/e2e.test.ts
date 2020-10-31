@@ -36,10 +36,10 @@ const oneSol = 1000000000;
 const INITIAL_TOKEN_A_AMOUNT = oneSol;
 const INITIAL_TOKEN_B_AMOUNT = oneSol;
 
-const getStableSwapAddress = (): string => {
-  const data = fs.readFileSync("../../localnet-address.json", "utf-8");
-  const addresses = JSON.parse(data);
-  return addresses.stableSwap as string;
+const getStableSwapProgramId = (): string => {
+  const deployInfo = fs.readFileSync("../../last-deploy.json", "utf-8");
+  const address = JSON.parse(deployInfo);
+  return address.swapProgramId as string;
 };
 
 describe("e2e test", () => {
@@ -75,7 +75,7 @@ describe("e2e test", () => {
     payer = await newAccountWithLamports(connection, oneSol);
     owner = await newAccountWithLamports(connection, oneSol);
 
-    stableSwapProgramId = new PublicKey(getStableSwapAddress());
+    stableSwapProgramId = new PublicKey(getStableSwapProgramId());
     stableSwapAccount = new Account();
     try {
       [authority, nonce] = await PublicKey.findProgramAddress(

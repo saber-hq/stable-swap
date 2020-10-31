@@ -8,7 +8,7 @@ import { newAccountWithLamports, sleep } from "./helpers";
 import {
   DEFAULT_FEE_DENOMINATOR,
   DEFAULT_FEE_NUMERATOR,
-  Fees,
+  Fees
 } from "../src/fees";
 
 // Token Program
@@ -28,7 +28,7 @@ const FEES: Fees = {
   tradeFeeNumerator: 1,
   tradeFeeDenominator: 4,
   withdrawFeeNumerator: DEFAULT_FEE_NUMERATOR,
-  withdrawFeeDenominator: DEFAULT_FEE_DENOMINATOR,
+  withdrawFeeDenominator: DEFAULT_FEE_DENOMINATOR
 };
 //  Other constants
 const oneSol = 1000000000;
@@ -69,7 +69,7 @@ describe("e2e test", () => {
   let stableSwapAccount: Account;
   let stableSwapProgramId: PublicKey;
 
-  beforeAll(async (done) => {
+  beforeAll(async done => {
     // Bootstrap Test Environment ...
     connection = new Connection(CLUSTER_URL, "single");
     payer = await newAccountWithLamports(connection, oneSol);

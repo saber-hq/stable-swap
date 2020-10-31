@@ -3,7 +3,7 @@ import {
   Account,
   PublicKey,
   SystemProgram,
-  Transaction,
+  Transaction
 } from "@solana/web3.js";
 
 import { DEFAULT_FEES, Fees } from "./fees";
@@ -143,7 +143,7 @@ export class StableSwap {
   /**
    * Load an onchain StableSwap program
    * @param connection The connection to use
-   * @param address
+   * @param address The public key of the account to load
    * @param programId Address of the onchain StableSwap program
    * @param payer Pays for the transaction
    */
@@ -178,7 +178,7 @@ export class StableSwap {
       tradeFeeNumerator: stableSwapData.tradeFeeNumerator as number,
       tradeFeeDenominator: stableSwapData.tradeFeeDenominator as number,
       withdrawFeeNumerator: stableSwapData.withdrawFeeNumerator as number,
-      withdrawFeeDenominator: stableSwapData.withdrawFeeDenominator as number,
+      withdrawFeeDenominator: stableSwapData.withdrawFeeDenominator as number
     };
 
     return new StableSwap(
@@ -247,7 +247,7 @@ export class StableSwap {
         newAccountPubkey: stableSwapAccount.publicKey,
         lamports: balanceNeeded,
         space: layout.StableSwapLayout.span,
-        programId: swapProgramId,
+        programId: swapProgramId
       })
     );
 

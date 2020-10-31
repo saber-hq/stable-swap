@@ -1,5 +1,6 @@
 //! State transition types
 
+use crate::fees::Fees;
 use arrayref::{array_mut_ref, array_ref, array_refs, mut_array_refs};
 use solana_sdk::{
     program_error::ProgramError,
@@ -20,6 +21,9 @@ pub struct SwapInfo {
     /// token mint.
     pub nonce: u8,
 
+    /// Amplification coefficient (A)
+    pub amp_factor: u64,
+
     /// Token A
     pub token_a: Pubkey,
     /// Token B
@@ -33,12 +37,12 @@ pub struct SwapInfo {
     /// Mint information for token B
     pub token_b_mint: Pubkey,
 
-    /// Amplification coefficient (A)
-    pub amp_factor: u64,
-    /// Numerator of fee applied to the input token amount prior to output calculation.
-    pub fee_numerator: u64,
-    /// Denominator of fee applied to the input token amount prior to output calculation.
-    pub fee_denominator: u64,
+    /// Admin token account to receive trading and / or withdrawal fees for token a
+    pub admin_fee_account_a: Pubkey,
+    /// Admin token account to receive trading and / or withdrawal fees for token b
+    pub admin_fee_account_b: Pubkey,
+    /// Fees
+    pub fees: Fees,
 }
 
 impl Sealed for SwapInfo {}
@@ -49,24 +53,25 @@ impl IsInitialized for SwapInfo {
 }
 
 impl Pack for SwapInfo {
-    const LEN: usize = 186;
+    const LEN: usize = 298;
 
     /// Unpacks a byte buffer into a [SwapInfo](struct.SwapInfo.html).
     fn unpack_from_slice(input: &[u8]) -> Result<Self, ProgramError> {
-        let input = array_ref![input, 0, 186];
+        let input = array_ref![input, 0, 298];
         #[allow(clippy::ptr_offset_with_cast)]
         let (
             is_initialized,
             nonce,
+            amp_factor,
             token_a,
             token_b,
             pool_mint,
             token_a_mint,
             token_b_mint,
-            amp_factor,
-            fee_numerator,
-            fee_denominator,
-        ) = array_refs![input, 1, 1, 32, 32, 32, 32, 32, 8, 8, 8];
+            admin_fee_account_a,
+            admin_fee_account_b,
+            fees,
+        ) = array_refs![input, 1, 1, 8, 32, 32, 32, 32, 32, 32, 32, 64];
         Ok(Self {
             is_initialized: match is_initialized {
                 [0] => false,
@@ -74,41 +79,44 @@ impl Pack for SwapInfo {
                 _ => return Err(ProgramError::InvalidAccountData),
             },
             nonce: nonce[0],
+            amp_factor: u64::from_le_bytes(*amp_factor),
             token_a: Pubkey::new_from_array(*token_a),
             token_b: Pubkey::new_from_array(*token_b),
             pool_mint: Pubkey::new_from_array(*pool_mint),
             token_a_mint: Pubkey::new_from_array(*token_a_mint),
             token_b_mint: Pubkey::new_from_array(*token_b_mint),
-            amp_factor: u64::from_le_bytes(*amp_factor),
-            fee_numerator: u64::from_le_bytes(*fee_numerator),
-            fee_denominator: u64::from_le_bytes(*fee_denominator),
+            admin_fee_account_a: Pubkey::new_from_array(*admin_fee_account_a),
+            admin_fee_account_b: Pubkey::new_from_array(*admin_fee_account_b),
+            fees: Fees::unpack_from_slice(fees)?,
         })
     }
 
     fn pack_into_slice(&self, output: &mut [u8]) {
-        let output = array_mut_ref![output, 0, 186];
+        let output = array_mut_ref![output, 0, 298];
         let (
             is_initialized,
             nonce,
+            amp_factor,
             token_a,
             token_b,
             pool_mint,
             token_a_mint,
             token_b_mint,
-            amp_factor,
-            fee_numerator,
-            fee_denominator,
-        ) = mut_array_refs![output, 1, 1, 32, 32, 32, 32, 32, 8, 8, 8];
+            admin_fee_account_a,
+            admin_fee_account_b,
+            fees,
+        ) = mut_array_refs![output, 1, 1, 8, 32, 32, 32, 32, 32, 32, 32, 64];
         is_initialized[0] = self.is_initialized as u8;
         nonce[0] = self.nonce;
+        *amp_factor = self.amp_factor.to_le_bytes();
         token_a.copy_from_slice(self.token_a.as_ref());
         token_b.copy_from_slice(self.token_b.as_ref());
         pool_mint.copy_from_slice(self.pool_mint.as_ref());
         token_a_mint.copy_from_slice(self.token_a_mint.as_ref());
         token_b_mint.copy_from_slice(self.token_b_mint.as_ref());
-        *amp_factor = self.amp_factor.to_le_bytes();
-        *fee_numerator = self.fee_numerator.to_le_bytes();
-        *fee_denominator = self.fee_denominator.to_le_bytes();
+        admin_fee_account_a.copy_from_slice(self.admin_fee_account_a.as_ref());
+        admin_fee_account_b.copy_from_slice(self.admin_fee_account_b.as_ref());
+        self.fees.pack_into_slice(&mut fees[..]);
     }
 }
 
@@ -119,31 +127,53 @@ mod tests {
     #[test]
     fn test_swap_info_packing() {
         let nonce = 255;
+        let amp_factor: u64 = 1;
         let token_a_raw = [1u8; 32];
         let token_b_raw = [2u8; 32];
         let pool_mint_raw = [3u8; 32];
         let token_a_mint_raw = [4u8; 32];
         let token_b_mint_raw = [5u8; 32];
+        let admin_fee_account_raw_a = [6u8; 32];
+        let admin_fee_account_raw_b = [7u8; 32];
         let token_a = Pubkey::new_from_array(token_a_raw);
         let token_b = Pubkey::new_from_array(token_b_raw);
         let pool_mint = Pubkey::new_from_array(pool_mint_raw);
         let token_a_mint = Pubkey::new_from_array(token_a_mint_raw);
         let token_b_mint = Pubkey::new_from_array(token_b_mint_raw);
-        let amp_factor: u64 = 0;
-        let fee_numerator = 1;
-        let fee_denominator = 4;
+        let admin_fee_account_a = Pubkey::new_from_array(admin_fee_account_raw_a);
+        let admin_fee_account_b = Pubkey::new_from_array(admin_fee_account_raw_b);
+        let admin_trade_fee_numerator = 1;
+        let admin_trade_fee_denominator = 2;
+        let admin_withdraw_fee_numerator = 3;
+        let admin_withdraw_fee_denominator = 4;
+        let trade_fee_numerator = 5;
+        let trade_fee_denominator = 6;
+        let withdraw_fee_numerator = 7;
+        let withdraw_fee_denominator = 8;
+        let fees = Fees {
+            admin_trade_fee_numerator,
+            admin_trade_fee_denominator,
+            admin_withdraw_fee_numerator,
+            admin_withdraw_fee_denominator,
+            trade_fee_numerator,
+            trade_fee_denominator,
+            withdraw_fee_numerator,
+            withdraw_fee_denominator,
+        };
+
         let is_initialized = true;
         let swap_info = SwapInfo {
             is_initialized,
             nonce,
+            amp_factor,
             token_a,
             token_b,
             pool_mint,
             token_a_mint,
             token_b_mint,
-            amp_factor,
-            fee_numerator,
-            fee_denominator,
+            admin_fee_account_a,
+            admin_fee_account_b,
+            fees,
         };
 
         let mut packed = [0u8; SwapInfo::LEN];
@@ -154,17 +184,22 @@ mod tests {
         let mut packed = vec![];
         packed.push(1 as u8);
         packed.push(nonce);
+        packed.extend_from_slice(&amp_factor.to_le_bytes());
         packed.extend_from_slice(&token_a_raw);
         packed.extend_from_slice(&token_b_raw);
         packed.extend_from_slice(&pool_mint_raw);
         packed.extend_from_slice(&token_a_mint_raw);
         packed.extend_from_slice(&token_b_mint_raw);
-        packed.push(amp_factor as u8);
-        packed.extend_from_slice(&[0u8; 7]); // padding
-        packed.push(fee_numerator as u8);
-        packed.extend_from_slice(&[0u8; 7]); // padding
-        packed.push(fee_denominator as u8);
-        packed.extend_from_slice(&[0u8; 7]); // padding
+        packed.extend_from_slice(&admin_fee_account_raw_a);
+        packed.extend_from_slice(&admin_fee_account_raw_b);
+        packed.extend_from_slice(&admin_trade_fee_numerator.to_le_bytes());
+        packed.extend_from_slice(&admin_trade_fee_denominator.to_le_bytes());
+        packed.extend_from_slice(&admin_withdraw_fee_numerator.to_le_bytes());
+        packed.extend_from_slice(&admin_withdraw_fee_denominator.to_le_bytes());
+        packed.extend_from_slice(&trade_fee_numerator.to_le_bytes());
+        packed.extend_from_slice(&trade_fee_denominator.to_le_bytes());
+        packed.extend_from_slice(&withdraw_fee_numerator.to_le_bytes());
+        packed.extend_from_slice(&withdraw_fee_denominator.to_le_bytes());
         let unpacked = SwapInfo::unpack(&packed).unwrap();
         assert_eq!(swap_info, unpacked);
 

@@ -3,36 +3,46 @@ import { Account, PublicKey, TransactionInstruction } from "@solana/web3.js";
 
 import { NumberU64 } from "./util/u64";
 import { Uint64Layout } from "./layout";
+import { Fees } from "./fees";
 
 export const createInitSwapInstruction = (
   tokenSwapAccount: Account,
   authority: PublicKey,
+  adminFeeAcountA: PublicKey,
+  adminFeeAcountB: PublicKey,
   tokenAccountA: PublicKey,
   tokenAccountB: PublicKey,
-  poolToken: PublicKey,
+  poolTokenMint: PublicKey,
   poolTokenAccount: PublicKey,
-  tokenProgramId: PublicKey,
   swapProgramId: PublicKey,
+  tokenProgramId: PublicKey,
   nonce: number,
   ampFactor: number | NumberU64,
-  feeNumerator: number | NumberU64,
-  feeDenominator: number | NumberU64
+  fees: Fees
 ): TransactionInstruction => {
   const keys = [
     { pubkey: tokenSwapAccount.publicKey, isSigner: false, isWritable: true },
     { pubkey: authority, isSigner: false, isWritable: false },
     { pubkey: tokenAccountA, isSigner: false, isWritable: false },
     { pubkey: tokenAccountB, isSigner: false, isWritable: false },
-    { pubkey: poolToken, isSigner: false, isWritable: true },
+    { pubkey: poolTokenMint, isSigner: false, isWritable: true },
     { pubkey: poolTokenAccount, isSigner: false, isWritable: true },
     { pubkey: tokenProgramId, isSigner: false, isWritable: false },
+    { pubkey: adminFeeAcountA, isSigner: false, isWritable: false },
+    { pubkey: adminFeeAcountB, isSigner: false, isWritable: false },
   ];
   const dataLayout = BufferLayout.struct([
     BufferLayout.u8("instruction"),
-    Uint64Layout("ampFactor"),
-    Uint64Layout("feeNumerator"),
-    Uint64Layout("feeDenominator"),
     BufferLayout.u8("nonce"),
+    Uint64Layout("ampFactor"),
+    Uint64Layout("adminTradeFeeNumerator"),
+    Uint64Layout("adminTradeFeeDenominator"),
+    Uint64Layout("adminWithdrawFeeNumerator"),
+    Uint64Layout("adminWithdrawFeeDenominator"),
+    Uint64Layout("tradeFeeNumerator"),
+    Uint64Layout("tradeFeeDenominator"),
+    Uint64Layout("withdrawFeeNumerator"),
+    Uint64Layout("withdrawFeeDenominator"),
   ]);
   let data = Buffer.alloc(dataLayout.span);
   {
@@ -41,8 +51,26 @@ export const createInitSwapInstruction = (
         instruction: 0, // InitializeSwap instruction
         nonce,
         ampFactor: new NumberU64(ampFactor).toBuffer(),
-        feeNumerator: new NumberU64(feeNumerator).toBuffer(),
-        feeDenominator: new NumberU64(feeDenominator).toBuffer(),
+        adminTradeFeeNumerator: new NumberU64(
+          fees.adminTradeFeeNumerator
+        ).toBuffer(),
+        adminTradeFeeDenominator: new NumberU64(
+          fees.adminTradeFeeDenominator
+        ).toBuffer(),
+        adminWithdrawFeeNumerator: new NumberU64(
+          fees.adminWithdrawFeeNumerator
+        ).toBuffer(),
+        adminWithdrawFeeDenominator: new NumberU64(
+          fees.adminWithdrawFeeDenominator
+        ).toBuffer(),
+        tradeFeeNumerator: new NumberU64(fees.tradeFeeNumerator).toBuffer(),
+        tradeFeeDenominator: new NumberU64(fees.tradeFeeDenominator).toBuffer(),
+        withdrawFeeNumerator: new NumberU64(
+          fees.withdrawFeeNumerator
+        ).toBuffer(),
+        withdrawFeeDenominator: new NumberU64(
+          fees.withdrawFeeDenominator
+        ).toBuffer(),
       },
       data
     );

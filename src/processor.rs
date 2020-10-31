@@ -5,6 +5,7 @@
 use crate::{
     curve::{PoolTokenConverter, StableSwap},
     error::SwapError,
+    fees::Fees,
     instruction::SwapInstruction,
     state::SwapInfo,
 };
@@ -145,8 +146,7 @@ impl Processor {
         program_id: &Pubkey,
         nonce: u8,
         amp_factor: u64,
-        fee_numerator: u64,
-        fee_denominator: u64,
+        fees: Fees,
         accounts: &[AccountInfo],
     ) -> ProgramResult {
         let account_info_iter = &mut accounts.iter();
@@ -156,7 +156,9 @@ impl Processor {
         let token_b_info = next_account_info(account_info_iter)?;
         let pool_mint_info = next_account_info(account_info_iter)?;
         let destination_info = next_account_info(account_info_iter)?; // Destination account to mint LP tokens to
-        let token_program_info = next_account_info(account_info_iter)?; // Token program used for the pool token
+        let token_program_info = next_account_info(account_info_iter)?;
+        let admin_fee_a_info = next_account_info(account_info_iter)?;
+        let admin_fee_b_info = next_account_info(account_info_iter)?;
 
         let token_swap = SwapInfo::unpack_unchecked(&swap_info.data.borrow())?;
         if token_swap.is_initialized {
@@ -197,6 +199,14 @@ impl Processor {
         if pool_mint.supply != 0 {
             return Err(SwapError::InvalidSupply.into());
         }
+        let admin_fee_account_a = Self::unpack_token_account(&admin_fee_a_info.data.borrow())?;
+        let admin_fee_account_b = Self::unpack_token_account(&admin_fee_b_info.data.borrow())?;
+        if token_a.mint != admin_fee_account_a.mint {  // TODO: Add test
+            return Err(SwapError::InvalidAdmin.into());
+        }
+        if token_b.mint != admin_fee_account_b.mint {  // TODO: Add test
+            return Err(SwapError::InvalidAdmin.into());
+        }
 
         // LP tokens for bootstrapper
         let invariant = StableSwap { amp_factor };
@@ -214,14 +224,15 @@ impl Processor {
         let obj = SwapInfo {
             is_initialized: true,
             nonce,
+            amp_factor,
             token_a: *token_a_info.key,
             token_b: *token_b_info.key,
             pool_mint: *pool_mint_info.key,
             token_a_mint: token_a.mint,
             token_b_mint: token_b.mint,
-            amp_factor,
-            fee_numerator,
-            fee_denominator,
+            admin_fee_account_a: *admin_fee_a_info.key,
+            admin_fee_account_b: *admin_fee_b_info.key,
+            fees,
         };
         SwapInfo::pack(obj, &mut swap_info.data.borrow_mut())?;
         Ok(())
@@ -274,8 +285,8 @@ impl Processor {
                 amount_in,
                 swap_source_account.amount,
                 swap_destination_account.amount,
-                token_swap.fee_numerator,
-                token_swap.fee_denominator,
+                token_swap.fees.trade_fee_numerator,
+                token_swap.fees.trade_fee_denominator,
             )
             .ok_or(SwapError::CalculationFailure)?;
         if result.amount_swapped < minimum_amount_out {
@@ -361,7 +372,8 @@ impl Processor {
             } else {
                 new_balances[i] - ideal_balance
             };
-            let fee = token_swap.fee_numerator * difference / token_swap.fee_denominator;
+            let fee = token_swap.fees.trade_fee_numerator * difference
+                / token_swap.fees.trade_fee_denominator;
             new_balances[i] -= fee;
         }
         let d_2 = invariant.compute_d(new_balances[0], new_balances[1]);
@@ -489,20 +501,12 @@ impl Processor {
         let instruction = SwapInstruction::unpack(input)?;
         match instruction {
             SwapInstruction::Initialize {
-                amp_factor,
-                fee_numerator,
-                fee_denominator,
                 nonce,
+                amp_factor,
+                fees,
             } => {
                 info!("Instruction: Init");
-                Self::process_initialize(
-                    program_id,
-                    nonce,
-                    amp_factor,
-                    fee_numerator,
-                    fee_denominator,
-                    accounts,
-                )
+                Self::process_initialize(program_id, nonce, amp_factor, fees, accounts)
             }
             SwapInstruction::Swap {
                 amount_in,
@@ -592,6 +596,9 @@ impl PrintProgramError for SwapError {
             SwapError::InvalidOwner => {
                 info!("Error: The input account owner is not the program address")
             }
+            SwapError::InvalidAdmin => {
+                info!("Error: Address of the admin fee account is incorrect")
+            }
             SwapError::ExpectedMint => {
                 info!("Error: Deserialized account is not an SPL Token mint")
             }
@@ -626,6 +633,7 @@ solana_sdk::program_stubs!();
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::fees::Fees;
     use crate::instruction::{deposit, initialize, swap, withdraw};
     use solana_sdk::{
         account::Account, account_info::create_is_signer_account_infos, instruction::Instruction,
@@ -642,14 +650,23 @@ mod tests {
     /// "sensible" given a maximum of u64.
     /// Note that on Ethereum, Uniswap uses the geometric mean of all provided
     /// input amounts, and Balancer uses 100 * 10 ^ 18.
-    pub const INITIAL_SWAP_POOL_AMOUNT: u64 = 1_000_000_000;
+    const INITIAL_SWAP_POOL_AMOUNT: u64 = 1_000_000_000;
+    /// Fees for testing
+    const DEFAULT_TEST_FEES: Fees = Fees {
+        admin_trade_fee_numerator: 1,
+        admin_trade_fee_denominator: 1,
+        admin_withdraw_fee_numerator: 1,
+        admin_withdraw_fee_denominator: 1,
+        trade_fee_numerator: 6,
+        trade_fee_denominator: 100,
+        withdraw_fee_numerator: 1,
+        withdraw_fee_denominator: 1,
+    };
 
     struct SwapAccountInfo {
         nonce: u8,
         authority_key: Pubkey,
         amp_factor: u64,
-        fee_numerator: u64,
-        fee_denominator: u64,
         swap_key: Pubkey,
         swap_account: Account,
         pool_mint_key: Pubkey,
@@ -664,16 +681,20 @@ mod tests {
         token_b_account: Account,
         token_b_mint_key: Pubkey,
         token_b_mint_account: Account,
+        admin_fee_key_a: Pubkey,
+        admin_fee_account_a: Account,
+        admin_fee_key_b: Pubkey,
+        admin_fee_account_b: Account,
+        fees: Fees,
     }
 
     impl SwapAccountInfo {
         pub fn new(
             user_key: &Pubkey,
             amp_factor: u64,
-            fee_numerator: u64,
-            fee_denominator: u64,
             token_a_amount: u64,
             token_b_amount: u64,
+            fees: Fees,
         ) -> Self {
             let swap_key = pubkey_rand();
             let swap_account = Account::new(0, SwapInfo::get_packed_len(), &SWAP_PROGRAM_ID);
@@ -700,6 +721,14 @@ mod tests {
                 &authority_key,
                 token_a_amount,
             );
+            let (admin_fee_key_a, admin_fee_account_a) = mint_token(
+                &TOKEN_PROGRAM_ID,
+                &token_a_mint_key,
+                &mut token_a_mint_account,
+                &user_key,
+                &authority_key,
+                0,
+            );
             let (token_b_mint_key, mut token_b_mint_account) =
                 create_mint(&TOKEN_PROGRAM_ID, &user_key);
             let (token_b_key, token_b_account) = mint_token(
@@ -710,13 +739,19 @@ mod tests {
                 &authority_key,
                 token_b_amount,
             );
+            let (admin_fee_key_b, admin_fee_account_b) = mint_token(
+                &TOKEN_PROGRAM_ID,
+                &token_b_mint_key,
+                &mut token_b_mint_account,
+                &user_key,
+                &authority_key,
+                0,
+            );
 
             SwapAccountInfo {
                 nonce,
                 authority_key,
                 amp_factor,
-                fee_numerator,
-                fee_denominator,
                 swap_key,
                 swap_account,
                 pool_mint_key,
@@ -731,6 +766,11 @@ mod tests {
                 token_b_account,
                 token_b_mint_key,
                 token_b_mint_account,
+                admin_fee_key_a,
+                admin_fee_account_a,
+                admin_fee_key_b,
+                admin_fee_account_b,
+                fees,
             }
         }
 
@@ -745,10 +785,11 @@ mod tests {
                     &self.token_b_key,
                     &self.pool_mint_key,
                     &self.pool_token_key,
+                    &self.admin_fee_key_a,
+                    &self.admin_fee_key_b,
                     self.nonce,
                     self.amp_factor,
-                    self.fee_numerator,
-                    self.fee_denominator,
+                    self.fees,
                 )
                 .unwrap(),
                 vec![
@@ -759,6 +800,8 @@ mod tests {
                     &mut self.pool_mint_account,
                     &mut self.pool_token_account,
                     &mut Account::default(),
+                    &mut self.admin_fee_account_a,
+                    &mut self.admin_fee_account_b,
                 ],
             )
         }
@@ -1191,8 +1234,6 @@ mod tests {
     fn test_initialize() {
         let user_key = pubkey_rand();
         let amp_factor = 1;
-        let fee_numerator = 1;
-        let fee_denominator = 2;
         let token_a_amount = 1000;
         let token_b_amount = 2000;
         let pool_token_amount = 10;
@@ -1200,10 +1241,9 @@ mod tests {
         let mut accounts = SwapAccountInfo::new(
             &user_key,
             amp_factor,
-            fee_numerator,
-            fee_denominator,
             token_a_amount,
             token_b_amount,
+            DEFAULT_TEST_FEES,
         );
         // wrong nonce for authority_key
         {
@@ -1493,8 +1533,38 @@ mod tests {
         assert_eq!(swap_info.pool_mint, accounts.pool_mint_key);
         assert_eq!(swap_info.token_a_mint, accounts.token_a_mint_key);
         assert_eq!(swap_info.token_b_mint, accounts.token_b_mint_key);
-        assert_eq!(swap_info.fee_denominator, fee_denominator);
-        assert_eq!(swap_info.fee_numerator, fee_numerator);
+        assert_eq!(
+            swap_info.fees.admin_trade_fee_numerator,
+            DEFAULT_TEST_FEES.admin_trade_fee_numerator
+        );
+        assert_eq!(
+            swap_info.fees.admin_trade_fee_denominator,
+            DEFAULT_TEST_FEES.admin_trade_fee_denominator
+        );
+        assert_eq!(
+            swap_info.fees.admin_withdraw_fee_numerator,
+            DEFAULT_TEST_FEES.admin_withdraw_fee_numerator
+        );
+        assert_eq!(
+            swap_info.fees.admin_withdraw_fee_denominator,
+            DEFAULT_TEST_FEES.admin_withdraw_fee_denominator
+        );
+        assert_eq!(
+            swap_info.fees.trade_fee_numerator,
+            DEFAULT_TEST_FEES.trade_fee_numerator
+        );
+        assert_eq!(
+            swap_info.fees.trade_fee_denominator,
+            DEFAULT_TEST_FEES.trade_fee_denominator
+        );
+        assert_eq!(
+            swap_info.fees.withdraw_fee_numerator,
+            DEFAULT_TEST_FEES.withdraw_fee_numerator
+        );
+        assert_eq!(
+            swap_info.fees.withdraw_fee_denominator,
+            DEFAULT_TEST_FEES.withdraw_fee_denominator
+        );
         let token_a = Processor::unpack_token_account(&accounts.token_a_account.data).unwrap();
         assert_eq!(token_a.amount, token_a_amount);
         let token_b = Processor::unpack_token_account(&accounts.token_b_account.data).unwrap();
@@ -1510,17 +1580,14 @@ mod tests {
         let user_key = pubkey_rand();
         let depositor_key = pubkey_rand();
         let amp_factor = 1;
-        let fee_numerator = 1;
-        let fee_denominator = 2;
         let token_a_amount = 1000;
         let token_b_amount = 9000;
         let mut accounts = SwapAccountInfo::new(
             &user_key,
             amp_factor,
-            fee_numerator,
-            fee_denominator,
             token_a_amount,
             token_b_amount,
+            DEFAULT_TEST_FEES,
         );
 
         let deposit_a = token_a_amount / 10;
@@ -1988,18 +2055,15 @@ mod tests {
     #[test]
     fn test_withdraw() {
         let user_key = pubkey_rand();
-        let fee_numerator = 1;
-        let fee_denominator = 2;
         let amp_factor = 1;
         let token_a_amount = 1000;
         let token_b_amount = 2000;
         let mut accounts = SwapAccountInfo::new(
             &user_key,
             amp_factor,
-            fee_numerator,
-            fee_denominator,
             token_a_amount,
             token_b_amount,
+            DEFAULT_TEST_FEES,
         );
         let withdrawer_key = pubkey_rand();
         let pool_converter =
@@ -2503,17 +2567,14 @@ mod tests {
         let user_key = pubkey_rand();
         let swapper_key = pubkey_rand();
         let amp_factor = 85;
-        let fee_numerator = 6;
-        let fee_denominator = 100;
         let token_a_amount = 5000;
         let token_b_amount = 5000;
         let mut accounts = SwapAccountInfo::new(
             &user_key,
             amp_factor,
-            fee_numerator,
-            fee_denominator,
             token_a_amount,
             token_b_amount,
+            DEFAULT_TEST_FEES,
         );
         let initial_a = token_a_amount / 5;
         let initial_b = token_b_amount / 5;
@@ -2838,8 +2899,8 @@ mod tests {
                     a_to_b_amount,
                     token_a_amount,
                     token_b_amount,
-                    fee_numerator,
-                    fee_denominator,
+                    DEFAULT_TEST_FEES.trade_fee_numerator,
+                    DEFAULT_TEST_FEES.trade_fee_denominator,
                 )
                 .unwrap();
 
@@ -2885,8 +2946,8 @@ mod tests {
                     a_to_b_amount,
                     token_b_amount,
                     token_a_amount,
-                    fee_numerator,
-                    fee_denominator,
+                    DEFAULT_TEST_FEES.trade_fee_numerator,
+                    DEFAULT_TEST_FEES.trade_fee_denominator,
                 )
                 .unwrap();
 

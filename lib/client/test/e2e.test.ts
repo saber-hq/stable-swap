@@ -4,8 +4,12 @@ import { Token } from "@solana/spl-token";
 import { Account, Connection, PublicKey } from "@solana/web3.js";
 
 import { StableSwap } from "../src";
-import { NumberU64 } from "../src/util/u64";
 import { newAccountWithLamports, sleep } from "./helpers";
+import {
+  DEFAULT_FEE_DENOMINATOR,
+  DEFAULT_FEE_NUMERATOR,
+  Fees,
+} from "../src/fees";
 
 // Token Program
 const TokenProgramId: PublicKey = new PublicKey(
@@ -15,9 +19,17 @@ const TokenProgramId: PublicKey = new PublicKey(
 const CLUSTER_URL = "http://localhost:8899";
 const BOOTSTRAP_TIMEOUT = 300000;
 // Pool configs
-const AMP_FACTOR = new NumberU64(100);
-const FEE_NUMERATOR = new NumberU64(1);
-const FEE_DENOMINATOR = new NumberU64(4);
+const AMP_FACTOR = 100;
+const FEES: Fees = {
+  adminTradeFeeNumerator: DEFAULT_FEE_NUMERATOR,
+  adminTradeFeeDenominator: DEFAULT_FEE_DENOMINATOR,
+  adminWithdrawFeeNumerator: DEFAULT_FEE_NUMERATOR,
+  adminWithdrawFeeDenominator: DEFAULT_FEE_DENOMINATOR,
+  tradeFeeNumerator: 1,
+  tradeFeeDenominator: 4,
+  withdrawFeeNumerator: DEFAULT_FEE_NUMERATOR,
+  withdrawFeeDenominator: DEFAULT_FEE_DENOMINATOR,
+};
 //  Other constants
 const oneSol = 1000000000;
 // Initial amount in each swap token
@@ -49,6 +61,9 @@ describe("e2e test", () => {
   let mintB: Token;
   let tokenAccountA: PublicKey;
   let tokenAccountB: PublicKey;
+  // Admin accounts
+  let adminAccountA: PublicKey;
+  let adminAccountB: PublicKey;
   // Stable swap
   let stableSwap: StableSwap;
   let stableSwapAccount: Account;
@@ -104,6 +119,7 @@ describe("e2e test", () => {
     }
     // create token A account then mint to it
     try {
+      adminAccountA = await mintA.createAccount(owner.publicKey);
       tokenAccountA = await mintA.createAccount(authority);
       await mintA.mintTo(tokenAccountA, owner, [], INITIAL_TOKEN_A_AMOUNT);
     } catch (e) {
@@ -124,6 +140,7 @@ describe("e2e test", () => {
     }
     // creating token B account then mint to it
     try {
+      adminAccountB = await mintB.createAccount(owner.publicKey);
       tokenAccountB = await mintB.createAccount(authority);
       await mintB.mintTo(tokenAccountB, owner, [], INITIAL_TOKEN_B_AMOUNT);
     } catch (e) {
@@ -139,6 +156,8 @@ describe("e2e test", () => {
         payer,
         stableSwapAccount,
         authority,
+        adminAccountA,
+        adminAccountB,
         tokenAccountA,
         tokenAccountB,
         tokenPool.publicKey,
@@ -149,8 +168,7 @@ describe("e2e test", () => {
         TokenProgramId,
         nonce,
         AMP_FACTOR,
-        FEE_NUMERATOR,
-        FEE_DENOMINATOR
+        FEES
       );
     } catch (e) {
       throw new Error(e);
@@ -184,8 +202,7 @@ describe("e2e test", () => {
     expect(fetchedStableSwap.mintB).toEqual(mintB.publicKey);
     expect(fetchedStableSwap.poolToken).toEqual(tokenPool.publicKey);
     expect(fetchedStableSwap.ampFactor).toEqual(AMP_FACTOR);
-    expect(fetchedStableSwap.feeNumerator).toEqual(FEE_NUMERATOR);
-    expect(fetchedStableSwap.feeDenominator).toEqual(FEE_DENOMINATOR);
+    expect(fetchedStableSwap.fees).toEqual(FEES);
   });
 
   it("deposit", async () => {

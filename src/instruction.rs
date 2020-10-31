@@ -3,9 +3,11 @@
 #![allow(clippy::too_many_arguments)]
 
 use crate::error::SwapError;
+use crate::fees::Fees;
 use solana_sdk::{
     instruction::{AccountMeta, Instruction},
     program_error::ProgramError,
+    program_pack::Pack,
     pubkey::Pubkey,
 };
 use std::convert::TryInto;
@@ -23,14 +25,12 @@ pub enum SwapInstruction {
     ///   3. `[]` token_b Account. Must be non zero, owned by $authority.
     ///   4. `[writable]` Pool Token Mint. Must be empty, owned by $authority.
     Initialize {
+        /// Nonce used to create valid program address
+        nonce: u8,
         /// Amplification coefficient (A)
         amp_factor: u64,
-        /// swap pool fee numerator
-        fee_numerator: u64,
-        /// swap pool fee denominator
-        fee_denominator: u64,
-        /// nonce used to create valid program address
-        nonce: u8,
+        /// Fees
+        fees: Fees,
     },
 
     ///   Swap the tokens in the pool.
@@ -98,15 +98,13 @@ impl SwapInstruction {
         let (&tag, rest) = input.split_first().ok_or(SwapError::InvalidInstruction)?;
         Ok(match tag {
             0 => {
+                let (&nonce, rest) = rest.split_first().ok_or(SwapError::InvalidInstruction)?;
                 let (amp_factor, rest) = Self::unpack_u64(rest)?;
-                let (fee_numerator, rest) = Self::unpack_u64(rest)?;
-                let (fee_denominator, rest) = Self::unpack_u64(rest)?;
-                let (&nonce, _rest) = rest.split_first().ok_or(SwapError::InvalidInstruction)?;
+                let fees = Fees::unpack_unchecked(rest)?;
                 Self::Initialize {
-                    amp_factor,
-                    fee_numerator,
-                    fee_denominator,
                     nonce,
+                    amp_factor,
+                    fees,
                 }
             }
             1 => {
@@ -160,16 +158,16 @@ impl SwapInstruction {
         let mut buf = Vec::with_capacity(size_of::<Self>());
         match *self {
             Self::Initialize {
-                amp_factor,
-                fee_numerator,
-                fee_denominator,
                 nonce,
+                amp_factor,
+                fees,
             } => {
                 buf.push(0);
-                buf.extend_from_slice(&amp_factor.to_le_bytes());
-                buf.extend_from_slice(&fee_numerator.to_le_bytes());
-                buf.extend_from_slice(&fee_denominator.to_le_bytes());
                 buf.push(nonce);
+                buf.extend_from_slice(&amp_factor.to_le_bytes());
+                let mut fees_slice = [0u8; Fees::LEN];
+                Pack::pack_into_slice(&fees, &mut fees_slice[..]);
+                buf.extend_from_slice(&fees_slice);
             }
             Self::Swap {
                 amount_in,
@@ -207,23 +205,23 @@ impl SwapInstruction {
 /// Creates an 'initialize' instruction.
 pub fn initialize(
     program_id: &Pubkey,
-    token_program_id: &Pubkey, // Token program used for the pool token
+    pool_token_program_id: &Pubkey, // Token program used for the pool token
     swap_pubkey: &Pubkey,
     authority_pubkey: &Pubkey,
     token_a_pubkey: &Pubkey,
     token_b_pubkey: &Pubkey,
-    pool_pubkey: &Pubkey,
+    pool_token_pubkey: &Pubkey,
     destination_pubkey: &Pubkey, // Desintation to mint pool tokens for bootstrapper
+    admin_fee_a_pubkey: &Pubkey,
+    admin_fee_b_pubkey: &Pubkey,
     nonce: u8,
     amp_factor: u64,
-    fee_numerator: u64,
-    fee_denominator: u64,
+    fees: Fees,
 ) -> Result<Instruction, ProgramError> {
     let init_data = SwapInstruction::Initialize {
-        amp_factor,
-        fee_numerator,
-        fee_denominator,
         nonce,
+        amp_factor,
+        fees,
     };
     let data = init_data.pack();
 
@@ -232,9 +230,11 @@ pub fn initialize(
         AccountMeta::new(*authority_pubkey, false),
         AccountMeta::new(*token_a_pubkey, false),
         AccountMeta::new(*token_b_pubkey, false),
-        AccountMeta::new(*pool_pubkey, false),
+        AccountMeta::new(*pool_token_pubkey, false),
         AccountMeta::new(*destination_pubkey, false),
-        AccountMeta::new(*token_program_id, false),
+        AccountMeta::new(*pool_token_program_id, false),
+        AccountMeta::new(*admin_fee_a_pubkey, false),
+        AccountMeta::new(*admin_fee_b_pubkey, false),
     ];
 
     Ok(Instruction {
@@ -381,23 +381,31 @@ mod tests {
 
     #[test]
     fn test_instruction_packing() {
-        let amp_factor: u64 = 0;
-        let fee_numerator: u64 = 1;
-        let fee_denominator: u64 = 4;
         let nonce: u8 = 255;
+        let amp_factor: u64 = 0;
+        let fees = Fees {
+            admin_trade_fee_numerator: 1,
+            admin_trade_fee_denominator: 2,
+            admin_withdraw_fee_numerator: 3,
+            admin_withdraw_fee_denominator: 4,
+            trade_fee_numerator: 5,
+            trade_fee_denominator: 6,
+            withdraw_fee_numerator: 7,
+            withdraw_fee_denominator: 8,
+        };
         let check = SwapInstruction::Initialize {
-            amp_factor,
-            fee_numerator,
-            fee_denominator,
             nonce,
+            amp_factor,
+            fees,
         };
         let packed = check.pack();
         let mut expect = vec![];
         expect.push(0 as u8);
-        expect.extend_from_slice(&amp_factor.to_le_bytes());
-        expect.extend_from_slice(&fee_numerator.to_le_bytes());
-        expect.extend_from_slice(&fee_denominator.to_le_bytes());
         expect.push(nonce);
+        expect.extend_from_slice(&amp_factor.to_le_bytes());
+        let mut fees_slice = [0u8; Fees::LEN];
+        fees.pack_into_slice(&mut fees_slice[..]);
+        expect.extend_from_slice(&fees_slice);
         assert_eq!(packed, expect);
         let unpacked = SwapInstruction::unpack(&expect).unwrap();
         assert_eq!(unpacked, check);

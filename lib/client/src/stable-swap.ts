@@ -6,11 +6,11 @@ import {
   Transaction,
 } from "@solana/web3.js";
 
+import { DEFAULT_FEES, Fees } from "./fees";
 import * as instructions from "./instructions";
 import * as layout from "./layout";
 import { loadAccount } from "./util/account";
 import { sendAndConfirmTransaction } from "./util/send-and-confirm-transaction";
-import { NumberU64 } from "./util/u64";
 
 /**
  * A program to exchange tokens against a pool of liquidity
@@ -69,17 +69,12 @@ export class StableSwap {
   /**
    * Amplification coefficient (A)
    */
-  ampFactor: NumberU64;
+  ampFactor: number;
 
   /**
-   * Trading fee numerator
+   * Fees
    */
-  feeNumerator: NumberU64;
-
-  /**
-   * Trading fee denominator
-   */
-  feeDenominator: NumberU64;
+  fees: Fees;
 
   /**
    * Fee payer
@@ -99,9 +94,8 @@ export class StableSwap {
    * @param mintA
    * @param mintB
    * @param ampFactor
-   * @param feeNumerator
-   * @param feeDenominator
    * @param payer
+   * @param fees
    */
   constructor(
     connection: Connection,
@@ -114,10 +108,9 @@ export class StableSwap {
     tokenAccountB: PublicKey,
     mintA: PublicKey,
     mintB: PublicKey,
-    ampFactor: number | NumberU64,
-    feeNumerator: number | NumberU64,
-    feeDenominator: number | NumberU64,
-    payer: Account
+    ampFactor: number,
+    payer: Account,
+    fees: Fees = DEFAULT_FEES
   ) {
     this.connection = connection;
     this.stableSwap = stableSwap;
@@ -129,10 +122,9 @@ export class StableSwap {
     this.tokenAccountB = tokenAccountB;
     this.mintA = mintA;
     this.mintB = mintB;
-    this.ampFactor = new NumberU64(ampFactor);
-    this.feeNumerator = new NumberU64(feeNumerator);
-    this.feeDenominator = new NumberU64(feeDenominator);
+    this.ampFactor = ampFactor;
     this.payer = payer;
+    this.fees = fees;
   }
 
   /**
@@ -177,9 +169,17 @@ export class StableSwap {
     const mintA = new PublicKey(stableSwapData.mintA);
     const mintB = new PublicKey(stableSwapData.mintB);
     const tokenProgramId = new PublicKey(stableSwapData.tokenProgramId);
-    const ampFactor = new NumberU64(stableSwapData.ampFactor);
-    const feeNumerator = new NumberU64(stableSwapData.feeNumerator);
-    const feeDenominator = new NumberU64(stableSwapData.feeDenominator);
+    const ampFactor = stableSwapData.ampFactor;
+    const fees = {
+      adminTradeFeeNumerator: stableSwapData.adminTradeFeeNumerator as number,
+      adminTradeFeeDenominator: stableSwapData.adminTradeFeeDenominator as number,
+      adminWithdrawFeeNumerator: stableSwapData.adminWithdrawFeeNumerator as number,
+      adminWithdrawFeeDenominator: stableSwapData.adminWithdrawFeeDenominator as number,
+      tradeFeeNumerator: stableSwapData.tradeFeeNumerator as number,
+      tradeFeeDenominator: stableSwapData.tradeFeeDenominator as number,
+      withdrawFeeNumerator: stableSwapData.withdrawFeeNumerator as number,
+      withdrawFeeDenominator: stableSwapData.withdrawFeeDenominator as number,
+    };
 
     return new StableSwap(
       connection,
@@ -193,9 +193,8 @@ export class StableSwap {
       mintA,
       mintB,
       ampFactor,
-      feeNumerator,
-      feeDenominator,
-      payer
+      payer,
+      fees
     );
   }
 
@@ -205,24 +204,27 @@ export class StableSwap {
    * @param payer
    * @param stableSwapAccount
    * @param authority
+   * @param adminFeeAccountA
+   * @param adminFeeAccountB
    * @param tokenAccountA
    * @param tokenAccountB
    * @param poolToken
+   * @param poolTokenAccount
    * @param mintA
    * @param mintB
-   * @param tokenAccountPool
    * @param swapProgramId
    * @param tokenProgramId
    * @param nonce
    * @param ampFactor
-   * @param feeNumerator
-   * @param feeDenominator
+   * @param fees
    */
   static async createStableSwap(
     connection: Connection,
     payer: Account,
     stableSwapAccount: Account,
     authority: PublicKey,
+    adminFeeAccountA: PublicKey,
+    adminFeeAccountB: PublicKey,
     tokenAccountA: PublicKey,
     tokenAccountB: PublicKey,
     poolToken: PublicKey,
@@ -232,27 +234,9 @@ export class StableSwap {
     swapProgramId: PublicKey,
     tokenProgramId: PublicKey,
     nonce: number,
-    ampFactor: number | NumberU64,
-    feeNumerator: number | NumberU64,
-    feeDenominator: number | NumberU64
+    ampFactor: number,
+    fees: Fees = DEFAULT_FEES
   ): Promise<StableSwap> {
-    const stableSwap = new StableSwap(
-      connection,
-      stableSwapAccount.publicKey,
-      swapProgramId,
-      tokenProgramId,
-      poolToken,
-      authority,
-      tokenAccountA,
-      tokenAccountB,
-      mintA,
-      mintB,
-      new NumberU64(ampFactor),
-      new NumberU64(feeNumerator),
-      new NumberU64(feeDenominator),
-      payer
-    );
-
     // Allocate memory for the account
     const balanceNeeded = await StableSwap.getMinBalanceRentForExemptStableSwap(
       connection
@@ -270,16 +254,17 @@ export class StableSwap {
     const instruction = instructions.createInitSwapInstruction(
       stableSwapAccount,
       authority,
+      adminFeeAccountA,
+      adminFeeAccountB,
       tokenAccountA,
       tokenAccountB,
       poolToken,
       poolTokenAccount,
-      tokenProgramId,
       swapProgramId,
+      tokenProgramId,
       nonce,
       ampFactor,
-      feeNumerator,
-      feeDenominator
+      fees
     );
     transaction.add(instruction);
 
@@ -291,7 +276,21 @@ export class StableSwap {
       stableSwapAccount
     );
 
-    return stableSwap;
+    return new StableSwap(
+      connection,
+      stableSwapAccount.publicKey,
+      swapProgramId,
+      tokenProgramId,
+      poolToken,
+      authority,
+      tokenAccountA,
+      tokenAccountB,
+      mintA,
+      mintB,
+      ampFactor,
+      payer,
+      fees
+    );
   }
 
   /**
@@ -308,8 +307,8 @@ export class StableSwap {
     poolSource: PublicKey,
     poolDestination: PublicKey,
     userDestination: PublicKey,
-    amountIn: number | NumberU64,
-    minimumAmountOut: number | NumberU64
+    amountIn: number,
+    minimumAmountOut: number
   ): Promise<TransactionSignature> {
     return await sendAndConfirmTransaction(
       "swap",
@@ -344,10 +343,10 @@ export class StableSwap {
   async deposit(
     userAccountA: PublicKey,
     userAccountB: PublicKey,
-    poolAccount: PublicKey,
-    tokenAmountA: number | NumberU64,
-    tokenAmountB: number | NumberU64,
-    minimumPoolTokenAmount: number | NumberU64
+    poolTokenAccount: PublicKey,
+    tokenAmountA: number,
+    tokenAmountB: number,
+    minimumPoolTokenAmount: number
   ): Promise<TransactionSignature> {
     return await sendAndConfirmTransaction(
       "deposit",
@@ -361,7 +360,7 @@ export class StableSwap {
           this.tokenAccountA,
           this.tokenAccountB,
           this.poolToken,
-          poolAccount,
+          poolTokenAccount,
           this.swapProgramId,
           this.tokenProgramId,
           tokenAmountA,
@@ -386,9 +385,9 @@ export class StableSwap {
     userAccountA: PublicKey,
     userAccountB: PublicKey,
     poolAccount: PublicKey,
-    poolTokenAmount: number | NumberU64,
-    minimumTokenA: number | NumberU64,
-    minimumTokenB: number | NumberU64
+    poolTokenAmount: number,
+    minimumTokenA: number,
+    minimumTokenB: number
   ): Promise<TransactionSignature> {
     return await sendAndConfirmTransaction(
       "withdraw",

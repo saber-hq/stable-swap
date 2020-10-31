@@ -1118,10 +1118,10 @@
     tweetnacl "^1.0.0"
     ws "^7.0.0"
 
-"@solana/web3.js@^0.83.1":
-  version "0.83.1"
-  resolved "https://registry.yarnpkg.com/@solana/web3.js/-/web3.js-0.83.1.tgz#dcce7a8a3cf8f4c184c29f796fa0509a92d4a715"
-  integrity sha512-NBwghWNZpmoEPmWjuyH97PNpta6q0VIjcZrR1ma2vsqoPmdxgWgXuv4qFiNCYobHcYsHaBsf18alv++EZ7pF6Q==
+"@solana/web3.js@^0.86.2":
+  version "0.86.2"
+  resolved "https://registry.yarnpkg.com/@solana/web3.js/-/web3.js-0.86.2.tgz#df88262feade5ff0d8ea53aa06b04f37a0540d9a"
+  integrity sha512-e+NrS4kVdvZfLTvSGXr2jnPH3Gc7LkzO861cdbYgJBMAtTuE1kKsbONZXXcm3Gx2gNKf8+vlCA/hnK9GcaiyFA==
   dependencies:
     "@babel/runtime" "^7.3.1"
     bn.js "^5.0.0"

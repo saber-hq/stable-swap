@@ -49,7 +49,7 @@ perform_action() {
         ;;
     clean)
         "$sdkDir"/rust/clean.sh $PWD
-        rm -rf lib/client/node_modules lib/client/lib
+        rm -rf lib/client/lib
         ;;
     clippy)
         (

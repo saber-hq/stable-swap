@@ -31,10 +31,10 @@ const FEES: Fees = {
   withdrawFeeDenominator: DEFAULT_FEE_DENOMINATOR,
 };
 //  Other constants
-const oneSol = 1000000000;
+const ONE_SOL = 1000000000;
 // Initial amount in each swap token
-const INITIAL_TOKEN_A_AMOUNT = oneSol;
-const INITIAL_TOKEN_B_AMOUNT = oneSol;
+const INITIAL_TOKEN_A_AMOUNT = ONE_SOL;
+const INITIAL_TOKEN_B_AMOUNT = ONE_SOL;
 
 const getStableSwapProgramId = (): string => {
   const deployInfo = fs.readFileSync("../../last-deploy.json", "utf-8");
@@ -72,8 +72,8 @@ describe("e2e test", () => {
   beforeAll(async (done) => {
     // Bootstrap Test Environment ...
     connection = new Connection(CLUSTER_URL, "single");
-    payer = await newAccountWithLamports(connection, oneSol);
-    owner = await newAccountWithLamports(connection, oneSol);
+    payer = await newAccountWithLamports(connection, ONE_SOL);
+    owner = await newAccountWithLamports(connection, ONE_SOL);
 
     stableSwapProgramId = new PublicKey(getStableSwapProgramId());
     stableSwapAccount = new Account();
@@ -206,8 +206,8 @@ describe("e2e test", () => {
   });
 
   it("deposit", async () => {
-    const depositAmountA = oneSol;
-    const depositAmountB = oneSol;
+    const depositAmountA = ONE_SOL;
+    const depositAmountB = ONE_SOL;
     // Creating depositor token a account
     const userAccountA = await mintA.createAccount(owner.publicKey);
     await mintA.mintTo(userAccountA, owner, [], depositAmountA);

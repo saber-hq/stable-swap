@@ -1,5 +1,4 @@
 import type { Account, PublicKey, Transaction } from "@solana/web3.js";
-export type SignerOrAccount = Signer | Account;
 
 /**
  * Signer can sign transactions. @project-serum/sol-wallet-adapter implements this interface.
@@ -12,3 +11,5 @@ export interface Signer {
    */
   signTransaction(tx: Transaction): Promise<Transaction>;
 }
+
+export type SignerOrAccount = Signer | Account;

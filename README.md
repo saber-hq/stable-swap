@@ -13,7 +13,7 @@ To build the program, run:
 $ ./do.sh build
 ```
 
-## Testing
+### Testing
 
 Unit tests contained within the project can be built via:
 ```bash
@@ -24,11 +24,18 @@ Running end-to-end tests:
 $ ./do.sh e2e-test
 ```
 
-## Clippy
+### Clippy
 
 Clippy is also supported via:
 ```bash
 $ ./do.sh clippy
+```
+
+### Deployment
+
+To deploy the program, run:
+```bash
+$ ./do.sh deploy <network>
 ```
 
 ## TODO

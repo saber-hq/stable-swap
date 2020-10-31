@@ -20,7 +20,7 @@ export const sendAndConfirmTransaction = async (
     if ("signTransaction" in signer) {
       signer.signTransaction(transaction);
     } else {
-      transaction.sign(signer);
+      transaction.partialSign(signer);
     }
   });
 

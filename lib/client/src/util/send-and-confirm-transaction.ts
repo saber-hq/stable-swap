@@ -1,27 +1,37 @@
-import { sendAndConfirmTransaction as realSendAndConfirmTransaction } from "@solana/web3.js";
 import type {
-  Account,
   Connection,
   Transaction,
-  TransactionSignature,
+  TransactionSignature
 } from "@solana/web3.js";
+import { sendAndConfirmTransaction as realSendAndConfirmTransaction } from "@solana/web3.js";
+import { SignerOrAccount } from "./signerOrAccount";
 
 export const sendAndConfirmTransaction = async (
   title: string,
   connection: Connection,
   transaction: Transaction,
-  ...signers: Account[]
+  ...signers: SignerOrAccount[]
 ): Promise<TransactionSignature> => {
   /* tslint:disable:no-console */
   console.info(`Sending ${title} transaction`);
+
+  // sign the TX
+  signers.forEach(signer => {
+    if ("signTransaction" in signer) {
+      signer.signTransaction(transaction);
+    } else {
+      transaction.sign(signer);
+    }
+  });
+
   const txSig = await realSendAndConfirmTransaction(
     connection,
     transaction,
-    signers,
+    [],
     {
       skipPreflight: false,
       commitment: connection.commitment || "recent",
-      preflightCommitment: connection.commitment || "recent",
+      preflightCommitment: connection.commitment || "recent"
     }
   );
   console.info(`TxSig: ${txSig}`);

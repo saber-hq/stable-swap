@@ -11,6 +11,7 @@ import * as instructions from "./instructions";
 import * as layout from "./layout";
 import { loadAccount } from "./util/account";
 import { sendAndConfirmTransaction } from "./util/send-and-confirm-transaction";
+import { SignerOrAccount } from "./util/signerOrAccount";
 
 /**
  * A program to exchange tokens against a pool of liquidity
@@ -79,7 +80,7 @@ export class StableSwap {
   /**
    * Fee payer
    */
-  payer: Account;
+  payer: SignerOrAccount;
 
   /**
    * Create a new StableSwap client object
@@ -109,7 +110,7 @@ export class StableSwap {
     mintA: PublicKey,
     mintB: PublicKey,
     ampFactor: number,
-    payer: Account,
+    payer: SignerOrAccount,
     fees: Fees = DEFAULT_FEES
   ) {
     this.connection = connection;
@@ -151,7 +152,7 @@ export class StableSwap {
     connection: Connection,
     address: PublicKey,
     programId: PublicKey,
-    payer: Account
+    payer: SignerOrAccount
   ): Promise<StableSwap> {
     const data = await loadAccount(connection, address, programId);
     const stableSwapData = layout.StableSwapLayout.decode(data);
@@ -220,7 +221,7 @@ export class StableSwap {
    */
   static async createStableSwap(
     connection: Connection,
-    payer: Account,
+    payer: SignerOrAccount,
     stableSwapAccount: Account,
     authority: PublicKey,
     adminFeeAccountA: PublicKey,

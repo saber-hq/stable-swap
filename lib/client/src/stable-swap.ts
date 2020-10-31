@@ -342,7 +342,7 @@ export class StableSwap {
   async deposit(
     userAccountA: PublicKey,
     userAccountB: PublicKey,
-    poolAccount: PublicKey,
+    poolTokenAccount: PublicKey,
     tokenAmountA: number | NumberU64,
     tokenAmountB: number | NumberU64,
     minimumPoolTokenAmount: number | NumberU64
@@ -359,7 +359,7 @@ export class StableSwap {
           this.tokenAccountA,
           this.tokenAccountB,
           this.poolToken,
-          poolAccount,
+          poolTokenAccount,
           this.swapProgramId,
           this.tokenProgramId,
           tokenAmountA,

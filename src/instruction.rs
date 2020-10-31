@@ -205,13 +205,15 @@ impl SwapInstruction {
 /// Creates an 'initialize' instruction.
 pub fn initialize(
     program_id: &Pubkey,
-    token_program_id: &Pubkey, // Token program used for the pool token
+    pool_token_program_id: &Pubkey, // Token program used for the pool token
     swap_pubkey: &Pubkey,
     authority_pubkey: &Pubkey,
     token_a_pubkey: &Pubkey,
     token_b_pubkey: &Pubkey,
-    pool_pubkey: &Pubkey,
+    pool_token_pubkey: &Pubkey,
     destination_pubkey: &Pubkey, // Desintation to mint pool tokens for bootstrapper
+    admin_fee_a_pubkey: &Pubkey,
+    admin_fee_b_pubkey: &Pubkey,
     nonce: u8,
     amp_factor: u64,
     fees: Fees,
@@ -228,9 +230,11 @@ pub fn initialize(
         AccountMeta::new(*authority_pubkey, false),
         AccountMeta::new(*token_a_pubkey, false),
         AccountMeta::new(*token_b_pubkey, false),
-        AccountMeta::new(*pool_pubkey, false),
+        AccountMeta::new(*pool_token_pubkey, false),
         AccountMeta::new(*destination_pubkey, false),
-        AccountMeta::new(*token_program_id, false),
+        AccountMeta::new(*pool_token_program_id, false),
+        AccountMeta::new(*admin_fee_a_pubkey, false),
+        AccountMeta::new(*admin_fee_b_pubkey, false),
     ];
 
     Ok(Instruction {
@@ -379,23 +383,15 @@ mod tests {
     fn test_instruction_packing() {
         let nonce: u8 = 255;
         let amp_factor: u64 = 0;
-        let admin_trade_fee_numerator = 1;
-        let admin_trade_fee_denominator = 2;
-        let admin_withdraw_fee_numerator = 3;
-        let admin_withdraw_fee_denominator = 4;
-        let trade_fee_numerator = 5;
-        let trade_fee_denominator = 6;
-        let withdraw_fee_numerator = 7;
-        let withdraw_fee_denominator = 8;
         let fees = Fees {
-            admin_trade_fee_numerator,
-            admin_trade_fee_denominator,
-            admin_withdraw_fee_numerator,
-            admin_withdraw_fee_denominator,
-            trade_fee_numerator,
-            trade_fee_denominator,
-            withdraw_fee_numerator,
-            withdraw_fee_denominator,
+            admin_trade_fee_numerator: 1,
+            admin_trade_fee_denominator: 2,
+            admin_withdraw_fee_numerator: 3,
+            admin_withdraw_fee_denominator: 4,
+            trade_fee_numerator: 5,
+            trade_fee_denominator: 6,
+            withdraw_fee_numerator: 7,
+            withdraw_fee_denominator: 8,
         };
         let check = SwapInstruction::Initialize {
             nonce,
@@ -410,14 +406,6 @@ mod tests {
         let mut fees_slice = [0u8; Fees::LEN];
         fees.pack_into_slice(&mut fees_slice[..]);
         expect.extend_from_slice(&fees_slice);
-        // expect.extend_from_slice(&admin_trade_fee_numerator.to_le_bytes());
-        // expect.extend_from_slice(&admin_trade_fee_denominator.to_le_bytes());
-        // expect.extend_from_slice(&admin_withdraw_fee_numerator.to_le_bytes());
-        // expect.extend_from_slice(&admin_withdraw_fee_denominator.to_le_bytes());
-        // expect.extend_from_slice(&trade_fee_numerator.to_le_bytes());
-        // expect.extend_from_slice(&trade_fee_denominator.to_le_bytes());
-        // expect.extend_from_slice(&withdraw_fee_numerator.to_le_bytes());
-        // expect.extend_from_slice(&withdraw_fee_denominator.to_le_bytes());
         assert_eq!(packed, expect);
         let unpacked = SwapInstruction::unpack(&expect).unwrap();
         assert_eq!(unpacked, check);

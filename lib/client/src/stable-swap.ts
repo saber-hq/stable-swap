@@ -11,7 +11,6 @@ import * as instructions from "./instructions";
 import * as layout from "./layout";
 import { loadAccount } from "./util/account";
 import { sendAndConfirmTransaction } from "./util/send-and-confirm-transaction";
-import { NumberU64 } from "./util/u64";
 
 /**
  * A program to exchange tokens against a pool of liquidity
@@ -308,8 +307,8 @@ export class StableSwap {
     poolSource: PublicKey,
     poolDestination: PublicKey,
     userDestination: PublicKey,
-    amountIn: number | NumberU64,
-    minimumAmountOut: number | NumberU64
+    amountIn: number,
+    minimumAmountOut: number
   ): Promise<TransactionSignature> {
     return await sendAndConfirmTransaction(
       "swap",
@@ -345,9 +344,9 @@ export class StableSwap {
     userAccountA: PublicKey,
     userAccountB: PublicKey,
     poolTokenAccount: PublicKey,
-    tokenAmountA: number | NumberU64,
-    tokenAmountB: number | NumberU64,
-    minimumPoolTokenAmount: number | NumberU64
+    tokenAmountA: number,
+    tokenAmountB: number,
+    minimumPoolTokenAmount: number
   ): Promise<TransactionSignature> {
     return await sendAndConfirmTransaction(
       "deposit",
@@ -386,9 +385,9 @@ export class StableSwap {
     userAccountA: PublicKey,
     userAccountB: PublicKey,
     poolAccount: PublicKey,
-    poolTokenAmount: number | NumberU64,
-    minimumTokenA: number | NumberU64,
-    minimumTokenB: number | NumberU64
+    poolTokenAmount: number,
+    minimumTokenA: number,
+    minimumTokenB: number
   ): Promise<TransactionSignature> {
     return await sendAndConfirmTransaction(
       "withdraw",

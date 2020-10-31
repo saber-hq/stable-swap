@@ -199,6 +199,14 @@ impl Processor {
         if pool_mint.supply != 0 {
             return Err(SwapError::InvalidSupply.into());
         }
+        let admin_fee_account_a = Self::unpack_token_account(&admin_fee_a_info.data.borrow())?;
+        let admin_fee_account_b = Self::unpack_token_account(&admin_fee_b_info.data.borrow())?;
+        if token_a.mint != admin_fee_account_a.mint {  // TODO: Add test
+            return Err(SwapError::InvalidAdmin.into());
+        }
+        if token_b.mint != admin_fee_account_b.mint {  // TODO: Add test
+            return Err(SwapError::InvalidAdmin.into());
+        }
 
         // LP tokens for bootstrapper
         let invariant = StableSwap { amp_factor };
@@ -587,6 +595,9 @@ impl PrintProgramError for SwapError {
             }
             SwapError::InvalidOwner => {
                 info!("Error: The input account owner is not the program address")
+            }
+            SwapError::InvalidAdmin => {
+                info!("Error: Address of the admin fee account is incorrect")
             }
             SwapError::ExpectedMint => {
                 info!("Error: Deserialized account is not an SPL Token mint")
@@ -1522,14 +1533,38 @@ mod tests {
         assert_eq!(swap_info.pool_mint, accounts.pool_mint_key);
         assert_eq!(swap_info.token_a_mint, accounts.token_a_mint_key);
         assert_eq!(swap_info.token_b_mint, accounts.token_b_mint_key);
-        assert_eq!(swap_info.fees.admin_trade_fee_numerator, DEFAULT_TEST_FEES.admin_trade_fee_numerator);
-        assert_eq!(swap_info.fees.admin_trade_fee_denominator, DEFAULT_TEST_FEES.admin_trade_fee_denominator);
-        assert_eq!(swap_info.fees.admin_withdraw_fee_numerator, DEFAULT_TEST_FEES.admin_withdraw_fee_numerator);
-        assert_eq!(swap_info.fees.admin_withdraw_fee_denominator, DEFAULT_TEST_FEES.admin_withdraw_fee_denominator);
-        assert_eq!(swap_info.fees.trade_fee_numerator, DEFAULT_TEST_FEES.trade_fee_numerator);
-        assert_eq!(swap_info.fees.trade_fee_denominator, DEFAULT_TEST_FEES.trade_fee_denominator);
-        assert_eq!(swap_info.fees.withdraw_fee_numerator, DEFAULT_TEST_FEES.withdraw_fee_numerator);
-        assert_eq!(swap_info.fees.withdraw_fee_denominator, DEFAULT_TEST_FEES.withdraw_fee_denominator);
+        assert_eq!(
+            swap_info.fees.admin_trade_fee_numerator,
+            DEFAULT_TEST_FEES.admin_trade_fee_numerator
+        );
+        assert_eq!(
+            swap_info.fees.admin_trade_fee_denominator,
+            DEFAULT_TEST_FEES.admin_trade_fee_denominator
+        );
+        assert_eq!(
+            swap_info.fees.admin_withdraw_fee_numerator,
+            DEFAULT_TEST_FEES.admin_withdraw_fee_numerator
+        );
+        assert_eq!(
+            swap_info.fees.admin_withdraw_fee_denominator,
+            DEFAULT_TEST_FEES.admin_withdraw_fee_denominator
+        );
+        assert_eq!(
+            swap_info.fees.trade_fee_numerator,
+            DEFAULT_TEST_FEES.trade_fee_numerator
+        );
+        assert_eq!(
+            swap_info.fees.trade_fee_denominator,
+            DEFAULT_TEST_FEES.trade_fee_denominator
+        );
+        assert_eq!(
+            swap_info.fees.withdraw_fee_numerator,
+            DEFAULT_TEST_FEES.withdraw_fee_numerator
+        );
+        assert_eq!(
+            swap_info.fees.withdraw_fee_denominator,
+            DEFAULT_TEST_FEES.withdraw_fee_denominator
+        );
         let token_a = Processor::unpack_token_account(&accounts.token_a_account.data).unwrap();
         assert_eq!(token_a.amount, token_a_amount);
         let token_b = Processor::unpack_token_account(&accounts.token_b_account.data).unwrap();

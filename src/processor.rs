@@ -156,7 +156,7 @@ impl Processor {
         let token_b_info = next_account_info(account_info_iter)?;
         let pool_mint_info = next_account_info(account_info_iter)?;
         let destination_info = next_account_info(account_info_iter)?; // Destination account to mint LP tokens to
-        let pool_token_program_info = next_account_info(account_info_iter)?;
+        let token_program_info = next_account_info(account_info_iter)?;
         let admin_fee_a_info = next_account_info(account_info_iter)?;
         let admin_fee_b_info = next_account_info(account_info_iter)?;
 
@@ -213,7 +213,7 @@ impl Processor {
         let mint_amount = invariant.compute_d(token_a.amount, token_b.amount);
         Self::token_mint_to(
             swap_info.key,
-            pool_token_program_info.clone(),
+            token_program_info.clone(),
             pool_mint_info.clone(),
             destination_info.clone(),
             authority_info.clone(),

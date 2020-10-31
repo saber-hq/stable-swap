@@ -8,14 +8,14 @@ import { Fees } from "./fees";
 export const createInitSwapInstruction = (
   tokenSwapAccount: Account,
   authority: PublicKey,
+  adminFeeAcountA: PublicKey,
+  adminFeeAcountB: PublicKey,
   tokenAccountA: PublicKey,
   tokenAccountB: PublicKey,
   poolTokenMint: PublicKey,
   poolTokenAccount: PublicKey,
-  poolTokenProgramID: PublicKey,
   swapProgramId: PublicKey,
-  adminFeeAcountA: PublicKey,
-  adminFeeAcountB: PublicKey,
+  tokenProgramId: PublicKey,
   nonce: number,
   ampFactor: number | NumberU64,
   fees: Fees
@@ -27,7 +27,7 @@ export const createInitSwapInstruction = (
     { pubkey: tokenAccountB, isSigner: false, isWritable: false },
     { pubkey: poolTokenMint, isSigner: false, isWritable: true },
     { pubkey: poolTokenAccount, isSigner: false, isWritable: true },
-    { pubkey: poolTokenProgramID, isSigner: false, isWritable: false },
+    { pubkey: tokenProgramId, isSigner: false, isWritable: false },
     { pubkey: adminFeeAcountA, isSigner: false, isWritable: false },
     { pubkey: adminFeeAcountB, isSigner: false, isWritable: false },
   ];

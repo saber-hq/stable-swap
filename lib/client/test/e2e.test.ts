@@ -1,6 +1,6 @@
 import fs from "fs";
 
-import { Token } from "@solana/spl-token";
+import { Token, Token2 } from "@solana/spl-token";
 import { Account, Connection, PublicKey } from "@solana/web3.js";
 
 import { StableSwap } from "../src";
@@ -8,7 +8,7 @@ import { newAccountWithLamports, sleep } from "./helpers";
 import {
   DEFAULT_FEE_DENOMINATOR,
   DEFAULT_FEE_NUMERATOR,
-  Fees,
+  Fees
 } from "../src/fees";
 
 // Token Program
@@ -28,7 +28,7 @@ const FEES: Fees = {
   tradeFeeNumerator: 1,
   tradeFeeDenominator: 4,
   withdrawFeeNumerator: DEFAULT_FEE_NUMERATOR,
-  withdrawFeeDenominator: DEFAULT_FEE_DENOMINATOR,
+  withdrawFeeDenominator: DEFAULT_FEE_DENOMINATOR
 };
 //  Other constants
 const oneSol = 1000000000;
@@ -54,11 +54,11 @@ describe("e2e test", () => {
   // owner of the user accounts
   let owner: Account;
   // Token pool
-  let tokenPool: Token;
+  let tokenPool: Token2;
   let userPoolAccount: PublicKey;
   // Tokens swapped
-  let mintA: Token;
-  let mintB: Token;
+  let mintA: Token2;
+  let mintB: Token2;
   let tokenAccountA: PublicKey;
   let tokenAccountB: PublicKey;
   // Admin accounts
@@ -69,7 +69,7 @@ describe("e2e test", () => {
   let stableSwapAccount: Account;
   let stableSwapProgramId: PublicKey;
 
-  beforeAll(async (done) => {
+  beforeAll(async done => {
     // Bootstrap Test Environment ...
     connection = new Connection(CLUSTER_URL, "single");
     payer = await newAccountWithLamports(connection, oneSol);
@@ -87,14 +87,14 @@ describe("e2e test", () => {
     }
     // creating pool mint
     try {
-      tokenPool = await Token.createMint(
+      tokenPool = (await Token.createMint(
         connection,
         payer,
         authority,
         null,
         2,
         TokenProgramId
-      );
+      )) as Token2;
     } catch (e) {
       throw new Error(e);
     }
@@ -106,14 +106,14 @@ describe("e2e test", () => {
     }
     // creating token A
     try {
-      mintA = await Token.createMint(
+      mintA = (await Token.createMint(
         connection,
         payer,
         owner.publicKey,
         null,
         2,
         TokenProgramId
-      );
+      )) as Token2;
     } catch (e) {
       throw new Error(e);
     }
@@ -127,14 +127,14 @@ describe("e2e test", () => {
     }
     // creating token B
     try {
-      mintB = await Token.createMint(
+      mintB = (await Token.createMint(
         connection,
         payer,
         owner.publicKey,
         null,
         2,
         TokenProgramId
-      );
+      )) as Token2;
     } catch (e) {
       throw new Error(e);
     }

@@ -3,7 +3,7 @@ import {
   Account,
   PublicKey,
   SystemProgram,
-  Transaction,
+  Transaction
 } from "@solana/web3.js";
 
 import { DEFAULT_FEES, Fees } from "./fees";
@@ -11,6 +11,7 @@ import * as instructions from "./instructions";
 import * as layout from "./layout";
 import { loadAccount } from "./util/account";
 import { sendAndConfirmTransaction } from "./util/send-and-confirm-transaction";
+import { SignerOrAccount } from "./util/signerOrAccount";
 
 /**
  * A program to exchange tokens against a pool of liquidity
@@ -79,7 +80,7 @@ export class StableSwap {
   /**
    * Fee payer
    */
-  payer: Account;
+  payer: SignerOrAccount;
 
   /**
    * Create a new StableSwap client object
@@ -109,7 +110,7 @@ export class StableSwap {
     mintA: PublicKey,
     mintB: PublicKey,
     ampFactor: number,
-    payer: Account,
+    payer: SignerOrAccount,
     fees: Fees = DEFAULT_FEES
   ) {
     this.connection = connection;
@@ -143,7 +144,7 @@ export class StableSwap {
   /**
    * Load an onchain StableSwap program
    * @param connection The connection to use
-   * @param address
+   * @param address The public key of the account to load
    * @param programId Address of the onchain StableSwap program
    * @param payer Pays for the transaction
    */
@@ -151,7 +152,7 @@ export class StableSwap {
     connection: Connection,
     address: PublicKey,
     programId: PublicKey,
-    payer: Account
+    payer: SignerOrAccount
   ): Promise<StableSwap> {
     const data = await loadAccount(connection, address, programId);
     const stableSwapData = layout.StableSwapLayout.decode(data);
@@ -178,7 +179,7 @@ export class StableSwap {
       tradeFeeNumerator: stableSwapData.tradeFeeNumerator as number,
       tradeFeeDenominator: stableSwapData.tradeFeeDenominator as number,
       withdrawFeeNumerator: stableSwapData.withdrawFeeNumerator as number,
-      withdrawFeeDenominator: stableSwapData.withdrawFeeDenominator as number,
+      withdrawFeeDenominator: stableSwapData.withdrawFeeDenominator as number
     };
 
     return new StableSwap(
@@ -220,7 +221,7 @@ export class StableSwap {
    */
   static async createStableSwap(
     connection: Connection,
-    payer: Account,
+    payer: SignerOrAccount,
     stableSwapAccount: Account,
     authority: PublicKey,
     adminFeeAccountA: PublicKey,
@@ -247,7 +248,7 @@ export class StableSwap {
         newAccountPubkey: stableSwapAccount.publicKey,
         lamports: balanceNeeded,
         space: layout.StableSwapLayout.span,
-        programId: swapProgramId,
+        programId: swapProgramId
       })
     );
 

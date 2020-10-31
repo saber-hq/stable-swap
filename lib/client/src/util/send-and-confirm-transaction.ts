@@ -11,7 +11,7 @@ export const sendAndConfirmTransaction = async (
   connection: Connection,
   transaction: Transaction,
   ...signers: Account[]
-): Promise<TransactionSignature | null> => {
+): Promise<TransactionSignature> => {
   /* tslint:disable:no-console */
   console.info(`Sending ${title} transaction`);
   const txSig = await realSendAndConfirmTransaction(

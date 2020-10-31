@@ -152,7 +152,7 @@ mod tests {
             withdraw_fee_numerator,
             withdraw_fee_denominator,
         };
-            
+
         let is_initialized = true;
         let swap_info = SwapInfo {
             is_initialized,

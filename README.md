@@ -46,7 +46,7 @@ $ ./do.sh deploy <network>
 ```
 
 Last Deploy:
-```
+```bash
 # Devnet
 ProgramID:  GXkGzrv85J58b2evP6jbCQQFENdHvA6U5vHiPFV2Yax2
 Address:  A8nHmwGkzdpQ6mT2Y6RUsPbvcJWRv8HCaP3SkocVeqyE

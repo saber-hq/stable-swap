@@ -21,8 +21,8 @@ export const computeD = (
   let dPrev = 0;
   let d = S;
   while (Math.abs(d - dPrev) > 1) {
-    let dP = d;
     dPrev = d;
+    let dP = d;
     dP = Math.floor((dP * d) / (amountA * N_COINS));
     dP = Math.floor((dP * d) / (amountB * N_COINS));
     d = Math.floor(
@@ -31,4 +31,27 @@ export const computeD = (
   }
 
   return d;
+};
+
+/**
+ * Compute Y amount in respect to X on the StableSwap curve
+ * @param ampFactor Amplification coefficient (A)
+ * @param x The quantity of underlying asset
+ * @param d StableSwap invariant
+ * Reference: https://github.com/curvefi/curve-contract/blob/7116b4a261580813ef057887c5009e22473ddb7d/tests/simulation.py#L55
+ */
+export const computeY = (ampFactor: number, x: number, d: number): number => {
+  const Ann = ampFactor * N_COINS; // A*n^n
+  // sum' = prod' = x
+  const b = Math.floor((x * d) / Ann) - d; // b = sum' - (A*n**n - 1) * D / (A * n**n)
+  const c = Math.floor(((d * d * d) / N_COINS) * N_COINS * x * Ann); // c =  D ** (n + 1) / (n ** (2 * n) * prod' * A)
+
+  let yPrev = 0;
+  let y = d;
+  while (Math.abs(y - yPrev) > 1) {
+    yPrev = y;
+    y = Math.floor((y * y + c) / (2 * y + b));
+  }
+
+  return y;
 };

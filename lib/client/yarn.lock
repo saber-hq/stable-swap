@@ -1085,40 +1085,19 @@
   dependencies:
     "@sinonjs/commons" "^1.7.0"
 
-"@solana/spl-token@^0.0.11":
-  version "0.0.11"
-  resolved "https://registry.yarnpkg.com/@solana/spl-token/-/spl-token-0.0.11.tgz#5b978d38022beccaafac8b1dd1f3f575a39ebd1b"
-  integrity sha512-Upp+x5B18UegyoDfDJFbkhtL5ynuJBe1AFCbhbSasp+fQP4xx9Lhq+w3rheZPPOnCYwgRfAodABwCO/j7ZFKPg==
+"@solana/spl-token@^0.0.12":
+  version "0.0.12"
+  resolved "https://registry.yarnpkg.com/@solana/spl-token/-/spl-token-0.0.12.tgz#67c1b37e71e266fc4d6293a5d9a86a6b123ab2b6"
+  integrity sha512-hKmo8outdRzd1GwY762tHOjI+QKUVnXNDDcnf1f8Ysp+NO3Xf9yPoj/I9nDIhSFollm+L1G+MnhMbkRIvWquGA==
   dependencies:
     "@babel/runtime" "^7.10.5"
-    "@solana/web3.js" "^0.78.0"
+    "@solana/web3.js" "^0.86.1"
     bn.js "^5.0.0"
     buffer-layout "^1.2.0"
     dotenv "8.2.0"
     mkdirp "1.0.4"
 
-"@solana/web3.js@^0.78.0":
-  version "0.78.4"
-  resolved "https://registry.yarnpkg.com/@solana/web3.js/-/web3.js-0.78.4.tgz#a942d02e353b2c3ff7ddc94cb6846b5a98887bc2"
-  integrity sha512-Zt6LN35K2sQaQfgWbNjp91qGa6dHccXTQEoojXEo0NqZ/CQqmzretgSI/3kxKUiuvLTY/1WltVM7CKRkwMNRFA==
-  dependencies:
-    "@babel/runtime" "^7.3.1"
-    bn.js "^5.0.0"
-    bs58 "^4.0.1"
-    buffer "^5.4.3"
-    buffer-layout "^1.2.0"
-    crypto-hash "^1.2.2"
-    esdoc-inject-style-plugin "^1.0.0"
-    jayson "^3.0.1"
-    mz "^2.7.0"
-    node-fetch "^2.2.0"
-    npm-run-all "^4.1.5"
-    rpc-websockets "^7.4.2"
-    superstruct "^0.8.3"
-    tweetnacl "^1.0.0"
-    ws "^7.0.0"
-
-"@solana/web3.js@^0.86.2":
+"@solana/web3.js@^0.86.1", "@solana/web3.js@^0.86.2":
   version "0.86.2"
   resolved "https://registry.yarnpkg.com/@solana/web3.js/-/web3.js-0.86.2.tgz#df88262feade5ff0d8ea53aa06b04f37a0540d9a"
   integrity sha512-e+NrS4kVdvZfLTvSGXr2jnPH3Gc7LkzO861cdbYgJBMAtTuE1kKsbONZXXcm3Gx2gNKf8+vlCA/hnK9GcaiyFA==

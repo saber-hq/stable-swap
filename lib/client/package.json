@@ -15,8 +15,8 @@
   "devDependencies": {
     "@babel/preset-env": "^7.12.1",
     "@babel/preset-typescript": "^7.12.1",
+    "@solana/spl-token": "^0.0.12",
     "@solana/web3.js": "^0.86.2",
-    "@solana/spl-token": "^0.0.11",
     "@types/bn.js": "^4.11.6",
     "@types/jest": "^26.0.15",
     "@types/node": "^14.14.6",
@@ -34,8 +34,8 @@
     "buffer-layout": "^1.2.0"
   },
   "peerDependencies": {
-    "@solana/web3.js": "^0.86.2",
-    "@solana/spl-token": "^0.0.11"
+    "@solana/spl-token": "^0.0.11",
+    "@solana/web3.js": "^0.86.2"
   },
   "husky": {
     "hooks": {

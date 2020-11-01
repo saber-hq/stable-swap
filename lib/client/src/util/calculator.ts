@@ -1,5 +1,7 @@
 const N_COINS = 2; // n
 
+// TODO: Rewrite this module using bn.js
+
 /**
  * Compute the StableSwap invariant
  * @param ampFactor Amplification coefficient (A)
@@ -43,8 +45,8 @@ export const computeD = (
 export const computeY = (ampFactor: number, x: number, d: number): number => {
   const Ann = ampFactor * N_COINS; // A*n^n
   // sum' = prod' = x
-  const b = Math.floor((x * d) / Ann) - d; // b = sum' - (A*n**n - 1) * D / (A * n**n)
-  const c = Math.floor(((d * d * d) / N_COINS) * N_COINS * x * Ann); // c =  D ** (n + 1) / (n ** (2 * n) * prod' * A)
+  const b = Math.floor(x + d / Ann - d); // b = sum' - (A*n**n - 1) * D / (A * n**n)
+  const c = Math.floor((d * d * d) / (N_COINS * N_COINS * x * Ann)); // c =  D ** (n + 1) / (n ** (2 * n) * prod' * A)
 
   let yPrev = 0;
   let y = d;

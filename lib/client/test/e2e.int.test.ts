@@ -88,14 +88,14 @@ describe("e2e test", () => {
     }
     // creating pool mint
     try {
-      tokenPool = (await Token.createMint(
+      tokenPool = await Token.createMint(
         connection,
         payer,
         authority,
         null,
         2,
         TokenProgramId
-      ));
+      );
     } catch (e) {
       throw new Error(e);
     }
@@ -107,14 +107,14 @@ describe("e2e test", () => {
     }
     // creating token A
     try {
-      mintA = (await Token.createMint(
+      mintA = await Token.createMint(
         connection,
         payer,
         owner.publicKey,
         null,
         2,
         TokenProgramId
-      ));
+      );
     } catch (e) {
       throw new Error(e);
     }
@@ -128,14 +128,14 @@ describe("e2e test", () => {
     }
     // creating token B
     try {
-      mintB = (await Token.createMint(
+      mintB = await Token.createMint(
         connection,
         payer,
         owner.publicKey,
         null,
         2,
         TokenProgramId
-      ));
+      );
     } catch (e) {
       throw new Error(e);
     }

@@ -232,6 +232,7 @@ mod tests {
         let amount_a: u64 = rng.gen_range(1, 100000);
         let amount_b: u64 = rng.gen_range(1, 100000);
         let amp_factor: u64 = rng.gen_range(1, 100000);
+        println!("testing curve_math_with_random_inputs:");
         println!(
             "amount_a: {}, amount_b: {}, amp_factor: {}",
             amount_a, amount_b, amp_factor
@@ -322,6 +323,7 @@ mod tests {
         let source_amount: u64 = rng.gen_range(1, 100000);
         let swap_source_amount: u64 = rng.gen_range(1, 100000);
         let swap_destination_amount: u64 = rng.gen_range(1, 100000);
+        println!("testing swap_calculation_with_random_inputs:");
         println!(
             "amp_factor: {}, source_amount: {}, swap_source_amount: {}, swap_source_amount: {}",
             amp_factor, source_amount, swap_source_amount, swap_destination_amount

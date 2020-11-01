@@ -286,6 +286,9 @@ export class StableSwap {
     );
   }
 
+  /**
+   * Get the virtual price of the pool.
+   */
   async getVirtualPrice() {
     let tokenAData;
     let tokenBData;

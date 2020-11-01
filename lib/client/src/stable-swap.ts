@@ -143,7 +143,7 @@ export class StableSwap {
   static async loadStableSwap(
     connection: Connection,
     address: PublicKey,
-    programId: PublicKey,
+    programId: PublicKey
   ): Promise<StableSwap> {
     const data = await loadAccount(connection, address, programId);
     const stableSwapData = layout.StableSwapLayout.decode(data);

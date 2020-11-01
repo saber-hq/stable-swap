@@ -8,6 +8,7 @@ Usage: do.sh <action> <action specific arguments>
 Supported actions:
     build
     build-lib
+    deploy
     clean
     clippy
     doc
@@ -59,10 +60,17 @@ perform_action() {
     e2e-test)
         (
             docker-compose up -d
-            ./scripts/deploy_stable_swap.sh
+            ./scripts/deploy_stable_swap.sh localnet
             yarn --cwd lib/client install
             yarn --cwd lib/client test
             docker-compose down
+        )
+    ;;
+    deploy)
+        (
+            ./scripts/deploy_stable_swap.sh $2
+            yarn --cwd lib/client install
+            node lib/client/scripts/new_swap.js
         )
     ;;
     doc)

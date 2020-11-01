@@ -4,14 +4,13 @@ import { Token, Token2 } from "@solana/spl-token";
 import { Account, Connection, PublicKey } from "@solana/web3.js";
 
 import { StableSwap } from "../src";
-import { sendAndConfirmTransaction } from "../src/util/send-and-confirm-transaction"
-import { newAccountWithLamports, sleep } from "./helpers";
 import {
   DEFAULT_FEE_DENOMINATOR,
   DEFAULT_FEE_NUMERATOR,
   Fees,
 } from "../src/fees";
-import { send } from "process";
+import { sendAndConfirmTransaction } from "../src/util/send-and-confirm-transaction";
+import { newAccountWithLamports, sleep } from "./helpers";
 
 // Token Program
 const TokenProgramId: PublicKey = new PublicKey(
@@ -33,15 +32,15 @@ const FEES: Fees = {
   withdrawFeeDenominator: DEFAULT_FEE_DENOMINATOR,
 };
 //  Other constants
-const oneSol = 1000000000;
+const ONE_SOL = 1000000000;
 // Initial amount in each swap token
-const INITIAL_TOKEN_A_AMOUNT = oneSol;
-const INITIAL_TOKEN_B_AMOUNT = oneSol;
+const INITIAL_TOKEN_A_AMOUNT = ONE_SOL;
+const INITIAL_TOKEN_B_AMOUNT = ONE_SOL;
 
-const getStableSwapAddress = (): string => {
-  const data = fs.readFileSync("../../localnet-address.json", "utf-8");
-  const addresses = JSON.parse(data);
-  return addresses.stableSwap as string;
+const getStableSwapProgramId = (): string => {
+  const deployInfo = fs.readFileSync("../../last-deploy.json", "utf-8");
+  const address = JSON.parse(deployInfo);
+  return address.swapProgramId as string;
 };
 
 describe("e2e test", () => {
@@ -74,10 +73,10 @@ describe("e2e test", () => {
   beforeAll(async (done) => {
     // Bootstrap Test Environment ...
     connection = new Connection(CLUSTER_URL, "single");
-    payer = await newAccountWithLamports(connection, oneSol);
-    owner = await newAccountWithLamports(connection, oneSol);
+    payer = await newAccountWithLamports(connection, ONE_SOL);
+    owner = await newAccountWithLamports(connection, ONE_SOL);
 
-    stableSwapProgramId = new PublicKey(getStableSwapAddress());
+    stableSwapProgramId = new PublicKey(getStableSwapProgramId());
     stableSwapAccount = new Account();
     try {
       [authority, nonce] = await PublicKey.findProgramAddress(
@@ -190,7 +189,7 @@ describe("e2e test", () => {
       fetchedStableSwap = await StableSwap.loadStableSwap(
         connection,
         stableSwapAccount.publicKey,
-        stableSwapProgramId,
+        stableSwapProgramId
       );
     } catch (e) {
       throw new Error(e);
@@ -207,8 +206,8 @@ describe("e2e test", () => {
   });
 
   it("deposit", async () => {
-    const depositAmountA = oneSol;
-    const depositAmountB = oneSol;
+    const depositAmountA = ONE_SOL;
+    const depositAmountB = ONE_SOL;
     // Creating depositor token a account
     const userAccountA = await mintA.createAccount(owner.publicKey);
     await mintA.mintTo(userAccountA, owner, [], depositAmountA);
@@ -230,7 +229,7 @@ describe("e2e test", () => {
         depositAmountB,
         0 // To avoid slippage errors
       );
-      await sendAndConfirmTransaction("deposit", connection, txn, payer)
+      await sendAndConfirmTransaction("deposit", connection, txn, payer);
     } catch (e) {
       throw new Error(e);
     }
@@ -290,11 +289,10 @@ describe("e2e test", () => {
         0, // To avoid slippage errors
         0 // To avoid spliiage errors
       );
-      await sendAndConfirmTransaction("withdraw", connection, txn, payer)
-    } catch(e) {
-      throw new Error(e)
+      await sendAndConfirmTransaction("withdraw", connection, txn, payer);
+    } catch (e) {
+      throw new Error(e);
     }
-   
 
     let info = await mintA.getAccountInfo(userAccountA);
     expect(info.amount.toNumber()).toBe(expectedWithdrawA);
@@ -329,8 +327,8 @@ describe("e2e test", () => {
     // Make sure all token accounts are created and approved
     await sleep(500);
 
-    try{
-    // Swapping
+    try {
+      // Swapping
       const txn = stableSwap.swap(
         userAccountA, // User source token account       | User source -> Swap source
         tokenAccountA, // Swap source token account
@@ -339,8 +337,8 @@ describe("e2e test", () => {
         SWAP_AMOUNT_IN,
         0 // To avoid slippage errors
       );
-      await sendAndConfirmTransaction("swap", connection, txn, payer)
-    } catch(e) {
+      await sendAndConfirmTransaction("swap", connection, txn, payer);
+    } catch (e) {
       throw new Error(e);
     }
     // Make sure swap was complete
@@ -386,11 +384,11 @@ describe("e2e test", () => {
         SWAP_AMOUNT_IN,
         0 // To avoid slippage errors
       );
-      await sendAndConfirmTransaction("swap", connection, txn, payer)
-    } catch(e) {
-      throw new Error(e)
+      await sendAndConfirmTransaction("swap", connection, txn, payer);
+    } catch (e) {
+      throw new Error(e);
     }
-    
+
     // Make sure swap was complete
     await sleep(500);
 

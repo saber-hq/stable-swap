@@ -201,10 +201,12 @@ impl Processor {
         }
         let admin_fee_account_a = Self::unpack_token_account(&admin_fee_a_info.data.borrow())?;
         let admin_fee_account_b = Self::unpack_token_account(&admin_fee_b_info.data.borrow())?;
-        if token_a.mint != admin_fee_account_a.mint {  // TODO: Add test
+        if token_a.mint != admin_fee_account_a.mint {
+            // TODO: Add test
             return Err(SwapError::InvalidAdmin.into());
         }
-        if token_b.mint != admin_fee_account_b.mint {  // TODO: Add test
+        if token_b.mint != admin_fee_account_b.mint {
+            // TODO: Add test
             return Err(SwapError::InvalidAdmin.into());
         }
 

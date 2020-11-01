@@ -17,12 +17,12 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - uses: borales/actions-yarn@v2.0.0
+    - name: Run unit tests
+      run: ./do.sh test -- --nocapture
     - name: Build
       run: ./do.sh build
-    - name: Run unit tests
-      run: ./do.sh test
     - name: Run e2e tests
-      run: ./do.sh e2e-test
+      run: ./do.sh e2e-test --silent
 
   build-client:
  

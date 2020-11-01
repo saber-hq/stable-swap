@@ -38,5 +38,21 @@ describe("Calculator tests", () => {
       computeY(new BN(2137), new BN(905777403660), new BN(830914146046)),
       new BN(490376033)
     );
+    assertBN(
+      computeY(
+        new BN("17095344176474858097"),
+        new BN(383),
+        new BN("2276818911077272163")
+      ),
+      new BN("2276917873767753112")
+    );
+    assertBN(
+      computeY(
+        new BN("7644937799120520965"),
+        new BN("14818904982296505121"),
+        new BN("17480022366793075404")
+      ),
+      new BN("2661117384496570284")
+    );
   });
 });

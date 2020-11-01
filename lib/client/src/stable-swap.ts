@@ -322,7 +322,7 @@ export class StableSwap {
     const poolMint = MintLayout.decode(poolMintData);
     const poolSupply = NumberU64.fromBuffer(poolMint.supply).toNumber();
 
-    return (D * 100) / poolSupply;
+    return D / poolSupply;
   }
 
   /**

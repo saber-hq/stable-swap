@@ -16,9 +16,9 @@ export const computeD = (
   while (Math.abs(d - dPrev) > 1) {
     let dP = d;
     dPrev = d;
-    dP = Math.floor(dP * d / (amountA * n))
-    dP = Math.floor(dP * d / (amountB * n));
-    d = Math.floor((Ann * S + dP * n) * d / ((Ann - 1) * d + (n + 1) * dP));
+    dP = Math.floor((dP * d) / (amountA * n));
+    dP = Math.floor((dP * d) / (amountB * n));
+    d = Math.floor(((Ann * S + dP * n) * d) / ((Ann - 1) * d + (n + 1) * dP));
   }
 
   return d;

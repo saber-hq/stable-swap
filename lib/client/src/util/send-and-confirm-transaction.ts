@@ -1,10 +1,10 @@
-import { sendAndConfirmTransaction as realSendAndConfirmTransaction } from "@solana/web3.js";
 import type {
   Account,
   Connection,
   Transaction,
   TransactionSignature,
 } from "@solana/web3.js";
+import { sendAndConfirmTransaction as realSendAndConfirmTransaction } from "@solana/web3.js";
 
 export const sendAndConfirmTransaction = async (
   title: string,
@@ -14,6 +14,7 @@ export const sendAndConfirmTransaction = async (
 ): Promise<TransactionSignature> => {
   /* tslint:disable:no-console */
   console.info(`Sending ${title} transaction`);
+
   const txSig = await realSendAndConfirmTransaction(
     connection,
     transaction,

@@ -1,15 +1,17 @@
 import fs from "fs";
 
-import { Token } from "@solana/spl-token";
+import { Token, Token2 } from "@solana/spl-token";
 import { Account, Connection, PublicKey } from "@solana/web3.js";
 
 import { StableSwap } from "../src";
+import { sendAndConfirmTransaction } from "../src/util/send-and-confirm-transaction"
 import { newAccountWithLamports, sleep } from "./helpers";
 import {
   DEFAULT_FEE_DENOMINATOR,
   DEFAULT_FEE_NUMERATOR,
   Fees,
 } from "../src/fees";
+import { send } from "process";
 
 // Token Program
 const TokenProgramId: PublicKey = new PublicKey(
@@ -54,11 +56,11 @@ describe("e2e test", () => {
   // owner of the user accounts
   let owner: Account;
   // Token pool
-  let tokenPool: Token;
+  let tokenPool: Token2;
   let userPoolAccount: PublicKey;
   // Tokens swapped
-  let mintA: Token;
-  let mintB: Token;
+  let mintA: Token2;
+  let mintB: Token2;
   let tokenAccountA: PublicKey;
   let tokenAccountB: PublicKey;
   // Admin accounts
@@ -87,14 +89,14 @@ describe("e2e test", () => {
     }
     // creating pool mint
     try {
-      tokenPool = await Token.createMint(
+      tokenPool = (await Token.createMint(
         connection,
         payer,
         authority,
         null,
         2,
         TokenProgramId
-      );
+      )) as Token2;
     } catch (e) {
       throw new Error(e);
     }
@@ -106,14 +108,14 @@ describe("e2e test", () => {
     }
     // creating token A
     try {
-      mintA = await Token.createMint(
+      mintA = (await Token.createMint(
         connection,
         payer,
         owner.publicKey,
         null,
         2,
         TokenProgramId
-      );
+      )) as Token2;
     } catch (e) {
       throw new Error(e);
     }
@@ -127,14 +129,14 @@ describe("e2e test", () => {
     }
     // creating token B
     try {
-      mintB = await Token.createMint(
+      mintB = (await Token.createMint(
         connection,
         payer,
         owner.publicKey,
         null,
         2,
         TokenProgramId
-      );
+      )) as Token2;
     } catch (e) {
       throw new Error(e);
     }
@@ -189,7 +191,6 @@ describe("e2e test", () => {
         connection,
         stableSwapAccount.publicKey,
         stableSwapProgramId,
-        payer
       );
     } catch (e) {
       throw new Error(e);
@@ -219,9 +220,9 @@ describe("e2e test", () => {
     // Make sure all token accounts are created and approved
     await sleep(500);
 
-    // Depositing into swap
     try {
-      await stableSwap.deposit(
+      // Depositing into swap
+      const txn = stableSwap.deposit(
         userAccountA,
         userAccountB,
         userPoolAccount,
@@ -229,6 +230,7 @@ describe("e2e test", () => {
         depositAmountB,
         0 // To avoid slippage errors
       );
+      await sendAndConfirmTransaction("deposit", connection, txn, payer)
     } catch (e) {
       throw new Error(e);
     }
@@ -278,15 +280,21 @@ describe("e2e test", () => {
     // Make sure all token accounts are created and approved
     await sleep(500);
 
-    // Withdrawing pool tokens for A and B tokens
-    await stableSwap.withdraw(
-      userAccountA,
-      userAccountB,
-      userPoolAccount,
-      withdrawalAmount,
-      0, // To avoid slippage errors
-      0 // To avoid spliiage errors
-    );
+    try {
+      // Withdrawing pool tokens for A and B tokens
+      const txn = await stableSwap.withdraw(
+        userAccountA,
+        userAccountB,
+        userPoolAccount,
+        withdrawalAmount,
+        0, // To avoid slippage errors
+        0 // To avoid spliiage errors
+      );
+      await sendAndConfirmTransaction("withdraw", connection, txn, payer)
+    } catch(e) {
+      throw new Error(e)
+    }
+   
 
     let info = await mintA.getAccountInfo(userAccountA);
     expect(info.amount.toNumber()).toBe(expectedWithdrawA);
@@ -321,15 +329,20 @@ describe("e2e test", () => {
     // Make sure all token accounts are created and approved
     await sleep(500);
 
+    try{
     // Swapping
-    await stableSwap.swap(
-      userAccountA, // User source token account       | User source -> Swap source
-      tokenAccountA, // Swap source token account
-      tokenAccountB, // Swap destination token account | Swap dest -> User dest
-      userAccountB, // User destination token account
-      SWAP_AMOUNT_IN,
-      0 // To avoid slippage errors
-    );
+      const txn = stableSwap.swap(
+        userAccountA, // User source token account       | User source -> Swap source
+        tokenAccountA, // Swap source token account
+        tokenAccountB, // Swap destination token account | Swap dest -> User dest
+        userAccountB, // User destination token account
+        SWAP_AMOUNT_IN,
+        0 // To avoid slippage errors
+      );
+      await sendAndConfirmTransaction("swap", connection, txn, payer)
+    } catch(e) {
+      throw new Error(e);
+    }
     // Make sure swap was complete
     await sleep(500);
 
@@ -363,15 +376,21 @@ describe("e2e test", () => {
     // Make sure all token accounts are created and approved
     await sleep(500);
 
-    // Swapping");
-    await stableSwap.swap(
-      userAccountB, // User source token account       | User source -> Swap source
-      tokenAccountB, // Swap source token account
-      tokenAccountA, // Swap destination token account | Swap dest -> User dest
-      userAccountA, // User destination token account
-      SWAP_AMOUNT_IN,
-      0 // To avoid slippage errors
-    );
+    try {
+      // Swapping;
+      const txn = stableSwap.swap(
+        userAccountB, // User source token account       | User source -> Swap source
+        tokenAccountB, // Swap source token account
+        tokenAccountA, // Swap destination token account | Swap dest -> User dest
+        userAccountA, // User destination token account
+        SWAP_AMOUNT_IN,
+        0 // To avoid slippage errors
+      );
+      await sendAndConfirmTransaction("swap", connection, txn, payer)
+    } catch(e) {
+      throw new Error(e)
+    }
+    
     // Make sure swap was complete
     await sleep(500);
 

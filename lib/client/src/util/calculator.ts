@@ -1,11 +1,12 @@
-// Reference https://github.com/curvefi/curve-contract/blob/7116b4a261580813ef057887c5009e22473ddb7d/tests/simulation.py#L31
+const N_COINS = 2; // n
+
+// Reference: https://github.com/curvefi/curve-contract/blob/7116b4a261580813ef057887c5009e22473ddb7d/tests/simulation.py#L31
 export const computeD = (
   ampFactor: number,
   amountA: number,
   amountB: number
 ): number => {
-  const n = 2; // Number of coins
-  const Ann = ampFactor * n; // A*n^n
+  const Ann = ampFactor * N_COINS; // A*n^n
   const S = amountA + amountB; // sum(x_i), a.k.a S
   if (S === 0) {
     return 0;
@@ -16,9 +17,11 @@ export const computeD = (
   while (Math.abs(d - dPrev) > 1) {
     let dP = d;
     dPrev = d;
-    dP = Math.floor((dP * d) / (amountA * n));
-    dP = Math.floor((dP * d) / (amountB * n));
-    d = Math.floor(((Ann * S + dP * n) * d) / ((Ann - 1) * d + (n + 1) * dP));
+    dP = Math.floor((dP * d) / (amountA * N_COINS));
+    dP = Math.floor((dP * d) / (amountB * N_COINS));
+    d = Math.floor(
+      ((Ann * S + dP * N_COINS) * d) / ((Ann - 1) * d + (N_COINS + 1) * dP)
+    );
   }
 
   return d;

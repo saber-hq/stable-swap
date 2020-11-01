@@ -2,6 +2,7 @@ import { computeD } from "./calculator";
 
 describe("Calculator tests", () => {
   it("computeD", () => {
+    expect(computeD(100, 0, 0)).toBe(0);
     expect(computeD(100, 1000000000, 1000000000)).toBe(2000000000);
     expect(computeD(73, 92, 81)).toBe(173);
     expect(computeD(11503, 28338, 78889)).toBe(107225);

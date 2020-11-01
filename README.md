@@ -45,6 +45,13 @@ To deploy the program, run:
 $ ./do.sh deploy <network>
 ```
 
+Last Deploy:
+```
+# Devnet
+ProgramID:  GXkGzrv85J58b2evP6jbCQQFENdHvA6U5vHiPFV2Yax2
+Address:  A8nHmwGkzdpQ6mT2Y6RUsPbvcJWRv8HCaP3SkocVeqyE
+```
+
 ## TODO
 
 - [ ] Implement [`get_virtual_price`](https://github.com/curvefi/curve-contract/blob/4aa3832a4871b1c5b74af7f130c5b32bdf703af5/contracts/pool-templates/base/SwapTemplateBase.vy#L241)

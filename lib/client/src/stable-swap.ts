@@ -5,12 +5,15 @@ import {
   SystemProgram,
   Transaction,
 } from "@solana/web3.js";
+import { AccountLayout, MintLayout } from "@solana/spl-token";
 
 import { DEFAULT_FEES, Fees } from "./fees";
 import * as instructions from "./instructions";
 import * as layout from "./layout";
 import { loadAccount } from "./util/account";
+import { computeD } from "./util/calculator";
 import { sendAndConfirmTransaction } from "./util/send-and-confirm-transaction";
+import { NumberU64 } from "./util/u64";
 
 /**
  * A program to exchange tokens against a pool of liquidity
@@ -281,6 +284,45 @@ export class StableSwap {
       ampFactor,
       fees
     );
+  }
+
+  /**
+   * Get the virtual price of the pool.
+   */
+  async getVirtualPrice(): Promise<number> {
+    let tokenAData;
+    let tokenBData;
+    let poolMintData;
+    try {
+      tokenAData = await loadAccount(
+        this.connection,
+        this.tokenAccountA,
+        this.tokenProgramId
+      );
+      tokenBData = await loadAccount(
+        this.connection,
+        this.tokenAccountB,
+        this.tokenProgramId
+      );
+      poolMintData = await loadAccount(
+        this.connection,
+        this.poolToken,
+        this.tokenProgramId
+      );
+    } catch (e) {
+      throw new Error(e);
+    }
+
+    const tokenA = AccountLayout.decode(tokenAData);
+    const tokenB = AccountLayout.decode(tokenBData);
+    const amountA = NumberU64.fromBuffer(tokenA.amount).toNumber();
+    const amountB = NumberU64.fromBuffer(tokenB.amount).toNumber();
+    const D = computeD(this.ampFactor, amountA, amountB);
+
+    const poolMint = MintLayout.decode(poolMintData);
+    const poolSupply = NumberU64.fromBuffer(poolMint.supply).toNumber();
+
+    return D / poolSupply;
   }
 
   /**

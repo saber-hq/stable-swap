@@ -37,5 +37,7 @@ jobs:
       run: |
         yarn --cwd lib/client prettier -c
         yarn --cwd lib/client lint
+    - name: Test
+      run: yarn --cwd lib/client test-unit
     - name: Build
       run: yarn --cwd lib/client build

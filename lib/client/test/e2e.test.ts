@@ -4,12 +4,14 @@ import { Token, Token2 } from "@solana/spl-token";
 import { Account, Connection, PublicKey } from "@solana/web3.js";
 
 import { StableSwap } from "../src";
+import { sendAndConfirmTransaction } from "../src/util/send-and-confirm-transaction"
 import { newAccountWithLamports, sleep } from "./helpers";
 import {
   DEFAULT_FEE_DENOMINATOR,
   DEFAULT_FEE_NUMERATOR,
-  Fees
+  Fees,
 } from "../src/fees";
+import { send } from "process";
 
 // Token Program
 const TokenProgramId: PublicKey = new PublicKey(
@@ -28,7 +30,7 @@ const FEES: Fees = {
   tradeFeeNumerator: 1,
   tradeFeeDenominator: 4,
   withdrawFeeNumerator: DEFAULT_FEE_NUMERATOR,
-  withdrawFeeDenominator: DEFAULT_FEE_DENOMINATOR
+  withdrawFeeDenominator: DEFAULT_FEE_DENOMINATOR,
 };
 //  Other constants
 const oneSol = 1000000000;
@@ -69,7 +71,7 @@ describe("e2e test", () => {
   let stableSwapAccount: Account;
   let stableSwapProgramId: PublicKey;
 
-  beforeAll(async done => {
+  beforeAll(async (done) => {
     // Bootstrap Test Environment ...
     connection = new Connection(CLUSTER_URL, "single");
     payer = await newAccountWithLamports(connection, oneSol);
@@ -189,7 +191,6 @@ describe("e2e test", () => {
         connection,
         stableSwapAccount.publicKey,
         stableSwapProgramId,
-        payer
       );
     } catch (e) {
       throw new Error(e);
@@ -219,9 +220,9 @@ describe("e2e test", () => {
     // Make sure all token accounts are created and approved
     await sleep(500);
 
-    // Depositing into swap
     try {
-      await stableSwap.deposit(
+      // Depositing into swap
+      const txn = stableSwap.deposit(
         userAccountA,
         userAccountB,
         userPoolAccount,
@@ -229,6 +230,7 @@ describe("e2e test", () => {
         depositAmountB,
         0 // To avoid slippage errors
       );
+      await sendAndConfirmTransaction("deposit", connection, txn, payer)
     } catch (e) {
       throw new Error(e);
     }
@@ -278,15 +280,21 @@ describe("e2e test", () => {
     // Make sure all token accounts are created and approved
     await sleep(500);
 
-    // Withdrawing pool tokens for A and B tokens
-    await stableSwap.withdraw(
-      userAccountA,
-      userAccountB,
-      userPoolAccount,
-      withdrawalAmount,
-      0, // To avoid slippage errors
-      0 // To avoid spliiage errors
-    );
+    try {
+      // Withdrawing pool tokens for A and B tokens
+      const txn = await stableSwap.withdraw(
+        userAccountA,
+        userAccountB,
+        userPoolAccount,
+        withdrawalAmount,
+        0, // To avoid slippage errors
+        0 // To avoid spliiage errors
+      );
+      await sendAndConfirmTransaction("withdraw", connection, txn, payer)
+    } catch(e) {
+      throw new Error(e)
+    }
+   
 
     let info = await mintA.getAccountInfo(userAccountA);
     expect(info.amount.toNumber()).toBe(expectedWithdrawA);
@@ -321,15 +329,20 @@ describe("e2e test", () => {
     // Make sure all token accounts are created and approved
     await sleep(500);
 
+    try{
     // Swapping
-    await stableSwap.swap(
-      userAccountA, // User source token account       | User source -> Swap source
-      tokenAccountA, // Swap source token account
-      tokenAccountB, // Swap destination token account | Swap dest -> User dest
-      userAccountB, // User destination token account
-      SWAP_AMOUNT_IN,
-      0 // To avoid slippage errors
-    );
+      const txn = stableSwap.swap(
+        userAccountA, // User source token account       | User source -> Swap source
+        tokenAccountA, // Swap source token account
+        tokenAccountB, // Swap destination token account | Swap dest -> User dest
+        userAccountB, // User destination token account
+        SWAP_AMOUNT_IN,
+        0 // To avoid slippage errors
+      );
+      await sendAndConfirmTransaction("swap", connection, txn, payer)
+    } catch(e) {
+      throw new Error(e);
+    }
     // Make sure swap was complete
     await sleep(500);
 
@@ -363,15 +376,21 @@ describe("e2e test", () => {
     // Make sure all token accounts are created and approved
     await sleep(500);
 
-    // Swapping");
-    await stableSwap.swap(
-      userAccountB, // User source token account       | User source -> Swap source
-      tokenAccountB, // Swap source token account
-      tokenAccountA, // Swap destination token account | Swap dest -> User dest
-      userAccountA, // User destination token account
-      SWAP_AMOUNT_IN,
-      0 // To avoid slippage errors
-    );
+    try {
+      // Swapping;
+      const txn = stableSwap.swap(
+        userAccountB, // User source token account       | User source -> Swap source
+        tokenAccountB, // Swap source token account
+        tokenAccountA, // Swap destination token account | Swap dest -> User dest
+        userAccountA, // User destination token account
+        SWAP_AMOUNT_IN,
+        0 // To avoid slippage errors
+      );
+      await sendAndConfirmTransaction("swap", connection, txn, payer)
+    } catch(e) {
+      throw new Error(e)
+    }
+    
     // Make sure swap was complete
     await sleep(500);
 

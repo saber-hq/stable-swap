@@ -1,9 +1,9 @@
-import type { Connection, TransactionSignature } from "@solana/web3.js";
+import type { Connection } from "@solana/web3.js";
 import {
   Account,
   PublicKey,
   SystemProgram,
-  Transaction
+  Transaction,
 } from "@solana/web3.js";
 
 import { DEFAULT_FEES, Fees } from "./fees";
@@ -11,7 +11,6 @@ import * as instructions from "./instructions";
 import * as layout from "./layout";
 import { loadAccount } from "./util/account";
 import { sendAndConfirmTransaction } from "./util/send-and-confirm-transaction";
-import { SignerOrAccount } from "./util/signerOrAccount";
 
 /**
  * A program to exchange tokens against a pool of liquidity
@@ -78,11 +77,6 @@ export class StableSwap {
   fees: Fees;
 
   /**
-   * Fee payer
-   */
-  payer: SignerOrAccount;
-
-  /**
    * Create a new StableSwap client object
    * @param connection
    * @param stableSwap
@@ -110,7 +104,6 @@ export class StableSwap {
     mintA: PublicKey,
     mintB: PublicKey,
     ampFactor: number,
-    payer: SignerOrAccount,
     fees: Fees = DEFAULT_FEES
   ) {
     this.connection = connection;
@@ -124,7 +117,6 @@ export class StableSwap {
     this.mintA = mintA;
     this.mintB = mintB;
     this.ampFactor = ampFactor;
-    this.payer = payer;
     this.fees = fees;
   }
 
@@ -152,7 +144,6 @@ export class StableSwap {
     connection: Connection,
     address: PublicKey,
     programId: PublicKey,
-    payer: SignerOrAccount
   ): Promise<StableSwap> {
     const data = await loadAccount(connection, address, programId);
     const stableSwapData = layout.StableSwapLayout.decode(data);
@@ -179,7 +170,7 @@ export class StableSwap {
       tradeFeeNumerator: stableSwapData.tradeFeeNumerator as number,
       tradeFeeDenominator: stableSwapData.tradeFeeDenominator as number,
       withdrawFeeNumerator: stableSwapData.withdrawFeeNumerator as number,
-      withdrawFeeDenominator: stableSwapData.withdrawFeeDenominator as number
+      withdrawFeeDenominator: stableSwapData.withdrawFeeDenominator as number,
     };
 
     return new StableSwap(
@@ -194,7 +185,6 @@ export class StableSwap {
       mintA,
       mintB,
       ampFactor,
-      payer,
       fees
     );
   }
@@ -221,7 +211,7 @@ export class StableSwap {
    */
   static async createStableSwap(
     connection: Connection,
-    payer: SignerOrAccount,
+    payer: Account,
     stableSwapAccount: Account,
     authority: PublicKey,
     adminFeeAccountA: PublicKey,
@@ -248,7 +238,7 @@ export class StableSwap {
         newAccountPubkey: stableSwapAccount.publicKey,
         lamports: balanceNeeded,
         space: layout.StableSwapLayout.span,
-        programId: swapProgramId
+        programId: swapProgramId,
       })
     );
 
@@ -289,7 +279,6 @@ export class StableSwap {
       mintA,
       mintB,
       ampFactor,
-      payer,
       fees
     );
   }
@@ -303,32 +292,27 @@ export class StableSwap {
    * @param amountIn
    * @param minimumAmountOut
    */
-  async swap(
+  swap(
     userSource: PublicKey,
     poolSource: PublicKey,
     poolDestination: PublicKey,
     userDestination: PublicKey,
     amountIn: number,
     minimumAmountOut: number
-  ): Promise<TransactionSignature> {
-    return await sendAndConfirmTransaction(
-      "swap",
-      this.connection,
-      new Transaction().add(
-        instructions.swapInstruction(
-          this.stableSwap,
-          this.authority,
-          userSource,
-          poolSource,
-          poolDestination,
-          userDestination,
-          this.swapProgramId,
-          this.tokenProgramId,
-          amountIn,
-          minimumAmountOut
-        )
-      ),
-      this.payer
+  ): Transaction {
+    return new Transaction().add(
+      instructions.swapInstruction(
+        this.stableSwap,
+        this.authority,
+        userSource,
+        poolSource,
+        poolDestination,
+        userDestination,
+        this.swapProgramId,
+        this.tokenProgramId,
+        amountIn,
+        minimumAmountOut
+      )
     );
   }
 
@@ -341,35 +325,30 @@ export class StableSwap {
    * @param tokenAmountB
    * @param minimumPoolTokenAmount
    */
-  async deposit(
+  deposit(
     userAccountA: PublicKey,
     userAccountB: PublicKey,
     poolTokenAccount: PublicKey,
     tokenAmountA: number,
     tokenAmountB: number,
     minimumPoolTokenAmount: number
-  ): Promise<TransactionSignature> {
-    return await sendAndConfirmTransaction(
-      "deposit",
-      this.connection,
-      new Transaction().add(
-        instructions.depositInstruction(
-          this.stableSwap,
-          this.authority,
-          userAccountA,
-          userAccountB,
-          this.tokenAccountA,
-          this.tokenAccountB,
-          this.poolToken,
-          poolTokenAccount,
-          this.swapProgramId,
-          this.tokenProgramId,
-          tokenAmountA,
-          tokenAmountB,
-          minimumPoolTokenAmount
-        )
-      ),
-      this.payer
+  ): Transaction {
+    return new Transaction().add(
+      instructions.depositInstruction(
+        this.stableSwap,
+        this.authority,
+        userAccountA,
+        userAccountB,
+        this.tokenAccountA,
+        this.tokenAccountB,
+        this.poolToken,
+        poolTokenAccount,
+        this.swapProgramId,
+        this.tokenProgramId,
+        tokenAmountA,
+        tokenAmountB,
+        minimumPoolTokenAmount
+      )
     );
   }
 
@@ -382,35 +361,30 @@ export class StableSwap {
    * @param minimumTokenA
    * @param minimumTokenB
    */
-  async withdraw(
+  withdraw(
     userAccountA: PublicKey,
     userAccountB: PublicKey,
     poolAccount: PublicKey,
     poolTokenAmount: number,
     minimumTokenA: number,
     minimumTokenB: number
-  ): Promise<TransactionSignature> {
-    return await sendAndConfirmTransaction(
-      "withdraw",
-      this.connection,
-      new Transaction().add(
-        instructions.withdrawInstruction(
-          this.stableSwap,
-          this.authority,
-          this.poolToken,
-          poolAccount,
-          this.tokenAccountA,
-          this.tokenAccountB,
-          userAccountA,
-          userAccountB,
-          this.swapProgramId,
-          this.tokenProgramId,
-          poolTokenAmount,
-          minimumTokenA,
-          minimumTokenB
-        )
-      ),
-      this.payer
+  ): Transaction {
+    return new Transaction().add(
+      instructions.withdrawInstruction(
+        this.stableSwap,
+        this.authority,
+        this.poolToken,
+        poolAccount,
+        this.tokenAccountA,
+        this.tokenAccountB,
+        userAccountA,
+        userAccountB,
+        this.swapProgramId,
+        this.tokenProgramId,
+        poolTokenAmount,
+        minimumTokenA,
+        minimumTokenB
+      )
     );
   }
 }

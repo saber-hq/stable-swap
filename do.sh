@@ -133,9 +133,7 @@ perform_action() {
         ;;
     test)
         (
-            yarn --cwd lib/client install
             cargo test --features=program ${@:2}
-            yarn --cwd lib/client test-unit
         )
         ;;
     update)

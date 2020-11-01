@@ -4,13 +4,13 @@ import { Token, Token2 } from "@solana/spl-token";
 import { Account, Connection, PublicKey } from "@solana/web3.js";
 
 import { StableSwap } from "../src";
-import { sendAndConfirmTransaction } from "../src/util/send-and-confirm-transaction"
-import { newAccountWithLamports, sleep } from "./helpers";
 import {
   DEFAULT_FEE_DENOMINATOR,
   DEFAULT_FEE_NUMERATOR,
   Fees,
 } from "../src/fees";
+import { sendAndConfirmTransaction } from "../src/util/send-and-confirm-transaction";
+import { newAccountWithLamports, sleep } from "./helpers";
 
 // Token Program
 const TokenProgramId: PublicKey = new PublicKey(
@@ -189,7 +189,7 @@ describe("e2e test", () => {
       fetchedStableSwap = await StableSwap.loadStableSwap(
         connection,
         stableSwapAccount.publicKey,
-        stableSwapProgramId,
+        stableSwapProgramId
       );
     } catch (e) {
       throw new Error(e);
@@ -229,7 +229,7 @@ describe("e2e test", () => {
         depositAmountB,
         0 // To avoid slippage errors
       );
-      await sendAndConfirmTransaction("deposit", connection, txn, payer)
+      await sendAndConfirmTransaction("deposit", connection, txn, payer);
     } catch (e) {
       throw new Error(e);
     }
@@ -289,11 +289,10 @@ describe("e2e test", () => {
         0, // To avoid slippage errors
         0 // To avoid spliiage errors
       );
-      await sendAndConfirmTransaction("withdraw", connection, txn, payer)
-    } catch(e) {
-      throw new Error(e)
+      await sendAndConfirmTransaction("withdraw", connection, txn, payer);
+    } catch (e) {
+      throw new Error(e);
     }
-   
 
     let info = await mintA.getAccountInfo(userAccountA);
     expect(info.amount.toNumber()).toBe(expectedWithdrawA);
@@ -328,8 +327,8 @@ describe("e2e test", () => {
     // Make sure all token accounts are created and approved
     await sleep(500);
 
-    try{
-    // Swapping
+    try {
+      // Swapping
       const txn = stableSwap.swap(
         userAccountA, // User source token account       | User source -> Swap source
         tokenAccountA, // Swap source token account
@@ -338,8 +337,8 @@ describe("e2e test", () => {
         SWAP_AMOUNT_IN,
         0 // To avoid slippage errors
       );
-      await sendAndConfirmTransaction("swap", connection, txn, payer)
-    } catch(e) {
+      await sendAndConfirmTransaction("swap", connection, txn, payer);
+    } catch (e) {
       throw new Error(e);
     }
     // Make sure swap was complete
@@ -385,11 +384,11 @@ describe("e2e test", () => {
         SWAP_AMOUNT_IN,
         0 // To avoid slippage errors
       );
-      await sendAndConfirmTransaction("swap", connection, txn, payer)
-    } catch(e) {
-      throw new Error(e)
+      await sendAndConfirmTransaction("swap", connection, txn, payer);
+    } catch (e) {
+      throw new Error(e);
     }
-    
+
     // Make sure swap was complete
     await sleep(500);
 

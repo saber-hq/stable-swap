@@ -289,7 +289,7 @@ export class StableSwap {
   /**
    * Get the virtual price of the pool.
    */
-  async getVirtualPrice() {
+  async getVirtualPrice(): Promise<number> {
     let tokenAData;
     let tokenBData;
     let poolMintData;

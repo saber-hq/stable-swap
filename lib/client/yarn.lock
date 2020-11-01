@@ -1085,10 +1085,10 @@
   dependencies:
     "@sinonjs/commons" "^1.7.0"
 
-"@solana/spl-token@^0.0.12":
-  version "0.0.12"
-  resolved "https://registry.yarnpkg.com/@solana/spl-token/-/spl-token-0.0.12.tgz#67c1b37e71e266fc4d6293a5d9a86a6b123ab2b6"
-  integrity sha512-hKmo8outdRzd1GwY762tHOjI+QKUVnXNDDcnf1f8Ysp+NO3Xf9yPoj/I9nDIhSFollm+L1G+MnhMbkRIvWquGA==
+"@solana/spl-token@^0.0.13":
+  version "0.0.13"
+  resolved "https://registry.yarnpkg.com/@solana/spl-token/-/spl-token-0.0.13.tgz#5e0b235b1f8b34643280401dbfddeb34d13d1acd"
+  integrity sha512-WT8M9V/hxURR5jLbhr3zgwVsgcY6m8UhHtK045w7o+jx8FJ9MKARkj387WBFU7mKiFq0k8jw/8YL7XmnIUuH8Q==
   dependencies:
     "@babel/runtime" "^7.10.5"
     "@solana/web3.js" "^0.86.1"

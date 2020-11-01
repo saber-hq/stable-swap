@@ -5,7 +5,7 @@ import {
   SystemProgram,
   Transaction,
 } from "@solana/web3.js";
-import { AccountLayout, MintInfo, MintLayout } from "@solana/spl-token";
+import { AccountLayout, MintLayout } from "@solana/spl-token";
 
 import { DEFAULT_FEES, Fees } from "./fees";
 import * as instructions from "./instructions";

@@ -9,7 +9,7 @@
     "clean": "rm -rf lib",
     "lint": "tslint -c tslint.json 'src/**/*.ts' 'test/**/*.ts'",
     "prettier": "prettier -w src test",
-    "test": "jest --force-exit",
+    "test": "jest --force-exit --testTimeout=10000",
     "prepublishOnly": "npm run clean && npm run build"
   },
   "devDependencies": {

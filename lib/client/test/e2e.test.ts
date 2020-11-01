@@ -11,7 +11,6 @@ import {
   DEFAULT_FEE_NUMERATOR,
   Fees,
 } from "../src/fees";
-import { send } from "process";
 
 // Token Program
 const TokenProgramId: PublicKey = new PublicKey(

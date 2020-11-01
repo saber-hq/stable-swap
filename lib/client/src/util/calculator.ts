@@ -1,4 +1,8 @@
-const N_COINS = 2; // n
+import BN from "bn.js";
+
+const ZERO = new BN(0);
+const ONE = new BN(1);
+const N_COINS = new BN(2); // n
 
 // TODO: Rewrite this module using bn.js
 
@@ -9,27 +13,26 @@ const N_COINS = 2; // n
  * @param amountB Swap balance of token B
  * Reference: https://github.com/curvefi/curve-contract/blob/7116b4a261580813ef057887c5009e22473ddb7d/tests/simulation.py#L31
  */
-export const computeD = (
-  ampFactor: number,
-  amountA: number,
-  amountB: number
-): number => {
-  const Ann = ampFactor * N_COINS; // A*n^n
-  const S = amountA + amountB; // sum(x_i), a.k.a S
-  if (S === 0) {
-    return 0;
+export const computeD = (ampFactor: BN, amountA: BN, amountB: BN): BN => {
+  const Ann = ampFactor.mul(N_COINS); // A*n^n
+  const S = amountA.add(amountB); // sum(x_i), a.k.a S
+  if (S.isZero()) {
+    return S;
   }
 
-  let dPrev = 0;
+  let dPrev = ZERO;
   let d = S;
-  while (Math.abs(d - dPrev) > 1) {
+  while (d.sub(dPrev).abs().gt(ONE)) {
     dPrev = d;
     let dP = d;
-    dP = Math.floor((dP * d) / (amountA * N_COINS));
-    dP = Math.floor((dP * d) / (amountB * N_COINS));
-    d = Math.floor(
-      ((Ann * S + dP * N_COINS) * d) / ((Ann - 1) * d + (N_COINS + 1) * dP)
-    );
+    dP = dP.mul(d).div(new BN(amountA.mul(N_COINS)));
+    dP = dP.mul(d).div(new BN(amountB.mul(N_COINS)));
+
+    const dNumerator = d.mul(new BN(Ann.mul(S).add(new BN(dP.mul(N_COINS)))));
+    const dDenominator = d
+      .mul(new BN(Ann.sub(ONE)))
+      .add(dP.mul(new BN(N_COINS.add(ONE))));
+    d = dNumerator.div(dDenominator);
   }
 
   return d;

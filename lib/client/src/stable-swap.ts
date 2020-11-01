@@ -1,3 +1,4 @@
+import BN from "bn.js";
 import type { Connection } from "@solana/web3.js";
 import {
   Account,
@@ -289,7 +290,7 @@ export class StableSwap {
   /**
    * Get the virtual price of the pool.
    */
-  async getVirtualPrice(): Promise<number> {
+  async getVirtualPrice(): Promise<BN> {
     let tokenAData;
     let tokenBData;
     let poolMintData;
@@ -317,12 +318,16 @@ export class StableSwap {
     const tokenB = AccountLayout.decode(tokenBData);
     const amountA = NumberU64.fromBuffer(tokenA.amount).toNumber();
     const amountB = NumberU64.fromBuffer(tokenB.amount).toNumber();
-    const D = computeD(this.ampFactor, amountA, amountB);
+    const D = computeD(
+      new BN(this.ampFactor),
+      new BN(amountA),
+      new BN(amountB)
+    );
 
     const poolMint = MintLayout.decode(poolMintData);
     const poolSupply = NumberU64.fromBuffer(poolMint.supply).toNumber();
 
-    return D / poolSupply;
+    return D.div(new BN(poolSupply));
   }
 
   /**

@@ -69,6 +69,7 @@ perform_action() {
     deploy)
         (
             ./scripts/deploy_stable_swap.sh $2
+            yarn --cwd lib/client install
             node lib/client/scripts/new_swap.js
         )
     ;;

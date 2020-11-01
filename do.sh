@@ -62,7 +62,7 @@ perform_action() {
             docker-compose up -d
             ./scripts/deploy_stable_swap.sh localnet
             yarn --cwd lib/client install
-            yarn --cwd lib/client test
+            yarn --cwd lib/client test-int
             docker-compose down
         )
     ;;
@@ -133,7 +133,9 @@ perform_action() {
         ;;
     test)
         (
+            yarn --cwd lib/client install
             cargo test --features=program ${@:2}
+            yarn --cwd lib/client test-unit
         )
         ;;
     update)

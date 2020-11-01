@@ -1,5 +1,4 @@
 import BN from "bn.js";
-import { assert } from "console";
 
 import { computeD, computeY } from "./calculator";
 

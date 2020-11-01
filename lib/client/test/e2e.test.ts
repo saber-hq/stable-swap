@@ -1,6 +1,6 @@
 import fs from "fs";
 
-import { Token, Token2 } from "@solana/spl-token";
+import { Token } from "@solana/spl-token";
 import { Account, Connection, PublicKey } from "@solana/web3.js";
 
 import { StableSwap } from "../src";
@@ -55,11 +55,11 @@ describe("e2e test", () => {
   // owner of the user accounts
   let owner: Account;
   // Token pool
-  let tokenPool: Token2;
+  let tokenPool: Token;
   let userPoolAccount: PublicKey;
   // Tokens swapped
-  let mintA: Token2;
-  let mintB: Token2;
+  let mintA: Token;
+  let mintB: Token;
   let tokenAccountA: PublicKey;
   let tokenAccountB: PublicKey;
   // Admin accounts
@@ -95,7 +95,7 @@ describe("e2e test", () => {
         null,
         2,
         TokenProgramId
-      )) as Token2;
+      ));
     } catch (e) {
       throw new Error(e);
     }
@@ -114,7 +114,7 @@ describe("e2e test", () => {
         null,
         2,
         TokenProgramId
-      )) as Token2;
+      ));
     } catch (e) {
       throw new Error(e);
     }
@@ -135,7 +135,7 @@ describe("e2e test", () => {
         null,
         2,
         TokenProgramId
-      )) as Token2;
+      ));
     } catch (e) {
       throw new Error(e);
     }

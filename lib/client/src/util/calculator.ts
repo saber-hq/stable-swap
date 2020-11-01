@@ -1,6 +1,12 @@
 const N_COINS = 2; // n
 
-// Reference: https://github.com/curvefi/curve-contract/blob/7116b4a261580813ef057887c5009e22473ddb7d/tests/simulation.py#L31
+/**
+ * Compute the StableSwap invariant
+ * @param ampFactor Amplification coefficient (A)
+ * @param amountA Swap balance of token A
+ * @param amountB Swap balance of token B
+ * Reference: https://github.com/curvefi/curve-contract/blob/7116b4a261580813ef057887c5009e22473ddb7d/tests/simulation.py#L31
+ */
 export const computeD = (
   ampFactor: number,
   amountA: number,

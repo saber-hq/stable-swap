@@ -1,4 +1,5 @@
 import BN from "bn.js";
+import { assert } from "console";
 
 import { computeD, computeY } from "./calculator";
 
@@ -31,8 +32,11 @@ describe("Calculator tests", () => {
   });
 
   it("computeY", () => {
-    expect(computeY(100, 100, 0)).toBe(0);
-    expect(computeY(8, 94, 163)).toBe(69);
-    expect(computeY(2137, 905777403660, 830914146046)).toBe(490376033);
+    assertBN(computeY(new BN(100), new BN(100), new BN(0)), new BN(0));
+    assertBN(computeY(new BN(8), new BN(94), new BN(163)), new BN(69));
+    assertBN(
+      computeY(new BN(2137), new BN(905777403660), new BN(830914146046)),
+      new BN(490376033)
+    );
   });
 });

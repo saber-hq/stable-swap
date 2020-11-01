@@ -4,8 +4,6 @@ const ZERO = new BN(0);
 const ONE = new BN(1);
 const N_COINS = new BN(2); // n
 
-// TODO: Rewrite this module using bn.js
-
 /**
  * Compute the StableSwap invariant
  * @param ampFactor Amplification coefficient (A)
@@ -45,17 +43,23 @@ export const computeD = (ampFactor: BN, amountA: BN, amountB: BN): BN => {
  * @param d StableSwap invariant
  * Reference: https://github.com/curvefi/curve-contract/blob/7116b4a261580813ef057887c5009e22473ddb7d/tests/simulation.py#L55
  */
-export const computeY = (ampFactor: number, x: number, d: number): number => {
-  const Ann = ampFactor * N_COINS; // A*n^n
+export const computeY = (ampFactor: BN, x: BN, d: BN): BN => {
+  const Ann = ampFactor.mul(N_COINS); // A*n^n
   // sum' = prod' = x
-  const b = Math.floor(x + d / Ann - d); // b = sum' - (A*n**n - 1) * D / (A * n**n)
-  const c = Math.floor((d * d * d) / (N_COINS * N_COINS * x * Ann)); // c =  D ** (n + 1) / (n ** (2 * n) * prod' * A)
+  const b = x.add(d.div(Ann)).sub(d); // b = sum' - (A*n**n - 1) * D / (A * n**n)
+  const c = d // c =  D ** (n + 1) / (n ** (2 * n) * prod' * A)
+    .mul(d)
+    .mul(d)
+    .div(new BN(N_COINS.mul(N_COINS).mul(x).mul(Ann)));
 
-  let yPrev = 0;
+  let yPrev = ZERO;
   let y = d;
-  while (Math.abs(y - yPrev) > 1) {
+  while (y.sub(yPrev).abs().gt(ONE)) {
     yPrev = y;
-    y = Math.floor((y * y + c) / (2 * y + b));
+    y = y
+      .mul(y)
+      .add(c)
+      .div(new BN(N_COINS.mul(y).add(b)));
   }
 
   return y;

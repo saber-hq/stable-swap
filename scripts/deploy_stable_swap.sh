@@ -24,7 +24,6 @@ else
     exit 1
 fi
 
-echo "Deploying stableswap to $1"
 solana config set --url $CLUSTER_URL
 sleep 1
 solana airdrop 10 

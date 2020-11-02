@@ -624,8 +624,17 @@ impl PrintProgramError for SwapError {
             SwapError::ExceededSlippage => {
                 info!("Error: Swap instruction exceeds desired slippage limit")
             }
+            SwapError::ConversionFailure => info!("Error: Conversion to or from u64 failed."),
         }
     }
+}
+
+fn to_u128(val: u64) -> Result<u128, SwapError> {
+    val.try_into().map_err(|_| SwapError::ConversionFailure)
+}
+
+fn to_u64(val: u128) -> Result<u64, SwapError> {
+    val.try_into().map_err(|_| SwapError::ConversionFailure)
 }
 
 // Pull in syscall stubs when building for non-BPF targets

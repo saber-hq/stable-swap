@@ -58,6 +58,9 @@ pub enum SwapError {
     /// Swap instruction exceeds desired slippage limit
     #[error("Swap instruction exceeds desired slippage limit")]
     ExceededSlippage,
+    /// ConversionFailure
+    #[error("Conversion to u64 failed with an overflow or underflow")]
+    ConversionFailure,
 }
 impl From<SwapError> for ProgramError {
     fn from(e: SwapError) -> Self {

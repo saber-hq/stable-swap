@@ -6,6 +6,7 @@ use crate::{
     curve::{PoolTokenConverter, StableSwap},
     error::SwapError,
     fees::Fees,
+    helpers::{to_u128, to_u64},
     instruction::SwapInstruction,
     state::SwapInfo,
 };
@@ -211,7 +212,7 @@ impl Processor {
         }
 
         // LP tokens for bootstrapper
-        let invariant = StableSwap { amp_factor };
+        let invariant = StableSwap::new(amp_factor)?;
         let mint_amount = invariant.compute_d(token_a.amount, token_b.amount);
         Self::token_mint_to(
             swap_info.key,
@@ -279,9 +280,7 @@ impl Processor {
         let swap_destination_account =
             Self::unpack_token_account(&swap_destination_info.data.borrow())?;
 
-        let invariant = StableSwap {
-            amp_factor: token_swap.amp_factor,
-        };
+        let invariant = StableSwap::new(token_swap.amp_factor)?;
         let result = invariant
             .swap_to(
                 amount_in,
@@ -352,9 +351,8 @@ impl Processor {
         let token_a = Self::unpack_token_account(&token_a_info.data.borrow())?;
         let token_b = Self::unpack_token_account(&token_b_info.data.borrow())?;
         let pool_mint = Self::unpack_mint(&pool_mint_info.data.borrow())?;
-        let invariant = StableSwap {
-            amp_factor: token_swap.amp_factor,
-        };
+        let invariant = StableSwap::new(token_swap.amp_factor)?;
+
         // TODO: Handle overflows
         // Initial invariant
         let d_0 = invariant.compute_d(token_a.amount, token_b.amount);
@@ -2895,7 +2893,7 @@ mod tests {
                 )
                 .unwrap();
 
-            let invariant = StableSwap { amp_factor };
+            let invariant = StableSwap::new(amp_factor)?;
             let results = invariant
                 .swap_to(
                     a_to_b_amount,
@@ -2942,7 +2940,7 @@ mod tests {
                 )
                 .unwrap();
 
-            let invariant = StableSwap { amp_factor };
+            let invariant = StableSwap::new(amp_factor)?;
             let results = invariant
                 .swap_to(
                     a_to_b_amount,

@@ -667,7 +667,7 @@ mod tests {
     /// "sensible" given a maximum of u64.
     /// Note that on Ethereum, Uniswap uses the geometric mean of all provided
     /// input amounts, and Balancer uses 100 * 10 ^ 18.
-    const INITIAL_SWAP_POOL_AMOUNT: u128 = 1_000_000_000;
+    const INITIAL_SWAP_POOL_AMOUNT: u64 = 1_000_000_000;
     /// Fees for testing
     const DEFAULT_TEST_FEES: Fees = Fees {
         admin_trade_fee_numerator: 1,
@@ -2083,14 +2083,9 @@ mod tests {
             DEFAULT_TEST_FEES,
         );
         let withdrawer_key = pubkey_rand();
-        let pool_converter = PoolTokenConverter::new(
-            INITIAL_SWAP_POOL_AMOUNT,
-            to_u128(token_a_amount).unwrap(),
-            to_u128(token_b_amount).unwrap(),
-        );
         let initial_a = token_a_amount / 10;
         let initial_b = token_b_amount / 10;
-        let initial_pool = pool_converter.supply / 10;
+        let initial_pool = INITIAL_SWAP_POOL_AMOUNT / 10;
         let withdraw_amount = initial_pool / 4;
         let minimum_a_amount = initial_a / 40;
         let minimum_b_amount = initial_b / 40;
@@ -2115,7 +2110,7 @@ mod tests {
                     &mut token_a_account,
                     &token_b_key,
                     &mut token_b_account,
-                    withdraw_amount.try_into().unwrap(),
+                    withdraw_amount,
                     minimum_a_amount,
                     minimum_b_amount,
                 )
@@ -2150,7 +2145,7 @@ mod tests {
                     &mut token_a_account,
                     &token_b_key,
                     &mut token_b_account,
-                    withdraw_amount.try_into().unwrap(),
+                    withdraw_amount,
                     minimum_a_amount,
                     minimum_b_amount,
                 )
@@ -2172,7 +2167,7 @@ mod tests {
                 &withdrawer_key,
                 initial_a,
                 initial_b,
-                (withdraw_amount / 2).try_into().unwrap(),
+                withdraw_amount / 2,
             );
             assert_eq!(
                 Err(TokenError::InsufficientFunds.into()),
@@ -2572,12 +2567,16 @@ mod tests {
                 swap_token_b.amount.into(),
             );
 
-            let withdrawn_a = pool_converter.token_a_rate(withdraw_amount).unwrap();
+            let withdrawn_a = pool_converter
+                .token_a_rate(to_u128(withdraw_amount).unwrap())
+                .unwrap();
             assert_eq!(
                 swap_token_a.amount,
                 token_a_amount - to_u64(withdrawn_a).unwrap()
             );
-            let withdrawn_b = pool_converter.token_b_rate(withdraw_amount).unwrap();
+            let withdrawn_b = pool_converter
+                .token_b_rate(to_u128(withdraw_amount).unwrap())
+                .unwrap();
             assert_eq!(
                 swap_token_b.amount,
                 token_b_amount - to_u64(withdrawn_b).unwrap()
@@ -2925,11 +2924,11 @@ mod tests {
             let invariant = StableSwap::new(amp_factor).unwrap();
             let results = invariant
                 .swap_to(
-                    a_to_b_amount,
-                    token_a_amount,
-                    token_b_amount,
-                    DEFAULT_TEST_FEES.trade_fee_numerator,
-                    DEFAULT_TEST_FEES.trade_fee_denominator,
+                    to_u128(a_to_b_amount).unwrap(),
+                    to_u128(token_a_amount).unwrap(),
+                    to_u128(token_b_amount).unwrap(),
+                    to_u128(DEFAULT_TEST_FEES.trade_fee_numerator).unwrap(),
+                    to_u128(DEFAULT_TEST_FEES.trade_fee_denominator).unwrap(),
                 )
                 .unwrap();
 
@@ -2978,11 +2977,11 @@ mod tests {
             let invariant = StableSwap::new(amp_factor).unwrap();
             let results = invariant
                 .swap_to(
-                    a_to_b_amount,
-                    token_b_amount,
-                    token_a_amount,
-                    DEFAULT_TEST_FEES.trade_fee_numerator,
-                    DEFAULT_TEST_FEES.trade_fee_denominator,
+                    to_u128(a_to_b_amount).unwrap(),
+                    to_u128(token_b_amount).unwrap(),
+                    to_u128(token_a_amount).unwrap(),
+                    to_u128(DEFAULT_TEST_FEES.trade_fee_numerator).unwrap(),
+                    to_u128(DEFAULT_TEST_FEES.trade_fee_denominator).unwrap(),
                 )
                 .unwrap();
 

@@ -168,8 +168,6 @@ mod tests {
     use rand::Rng;
     use sim::{Model, MODEL_FEE_DENOMINATOR, MODEL_FEE_NUMERATOR};
 
-    const ONE_SOL: u128 = 1_000_000_000;
-
     fn check_pool_token_a_rate(
         token_a: u128,
         token_b: u128,
@@ -240,9 +238,9 @@ mod tests {
         let mut rng = rand::thread_rng();
 
         let n_coin = 2;
-        let amount_a: u128 = rng.gen_range(1, ONE_SOL * 1000);
-        let amount_b: u128 = rng.gen_range(1, ONE_SOL * 1000);
-        let amp_factor: u128 = rng.gen_range(1, ONE_SOL * 1000);
+        let amp_factor: u128 = rng.gen_range(1, 10_000);
+        let amount_a: u128 = rng.gen_range(1, 10_000_000_000);
+        let amount_b: u128 = rng.gen_range(1, 10_000_000_000);
         println!("testing curve_math_with_random_inputs:");
         println!(
             "amount_a: {}, amount_b: {}, amp_factor: {}",
@@ -330,10 +328,10 @@ mod tests {
     fn test_swap_calculation_with_random_inputs() {
         let mut rng = rand::thread_rng();
 
-        let amp_factor: u128 = rng.gen_range(1, ONE_SOL * 1000);
-        let source_amount: u128 = rng.gen_range(1, ONE_SOL * 1000);
-        let swap_source_amount: u128 = rng.gen_range(1, ONE_SOL * 1000);
-        let swap_destination_amount: u128 = rng.gen_range(1, ONE_SOL * 1000);
+        let amp_factor: u128 = rng.gen_range(1, 10_000);
+        let source_amount: u128 = rng.gen_range(1, 10_000_000_000);
+        let swap_source_amount: u128 = rng.gen_range(1, 10_000_000_000);
+        let swap_destination_amount: u128 = rng.gen_range(1, 10_000_000_000);
         println!("testing swap_calculation_with_random_inputs:");
         println!(
             "amp_factor: {}, source_amount: {}, swap_source_amount: {}, swap_source_amount: {}",

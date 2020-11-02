@@ -367,6 +367,7 @@ impl Processor {
         // Invariant after change
         let d_1 = invariant.compute_d(new_balances[0], new_balances[1]);
         assert!(d_1 > d_0); // TODO: Handle error properly
+
         // Recalculate the invariant accounting for fees
         for i in 0..new_balances.len() {
             let ideal_balance = d_1 * old_balances[i] / d_0;
@@ -383,7 +384,7 @@ impl Processor {
         let mint_amount_u128 = to_u128(pool_mint.supply)? * (d_2 - d_0) / d_0;
 
         // u128 -> u64
-        let mint_amount = to_64(mint_amount_u128)?;
+        let mint_amount = to_u64(mint_amount_u128)?;
         if mint_amount < min_mint_amount {
             return Err(SwapError::ExceededSlippage.into());
         }
@@ -457,16 +458,26 @@ impl Processor {
 
         let token_a = Self::unpack_token_account(&token_a_info.data.borrow())?;
         let token_b = Self::unpack_token_account(&token_b_info.data.borrow())?;
-        let converter = PoolTokenConverter::new(pool_mint.supply, token_a.amount, token_b.amount);
-        let a_amount = converter
-            .token_a_rate(pool_token_amount)
-            .ok_or(SwapError::CalculationFailure)?;
+
+        let pool_token_amount_u128 = to_u128(pool_token_amount)?;
+        let converter = PoolTokenConverter::new(
+            to_u128(pool_mint.supply)?,
+            to_u128(token_a.amount)?,
+            to_u128(token_b.amount)?,
+        );
+        let a_amount = to_u64(
+            converter
+                .token_a_rate(pool_token_amount_u128)
+                .ok_or(SwapError::CalculationFailure)?,
+        )?;
         if a_amount < minimum_token_a_amount {
             return Err(SwapError::ExceededSlippage.into());
         }
-        let b_amount = converter
-            .token_b_rate(pool_token_amount)
-            .ok_or(SwapError::CalculationFailure)?;
+        let b_amount = to_u64(
+            converter
+                .token_b_rate(pool_token_amount_u128)
+                .ok_or(SwapError::CalculationFailure)?,
+        )?;
         if b_amount < minimum_token_b_amount {
             return Err(SwapError::ExceededSlippage.into());
         }
@@ -627,6 +638,7 @@ impl PrintProgramError for SwapError {
             SwapError::ExceededSlippage => {
                 info!("Error: Swap instruction exceeds desired slippage limit")
             }
+            SwapError::ConversionFailure => info!("Error: Conversion to or from u64 failed."),
         }
     }
 }

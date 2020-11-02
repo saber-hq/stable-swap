@@ -41,7 +41,7 @@ impl StableSwap {
             let leverage = self.amp_factor * n_coins; // A * n
 
             // Newton's method to approximate D
-            for _ in 0..64 {
+            for _ in 0..128 {
                 let mut d_p = d;
                 d_p = d_p * d / (amount_a * n_coins);
                 d_p = d_p * d / (amount_b * n_coins);
@@ -81,7 +81,7 @@ impl StableSwap {
         // Solve for y by approximating: y**2 + b*y = c
         let mut y_prev: u128;
         let mut y = d;
-        for _ in 0..64 {
+        for _ in 0..128 {
             y_prev = y;
             y = (y * y + c) / (2 * y + b - d);
             if y > y_prev {

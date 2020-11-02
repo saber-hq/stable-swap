@@ -213,7 +213,7 @@ impl Processor {
 
         // LP tokens for bootstrapper
         let invariant = StableSwap::new(amp_factor)?;
-        let mint_amount = invariant.compute_d(token_a.amount, token_b.amount);
+        let mint_amount = invariant.compute_d(to_u128(token_a.amount)?, to_u128(token_b.amount)?);
         Self::token_mint_to(
             swap_info.key,
             token_program_info.clone(),
@@ -221,7 +221,7 @@ impl Processor {
             destination_info.clone(),
             authority_info.clone(),
             nonce,
-            mint_amount,
+            to_u64(mint_amount)?,
         )?;
 
         let obj = SwapInfo {
@@ -283,14 +283,15 @@ impl Processor {
         let invariant = StableSwap::new(token_swap.amp_factor)?;
         let result = invariant
             .swap_to(
-                amount_in,
-                swap_source_account.amount,
-                swap_destination_account.amount,
-                token_swap.fees.trade_fee_numerator,
-                token_swap.fees.trade_fee_denominator,
+                to_u128(amount_in)?,
+                to_u128(swap_source_account.amount)?,
+                to_u128(swap_destination_account.amount)?,
+                to_u128(token_swap.fees.trade_fee_numerator)?,
+                to_u128(token_swap.fees.trade_fee_denominator)?,
             )
             .ok_or(SwapError::CalculationFailure)?;
-        if result.amount_swapped < minimum_amount_out {
+        let amount_swapped = to_u64(result.amount_swapped)?;
+        if amount_swapped < minimum_amount_out {
             return Err(SwapError::ExceededSlippage.into());
         }
 
@@ -310,7 +311,7 @@ impl Processor {
             destination_info.clone(),
             authority_info.clone(),
             token_swap.nonce,
-            result.amount_swapped,
+            amount_swapped,
         )?;
         Ok(())
     }

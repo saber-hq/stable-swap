@@ -43,7 +43,7 @@ const newAccountWithLamports = async (
 };
 
 const getDeploymentInfo = () => {
-  const data = fs.readFileSync("./last-deploy.json", "utf-8");
+  const data = fs.readFileSync("../../last-deploy.json", "utf-8");
   const deployInfo = JSON.parse(data);
   return {
     clusterUrl: deployInfo.clusterUrl,
@@ -124,6 +124,8 @@ const run = async () => {
     AMP_FACTOR
   );
 
+  console.log("Payer PK: ", payer.secretKey.toString());
+  console.log("Owner PK: ", owner.secretKey.toString());
   console.log("ProgramID: ", newSwap.swapProgramId.toString());
   console.log("Address: ", newSwap.stableSwap.toString());
 };

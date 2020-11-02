@@ -13,6 +13,7 @@ Supported actions:
     clippy
     doc
     dump
+    new-swap
     fmt
     test
     e2e-test
@@ -69,8 +70,7 @@ perform_action() {
     deploy)
         (
             ./scripts/deploy_stable_swap.sh $2
-            yarn --cwd lib/client install
-            yarn --cwd lib/client deploy
+            ./do.sh new-swap
         )
     ;;
     doc)
@@ -130,6 +130,10 @@ perform_action() {
     help)
             usage
             exit
+        ;;
+    new-swap)
+            yarn --cwd lib/client install
+            yarn --cwd lib/client new-swap
         ;;
     test)
         (

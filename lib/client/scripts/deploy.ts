@@ -1,11 +1,7 @@
 import fs from "fs";
-import stableSwapClient from "../";
-import solanaWeb3 from "@solana/web3.js";
-import splToken from "@solana/spl-token";
-
-const { StableSwap } = stableSwapClient;
-const { Connection, Account, PublicKey } = solanaWeb3;
-const { Token } = splToken;
+import { StableSwap } from "../";
+import { Connection, Account, PublicKey } from "@solana/web3.js";
+import { Token } from "@solana/spl-token";
 
 const ONE_SOL = 1000000000;
 const AMP_FACTOR = 100;
@@ -15,11 +11,14 @@ const TokenProgramId = new PublicKey(
   "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
 );
 
-const sleep = async ms => {
+const sleep = async (ms: number) => {
   return new Promise(resolve => setTimeout(resolve, ms));
 };
 
-const newAccountWithLamports = async (connection, lamports) => {
+const newAccountWithLamports = async (
+  connection: Connection,
+  lamports: number
+) => {
   const account = new Account();
 
   let retries = 30;

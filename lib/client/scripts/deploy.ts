@@ -1,7 +1,7 @@
-const fs = require("fs");
-const stableSwapClient = require("../lib");
-const solanaWeb3 = require("@solana/web3.js");
-const splToken = require("@solana/spl-token");
+import fs from "fs";
+import stableSwapClient from "../";
+import solanaWeb3 from "@solana/web3.js";
+import splToken from "@solana/spl-token";
 
 const { StableSwap } = stableSwapClient;
 const { Connection, Account, PublicKey } = solanaWeb3;
@@ -15,8 +15,8 @@ const TokenProgramId = new PublicKey(
   "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
 );
 
-const sleep = async (ms) => {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+const sleep = async ms => {
+  return new Promise(resolve => setTimeout(resolve, ms));
 };
 
 const newAccountWithLamports = async (connection, lamports) => {
@@ -48,7 +48,7 @@ const getDeploymentInfo = () => {
   const deployInfo = JSON.parse(data);
   return {
     clusterUrl: deployInfo.clusterUrl,
-    stableSwapProgramId: new PublicKey(deployInfo.swapProgramId),
+    stableSwapProgramId: new PublicKey(deployInfo.swapProgramId)
   };
 };
 

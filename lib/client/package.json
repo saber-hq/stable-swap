@@ -11,7 +11,8 @@
     "prettier": "prettier -w src test",
     "test-int": "jest int --force-exit --testTimeout=10000",
     "test-unit": "jest unit",
-    "prepublishOnly": "npm run clean && npm run build"
+    "prepublishOnly": "npm run clean && npm run build",
+    "deploy": "ts-node scripts/deploy.ts"
   },
   "devDependencies": {
     "@babel/preset-env": "^7.12.1",

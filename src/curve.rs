@@ -177,6 +177,7 @@ mod tests {
     ) {
         let calculator = PoolTokenConverter::new(supply, token_a, token_b);
         assert_eq!(calculator.token_a_rate(deposit), expected);
+        assert_eq!(calculator.supply, supply);
     }
 
     #[test]

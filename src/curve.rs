@@ -168,7 +168,7 @@ mod tests {
     use rand::Rng;
     use sim::{Model, MODEL_FEE_DENOMINATOR, MODEL_FEE_NUMERATOR};
 
-    const ONE_SOL: u128 = 1000000000;
+    const ONE_SOL: u128 = 1_000_000_000;
 
     fn check_pool_token_a_rate(
         token_a: u128,
@@ -214,8 +214,8 @@ mod tests {
         let model_no_balance = Model::new(1, vec![0, 0], n_coin);
         check_d(&model_no_balance, 0, 0);
 
-        let amount_a = 100000;
-        let amount_b = 100000;
+        let amount_a = 1_000_000_000;
+        let amount_b = 1_000_000_000;
         let model_a1 = Model::new(1, vec![amount_a, amount_b], n_coin);
         let d = check_d(&model_a1, amount_a, amount_b);
         check_y(&model_a1, 1, d);
@@ -290,9 +290,9 @@ mod tests {
 
     #[test]
     fn test_swap_calculation() {
-        let source_amount: u128 = 100;
-        let swap_source_amount: u128 = 1000;
-        let swap_destination_amount: u128 = 50000;
+        let source_amount: u128 = 10_000_000_000;
+        let swap_source_amount: u128 = 50_000_000_000;
+        let swap_destination_amount: u128 = 50_000_000_000;
 
         check_swap(
             1,

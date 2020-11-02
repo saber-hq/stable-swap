@@ -168,6 +168,7 @@ impl Processor {
         if *authority_info.key != Self::authority_id(program_id, swap_info.key, nonce)? {
             return Err(SwapError::InvalidProgramAddress.into());
         }
+        let destination = Self::unpack_token_account(&destination_info.data.borrow())?;
         let token_a = Self::unpack_token_account(&token_a_info.data.borrow())?;
         let token_b = Self::unpack_token_account(&token_b_info.data.borrow())?;
         let pool_mint = Self::unpack_mint(&pool_mint_info.data.borrow())?;
@@ -181,6 +182,9 @@ impl Processor {
             && *authority_info.key != pool_mint.mint_authority.unwrap()
         {
             return Err(SwapError::InvalidOwner.into());
+        }
+        if *authority_info.key == destination.owner {
+            return Err(SwapError::InvalidOutputOwner.into());
         }
         if token_a.mint == token_b.mint {
             return Err(SwapError::RepeatedMint.into());
@@ -606,14 +610,17 @@ impl PrintProgramError for SwapError {
     {
         match self {
             SwapError::AlreadyInUse => info!("Error: Swap account already in use"),
-            SwapError::InvalidProgramAddress => {
-                info!("Error: Invalid program address generated from nonce and key")
+            SwapError::InvalidAdmin => {
+                info!("Error: Address of the admin fee account is incorrect")
             }
             SwapError::InvalidOwner => {
                 info!("Error: The input account owner is not the program address")
             }
-            SwapError::InvalidAdmin => {
-                info!("Error: Address of the admin fee account is incorrect")
+            SwapError::InvalidOutputOwner => {
+                info!("Error: Output pool account owner cannot be the program address")
+            }
+            SwapError::InvalidProgramAddress => {
+                info!("Error: Invalid program address generated from nonce and key")
             }
             SwapError::ExpectedMint => {
                 info!("Error: Deserialized account is not an SPL Token mint")
@@ -1342,6 +1349,25 @@ mod tests {
                 accounts.initialize_swap()
             );
             accounts.token_b_account = old_account;
+        }
+
+        // pool token account owner is swap authority
+        {
+            let (_pool_token_key, pool_token_account) = mint_token(
+                &TOKEN_PROGRAM_ID,
+                &accounts.pool_mint_key,
+                &mut accounts.pool_mint_account,
+                &accounts.authority_key,
+                &accounts.authority_key,
+                0,
+            );
+            let old_account = accounts.pool_token_account;
+            accounts.pool_token_account = pool_token_account;
+            assert_eq!(
+                Err(SwapError::InvalidOutputOwner.into()),
+                accounts.initialize_swap()
+            );
+            accounts.pool_token_account = old_account;
         }
 
         // pool mint authority is not swap authority

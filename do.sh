@@ -13,6 +13,7 @@ Supported actions:
     clippy
     doc
     dump
+    new-swap
     fmt
     test
     e2e-test
@@ -130,6 +131,9 @@ perform_action() {
     help)
             usage
             exit
+        ;;
+    new-swap)
+            yarn --cwd lib/client new-swap
         ;;
     test)
         (

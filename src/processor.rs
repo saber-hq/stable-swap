@@ -6,6 +6,7 @@ use crate::{
     curve::{PoolTokenConverter, StableSwap},
     error::SwapError,
     fees::Fees,
+    helpers::{to_u128, to_u64},
     instruction::SwapInstruction,
     state::SwapInfo,
 };
@@ -211,8 +212,8 @@ impl Processor {
         }
 
         // LP tokens for bootstrapper
-        let invariant = StableSwap { amp_factor };
-        let mint_amount = invariant.compute_d(token_a.amount, token_b.amount);
+        let invariant = StableSwap::new(amp_factor)?;
+        let mint_amount = invariant.compute_d(to_u128(token_a.amount)?, to_u128(token_b.amount)?);
         Self::token_mint_to(
             swap_info.key,
             token_program_info.clone(),
@@ -220,7 +221,7 @@ impl Processor {
             destination_info.clone(),
             authority_info.clone(),
             nonce,
-            mint_amount,
+            to_u64(mint_amount)?,
         )?;
 
         let obj = SwapInfo {
@@ -279,19 +280,18 @@ impl Processor {
         let swap_destination_account =
             Self::unpack_token_account(&swap_destination_info.data.borrow())?;
 
-        let invariant = StableSwap {
-            amp_factor: token_swap.amp_factor,
-        };
+        let invariant = StableSwap::new(token_swap.amp_factor)?;
         let result = invariant
             .swap_to(
-                amount_in,
-                swap_source_account.amount,
-                swap_destination_account.amount,
-                token_swap.fees.trade_fee_numerator,
-                token_swap.fees.trade_fee_denominator,
+                to_u128(amount_in)?,
+                to_u128(swap_source_account.amount)?,
+                to_u128(swap_destination_account.amount)?,
+                to_u128(token_swap.fees.trade_fee_numerator)?,
+                to_u128(token_swap.fees.trade_fee_denominator)?,
             )
             .ok_or(SwapError::CalculationFailure)?;
-        if result.amount_swapped < minimum_amount_out {
+        let amount_swapped = to_u64(result.amount_swapped)?;
+        if amount_swapped < minimum_amount_out {
             return Err(SwapError::ExceededSlippage.into());
         }
 
@@ -311,7 +311,7 @@ impl Processor {
             destination_info.clone(),
             authority_info.clone(),
             token_swap.nonce,
-            result.amount_swapped,
+            amount_swapped,
         )?;
         Ok(())
     }
@@ -352,20 +352,22 @@ impl Processor {
         let token_a = Self::unpack_token_account(&token_a_info.data.borrow())?;
         let token_b = Self::unpack_token_account(&token_b_info.data.borrow())?;
         let pool_mint = Self::unpack_mint(&pool_mint_info.data.borrow())?;
-        let invariant = StableSwap {
-            amp_factor: token_swap.amp_factor,
-        };
-        // TODO: Handle overflows
+
+        // u64 -> u128
+        let swap_balance_a_u128 = to_u128(token_a.amount)?;
+        let swap_balance_b_u128 = to_u128(token_b.amount)?;
+        let invariant = StableSwap::new(token_swap.amp_factor)?;
         // Initial invariant
-        let d_0 = invariant.compute_d(token_a.amount, token_b.amount);
-        let old_balances = [token_a.amount, token_b.amount];
+        let d_0 = invariant.compute_d(swap_balance_a_u128, swap_balance_b_u128);
+        let old_balances = [swap_balance_a_u128, swap_balance_b_u128];
         let mut new_balances = [
-            token_a.amount + token_a_amount,
-            token_b.amount + token_b_amount,
+            swap_balance_a_u128 + to_u128(token_a_amount)?,
+            swap_balance_b_u128 + to_u128(token_b_amount)?,
         ];
         // Invariant after change
         let d_1 = invariant.compute_d(new_balances[0], new_balances[1]);
-        assert!(d_1 > d_0);
+        assert!(d_1 > d_0); // TODO: Handle error properly
+
         // Recalculate the invariant accounting for fees
         for i in 0..new_balances.len() {
             let ideal_balance = d_1 * old_balances[i] / d_0;
@@ -374,13 +376,15 @@ impl Processor {
             } else {
                 new_balances[i] - ideal_balance
             };
-            let fee = token_swap.fees.trade_fee_numerator * difference
-                / token_swap.fees.trade_fee_denominator;
+            let fee = to_u128(token_swap.fees.trade_fee_numerator)? * difference
+                / to_u128(token_swap.fees.trade_fee_denominator)?;
             new_balances[i] -= fee;
         }
         let d_2 = invariant.compute_d(new_balances[0], new_balances[1]);
+        let mint_amount_u128 = to_u128(pool_mint.supply)? * (d_2 - d_0) / d_0;
 
-        let mint_amount = pool_mint.supply * (d_2 - d_0) / d_0;
+        // u128 -> u64
+        let mint_amount = to_u64(mint_amount_u128)?;
         if mint_amount < min_mint_amount {
             return Err(SwapError::ExceededSlippage.into());
         }
@@ -454,16 +458,26 @@ impl Processor {
 
         let token_a = Self::unpack_token_account(&token_a_info.data.borrow())?;
         let token_b = Self::unpack_token_account(&token_b_info.data.borrow())?;
-        let converter = PoolTokenConverter::new(pool_mint.supply, token_a.amount, token_b.amount);
-        let a_amount = converter
-            .token_a_rate(pool_token_amount)
-            .ok_or(SwapError::CalculationFailure)?;
+
+        let pool_token_amount_u128 = to_u128(pool_token_amount)?;
+        let converter = PoolTokenConverter::new(
+            to_u128(pool_mint.supply)?,
+            to_u128(token_a.amount)?,
+            to_u128(token_b.amount)?,
+        );
+        let a_amount = to_u64(
+            converter
+                .token_a_rate(pool_token_amount_u128)
+                .ok_or(SwapError::CalculationFailure)?,
+        )?;
         if a_amount < minimum_token_a_amount {
             return Err(SwapError::ExceededSlippage.into());
         }
-        let b_amount = converter
-            .token_b_rate(pool_token_amount)
-            .ok_or(SwapError::CalculationFailure)?;
+        let b_amount = to_u64(
+            converter
+                .token_b_rate(pool_token_amount_u128)
+                .ok_or(SwapError::CalculationFailure)?,
+        )?;
         if b_amount < minimum_token_b_amount {
             return Err(SwapError::ExceededSlippage.into());
         }
@@ -624,6 +638,7 @@ impl PrintProgramError for SwapError {
             SwapError::ExceededSlippage => {
                 info!("Error: Swap instruction exceeds desired slippage limit")
             }
+            SwapError::ConversionFailure => info!("Error: Conversion to or from u64 failed."),
         }
     }
 }
@@ -2068,11 +2083,9 @@ mod tests {
             DEFAULT_TEST_FEES,
         );
         let withdrawer_key = pubkey_rand();
-        let pool_converter =
-            PoolTokenConverter::new(INITIAL_SWAP_POOL_AMOUNT, token_a_amount, token_b_amount);
         let initial_a = token_a_amount / 10;
         let initial_b = token_b_amount / 10;
-        let initial_pool = pool_converter.supply / 10;
+        let initial_pool = INITIAL_SWAP_POOL_AMOUNT / 10;
         let withdraw_amount = initial_pool / 4;
         let minimum_a_amount = initial_a / 40;
         let minimum_b_amount = initial_b / 40;
@@ -2548,17 +2561,30 @@ mod tests {
             let swap_token_b =
                 Processor::unpack_token_account(&accounts.token_b_account.data).unwrap();
             let pool_mint = Processor::unpack_mint(&accounts.pool_mint_account.data).unwrap();
-            let pool_converter =
-                PoolTokenConverter::new(pool_mint.supply, swap_token_a.amount, swap_token_b.amount);
+            let pool_converter = PoolTokenConverter::new(
+                to_u128(pool_mint.supply).unwrap(),
+                to_u128(swap_token_a.amount).unwrap(),
+                to_u128(swap_token_b.amount).unwrap(),
+            );
 
-            let withdrawn_a = pool_converter.token_a_rate(withdraw_amount).unwrap();
-            assert_eq!(swap_token_a.amount, token_a_amount - withdrawn_a);
-            let withdrawn_b = pool_converter.token_b_rate(withdraw_amount).unwrap();
-            assert_eq!(swap_token_b.amount, token_b_amount - withdrawn_b);
+            let withdrawn_a = pool_converter
+                .token_a_rate(to_u128(withdraw_amount).unwrap())
+                .unwrap();
+            assert_eq!(
+                swap_token_a.amount,
+                token_a_amount - to_u64(withdrawn_a).unwrap()
+            );
+            let withdrawn_b = pool_converter
+                .token_b_rate(to_u128(withdraw_amount).unwrap())
+                .unwrap();
+            assert_eq!(
+                swap_token_b.amount,
+                token_b_amount - to_u64(withdrawn_b).unwrap()
+            );
             let token_a = Processor::unpack_token_account(&token_a_account.data).unwrap();
-            assert_eq!(token_a.amount, initial_a + withdrawn_a);
+            assert_eq!(token_a.amount, initial_a + to_u64(withdrawn_a).unwrap());
             let token_b = Processor::unpack_token_account(&token_b_account.data).unwrap();
-            assert_eq!(token_b.amount, initial_b + withdrawn_b);
+            assert_eq!(token_b.amount, initial_b + to_u64(withdrawn_b).unwrap());
             let pool_account = Processor::unpack_token_account(&pool_account.data).unwrap();
             assert_eq!(pool_account.amount, initial_pool - withdraw_amount);
         }
@@ -2895,14 +2921,14 @@ mod tests {
                 )
                 .unwrap();
 
-            let invariant = StableSwap { amp_factor };
+            let invariant = StableSwap::new(amp_factor).unwrap();
             let results = invariant
                 .swap_to(
-                    a_to_b_amount,
-                    token_a_amount,
-                    token_b_amount,
-                    DEFAULT_TEST_FEES.trade_fee_numerator,
-                    DEFAULT_TEST_FEES.trade_fee_denominator,
+                    to_u128(a_to_b_amount).unwrap(),
+                    to_u128(token_a_amount).unwrap(),
+                    to_u128(token_b_amount).unwrap(),
+                    to_u128(DEFAULT_TEST_FEES.trade_fee_numerator).unwrap(),
+                    to_u128(DEFAULT_TEST_FEES.trade_fee_denominator).unwrap(),
                 )
                 .unwrap();
 
@@ -2910,7 +2936,7 @@ mod tests {
                 Processor::unpack_token_account(&accounts.token_a_account.data).unwrap();
             let token_a_amount = swap_token_a.amount;
             assert_eq!(token_a_amount, 5100);
-            assert_eq!(token_a_amount, results.new_source_amount);
+            assert_eq!(token_a_amount, to_u64(results.new_source_amount).unwrap());
             let token_a = Processor::unpack_token_account(&token_a_account.data).unwrap();
             assert_eq!(token_a.amount, initial_a - a_to_b_amount);
 
@@ -2918,10 +2944,16 @@ mod tests {
                 Processor::unpack_token_account(&accounts.token_b_account.data).unwrap();
             let token_b_amount = swap_token_b.amount;
             assert_eq!(token_b_amount, 4906);
-            assert_eq!(token_b_amount, results.new_destination_amount);
+            assert_eq!(
+                token_b_amount,
+                to_u64(results.new_destination_amount).unwrap()
+            );
             let token_b = Processor::unpack_token_account(&token_b_account.data).unwrap();
             assert_eq!(token_b.amount, 1094);
-            assert_eq!(token_b.amount, initial_b + results.amount_swapped);
+            assert_eq!(
+                token_b.amount,
+                initial_b + to_u64(results.amount_swapped).unwrap()
+            );
 
             let first_swap_amount = results.amount_swapped;
 
@@ -2942,37 +2974,43 @@ mod tests {
                 )
                 .unwrap();
 
-            let invariant = StableSwap { amp_factor };
+            let invariant = StableSwap::new(amp_factor).unwrap();
             let results = invariant
                 .swap_to(
-                    a_to_b_amount,
-                    token_b_amount,
-                    token_a_amount,
-                    DEFAULT_TEST_FEES.trade_fee_numerator,
-                    DEFAULT_TEST_FEES.trade_fee_denominator,
+                    to_u128(a_to_b_amount).unwrap(),
+                    to_u128(token_b_amount).unwrap(),
+                    to_u128(token_a_amount).unwrap(),
+                    to_u128(DEFAULT_TEST_FEES.trade_fee_numerator).unwrap(),
+                    to_u128(DEFAULT_TEST_FEES.trade_fee_denominator).unwrap(),
                 )
                 .unwrap();
 
             let swap_token_a =
                 Processor::unpack_token_account(&accounts.token_a_account.data).unwrap();
             assert_eq!(swap_token_a.amount, 5005);
-            assert_eq!(swap_token_a.amount, results.new_destination_amount);
+            assert_eq!(
+                swap_token_a.amount,
+                to_u64(results.new_destination_amount).unwrap()
+            );
             let token_a = Processor::unpack_token_account(&token_a_account.data).unwrap();
             assert_eq!(token_a.amount, 995);
             assert_eq!(
                 token_a.amount,
-                initial_a - a_to_b_amount + results.amount_swapped
+                initial_a - a_to_b_amount + to_u64(results.amount_swapped).unwrap()
             );
 
             let swap_token_b =
                 Processor::unpack_token_account(&accounts.token_b_account.data).unwrap();
             assert_eq!(swap_token_b.amount, 5006);
-            assert_eq!(swap_token_b.amount, results.new_source_amount);
+            assert_eq!(
+                swap_token_b.amount,
+                to_u64(results.new_source_amount).unwrap()
+            );
             let token_b = Processor::unpack_token_account(&token_b_account.data).unwrap();
             assert_eq!(token_b.amount, 994);
             assert_eq!(
                 token_b.amount,
-                initial_b + first_swap_amount - b_to_a_amount
+                initial_b + to_u64(first_swap_amount).unwrap() - b_to_a_amount
             );
         }
     }

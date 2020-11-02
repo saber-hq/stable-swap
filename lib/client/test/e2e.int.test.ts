@@ -180,7 +180,7 @@ describe("e2e test", () => {
 
   it("bootstrapper's LP balance", async () => {
     const info = await tokenPool.getAccountInfo(userPoolAccount);
-    expect(info.amount.toNumber()).toEqual(2010050251); // TODO: Check this number.
+    expect(info.amount.toNumber()).toEqual(INITIAL_TOKEN_A_AMOUNT + INITIAL_TOKEN_B_AMOUNT);
   });
 
   it("loadStableSwap", async () => {
@@ -247,7 +247,7 @@ describe("e2e test", () => {
       INITIAL_TOKEN_B_AMOUNT + depositAmountB
     );
     info = await tokenPool.getAccountInfo(userPoolAccount);
-    expect(info.amount.toNumber()).toBe(4020100473); // TODO: Check this number
+    expect(info.amount.toNumber()).toBe(4000000000);
   });
 
   it("withdraw", async () => {
@@ -398,7 +398,7 @@ describe("e2e test", () => {
     expect(info.amount.toNumber()).toBe(
       oldSwapTokenB.amount.toNumber() + SWAP_AMOUNT_IN
     );
-    const EXPECTED_AMOUNT_OUT = 75000; // EXPECTED_AMOUNT_OUT = SWAP_AMOUNT_IN * (1 - FEES)
+    const EXPECTED_AMOUNT_OUT = 75001; // EXPECTED_AMOUNT_OUT = SWAP_AMOUNT_IN * (1 - FEES)
     info = await mintA.getAccountInfo(userAccountA);
     expect(info.amount.toNumber()).toBe(EXPECTED_AMOUNT_OUT);
     info = await mintA.getAccountInfo(tokenAccountA);

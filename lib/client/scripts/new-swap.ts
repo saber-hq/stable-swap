@@ -12,7 +12,7 @@ const TokenProgramId = new PublicKey(
 );
 
 const sleep = async (ms: number) => {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 };
 
 const newAccountWithLamports = async (
@@ -47,7 +47,7 @@ const getDeploymentInfo = () => {
   const deployInfo = JSON.parse(data);
   return {
     clusterUrl: deployInfo.clusterUrl,
-    stableSwapProgramId: new PublicKey(deployInfo.swapProgramId)
+    stableSwapProgramId: new PublicKey(deployInfo.swapProgramId),
   };
 };
 
@@ -124,8 +124,8 @@ const run = async () => {
     AMP_FACTOR
   );
 
-  console.log("Payer PK: ", payer.secretKey.toString());
-  console.log("Owner PK: ", owner.secretKey.toString());
+  console.log("Payer KP: ", payer.secretKey.toString());
+  console.log("Owner KP: ", owner.secretKey.toString());
   console.log("ProgramID: ", newSwap.swapProgramId.toString());
   console.log("Address: ", newSwap.stableSwap.toString());
 };

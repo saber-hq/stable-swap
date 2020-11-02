@@ -12,7 +12,7 @@
     "test-int": "jest int --force-exit --testTimeout=10000",
     "test-unit": "jest unit",
     "prepublishOnly": "npm run clean && npm run build",
-    "new-swap": "tsc && node lib/scripts/new_swap"
+    "new-swap": "tsc && node lib/scripts/new-swap && yarn clean"
   },
   "devDependencies": {
     "@babel/preset-env": "^7.12.1",

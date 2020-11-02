@@ -667,7 +667,7 @@ mod tests {
     /// "sensible" given a maximum of u64.
     /// Note that on Ethereum, Uniswap uses the geometric mean of all provided
     /// input amounts, and Balancer uses 100 * 10 ^ 18.
-    const INITIAL_SWAP_POOL_AMOUNT: u64 = 1_000_000_000;
+    const INITIAL_SWAP_POOL_AMOUNT: u128 = 1_000_000_000;
     /// Fees for testing
     const DEFAULT_TEST_FEES: Fees = Fees {
         admin_trade_fee_numerator: 1,
@@ -2083,8 +2083,11 @@ mod tests {
             DEFAULT_TEST_FEES,
         );
         let withdrawer_key = pubkey_rand();
-        let pool_converter =
-            PoolTokenConverter::new(INITIAL_SWAP_POOL_AMOUNT, token_a_amount, token_b_amount);
+        let pool_converter = PoolTokenConverter::new(
+            INITIAL_SWAP_POOL_AMOUNT,
+            to_u128(token_a_amount).unwrap(),
+            to_u128(token_b_amount).unwrap(),
+        );
         let initial_a = token_a_amount / 10;
         let initial_b = token_b_amount / 10;
         let initial_pool = pool_converter.supply / 10;
@@ -2112,7 +2115,7 @@ mod tests {
                     &mut token_a_account,
                     &token_b_key,
                     &mut token_b_account,
-                    withdraw_amount,
+                    withdraw_amount.try_into().unwrap(),
                     minimum_a_amount,
                     minimum_b_amount,
                 )
@@ -2147,7 +2150,7 @@ mod tests {
                     &mut token_a_account,
                     &token_b_key,
                     &mut token_b_account,
-                    withdraw_amount,
+                    withdraw_amount.try_into().unwrap(),
                     minimum_a_amount,
                     minimum_b_amount,
                 )
@@ -2169,7 +2172,7 @@ mod tests {
                 &withdrawer_key,
                 initial_a,
                 initial_b,
-                withdraw_amount / 2,
+                (withdraw_amount / 2).try_into().unwrap(),
             );
             assert_eq!(
                 Err(TokenError::InsufficientFunds.into()),
@@ -2563,17 +2566,26 @@ mod tests {
             let swap_token_b =
                 Processor::unpack_token_account(&accounts.token_b_account.data).unwrap();
             let pool_mint = Processor::unpack_mint(&accounts.pool_mint_account.data).unwrap();
-            let pool_converter =
-                PoolTokenConverter::new(pool_mint.supply, swap_token_a.amount, swap_token_b.amount);
+            let pool_converter = PoolTokenConverter::new(
+                pool_mint.supply.into(),
+                swap_token_a.amount.into(),
+                swap_token_b.amount.into(),
+            );
 
             let withdrawn_a = pool_converter.token_a_rate(withdraw_amount).unwrap();
-            assert_eq!(swap_token_a.amount, token_a_amount - withdrawn_a);
+            assert_eq!(
+                swap_token_a.amount,
+                token_a_amount - to_u64(withdrawn_a).unwrap()
+            );
             let withdrawn_b = pool_converter.token_b_rate(withdraw_amount).unwrap();
-            assert_eq!(swap_token_b.amount, token_b_amount - withdrawn_b);
+            assert_eq!(
+                swap_token_b.amount,
+                token_b_amount - to_u64(withdrawn_b).unwrap()
+            );
             let token_a = Processor::unpack_token_account(&token_a_account.data).unwrap();
-            assert_eq!(token_a.amount, initial_a + withdrawn_a);
+            assert_eq!(token_a.amount, initial_a + to_u64(withdrawn_a).unwrap());
             let token_b = Processor::unpack_token_account(&token_b_account.data).unwrap();
-            assert_eq!(token_b.amount, initial_b + withdrawn_b);
+            assert_eq!(token_b.amount, initial_b + to_u64(withdrawn_b).unwrap());
             let pool_account = Processor::unpack_token_account(&pool_account.data).unwrap();
             assert_eq!(pool_account.amount, initial_pool - withdraw_amount);
         }
@@ -2910,7 +2922,7 @@ mod tests {
                 )
                 .unwrap();
 
-            let invariant = StableSwap::new(amp_factor)?;
+            let invariant = StableSwap::new(amp_factor).unwrap();
             let results = invariant
                 .swap_to(
                     a_to_b_amount,
@@ -2925,7 +2937,7 @@ mod tests {
                 Processor::unpack_token_account(&accounts.token_a_account.data).unwrap();
             let token_a_amount = swap_token_a.amount;
             assert_eq!(token_a_amount, 5100);
-            assert_eq!(token_a_amount, results.new_source_amount);
+            assert_eq!(token_a_amount, to_u64(results.new_source_amount).unwrap());
             let token_a = Processor::unpack_token_account(&token_a_account.data).unwrap();
             assert_eq!(token_a.amount, initial_a - a_to_b_amount);
 
@@ -2933,10 +2945,16 @@ mod tests {
                 Processor::unpack_token_account(&accounts.token_b_account.data).unwrap();
             let token_b_amount = swap_token_b.amount;
             assert_eq!(token_b_amount, 4906);
-            assert_eq!(token_b_amount, results.new_destination_amount);
+            assert_eq!(
+                token_b_amount,
+                to_u64(results.new_destination_amount).unwrap()
+            );
             let token_b = Processor::unpack_token_account(&token_b_account.data).unwrap();
             assert_eq!(token_b.amount, 1094);
-            assert_eq!(token_b.amount, initial_b + results.amount_swapped);
+            assert_eq!(
+                token_b.amount,
+                initial_b + to_u64(results.amount_swapped).unwrap()
+            );
 
             let first_swap_amount = results.amount_swapped;
 
@@ -2957,7 +2975,7 @@ mod tests {
                 )
                 .unwrap();
 
-            let invariant = StableSwap::new(amp_factor)?;
+            let invariant = StableSwap::new(amp_factor).unwrap();
             let results = invariant
                 .swap_to(
                     a_to_b_amount,
@@ -2971,23 +2989,29 @@ mod tests {
             let swap_token_a =
                 Processor::unpack_token_account(&accounts.token_a_account.data).unwrap();
             assert_eq!(swap_token_a.amount, 5005);
-            assert_eq!(swap_token_a.amount, results.new_destination_amount);
+            assert_eq!(
+                swap_token_a.amount,
+                to_u64(results.new_destination_amount).unwrap()
+            );
             let token_a = Processor::unpack_token_account(&token_a_account.data).unwrap();
             assert_eq!(token_a.amount, 995);
             assert_eq!(
                 token_a.amount,
-                initial_a - a_to_b_amount + results.amount_swapped
+                initial_a - a_to_b_amount + to_u64(results.amount_swapped).unwrap()
             );
 
             let swap_token_b =
                 Processor::unpack_token_account(&accounts.token_b_account.data).unwrap();
             assert_eq!(swap_token_b.amount, 5006);
-            assert_eq!(swap_token_b.amount, results.new_source_amount);
+            assert_eq!(
+                swap_token_b.amount,
+                to_u64(results.new_source_amount).unwrap()
+            );
             let token_b = Processor::unpack_token_account(&token_b_account.data).unwrap();
             assert_eq!(token_b.amount, 994);
             assert_eq!(
                 token_b.amount,
-                initial_b + first_swap_amount - b_to_a_amount
+                initial_b + to_u64(first_swap_amount).unwrap() - b_to_a_amount
             );
         }
     }

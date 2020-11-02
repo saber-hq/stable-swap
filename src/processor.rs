@@ -2562,9 +2562,9 @@ mod tests {
                 Processor::unpack_token_account(&accounts.token_b_account.data).unwrap();
             let pool_mint = Processor::unpack_mint(&accounts.pool_mint_account.data).unwrap();
             let pool_converter = PoolTokenConverter::new(
-                pool_mint.supply.into(),
-                swap_token_a.amount.into(),
-                swap_token_b.amount.into(),
+                to_u128(pool_mint.supply).unwrap(),
+                to_u128(swap_token_a.amount).unwrap(),
+                to_u128(swap_token_b.amount).unwrap(),
             );
 
             let withdrawn_a = pool_converter

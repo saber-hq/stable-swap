@@ -158,6 +158,38 @@ impl StableSwap {
         Some(y)
     }
 
+    /// Calcuate withdrawal amount when withdrawing only one type of token
+    /// Calculation:
+    /// 1. Get current D
+    /// 2. Solve Eqn against y_i for D - _token_amount
+    pub fn compute_withdraw_one(
+        &self,
+        pool_token_amount: u64,
+        pool_token_supply: u64,
+        swap_base_amount: u64,  // Same denomination of token to be withdrawn
+        swap_quote_amount: u64, // Counter denomination of token to be withdrawn
+        fee_numerator: u64,
+        fee_denominator: u64,
+    ) -> (u64, u64) {
+        // XXX: Curve uses u256
+        // TODO: Handle overflows
+        let n_coins = 2;
+        let d_0 = self.compute_d(swap_base_amount, swap_quote_amount);
+        let d_1 = d_0 - pool_token_amount * d_0 / pool_token_supply;
+        let new_y = self.compute_y(swap_quote_amount, d_1);
+
+        let fee = fee_numerator * n_coins / (4 * (n_coins - 1)); // XXX: Why divide by 4?
+        let expected_base_amount = swap_base_amount * d_1 / d_0 - new_y;
+        let expected_quote_amount = swap_quote_amount - swap_quote_amount * d_1 / d_0;
+        let new_base_amount = swap_base_amount - expected_base_amount * fee / fee_denominator;
+        let new_quote_amount = swap_quote_amount - expected_quote_amount * fee / fee_denominator;
+
+        let dy = new_base_amount - self.compute_y(new_quote_amount, d_1);
+        let dy_0 = swap_base_amount - new_y;
+
+        (dy, dy_0 - dy)
+    }
+
     /// Compute SwapResult after an exchange
     pub fn swap_to(
         &self,
@@ -417,4 +449,44 @@ mod tests {
             swap_destination_amount,
         );
     }
+
+    fn check_withdraw_one(
+        amp_factor: u64,
+        pool_token_amount: u64,
+        pool_token_supply: u64,
+        swap_base_amount: u64,
+        swap_quote_amount: u64,
+    ) {
+        let n_coin = 2;
+        let swap = StableSwap { amp_factor };
+        let result = swap.compute_withdraw_one(
+            pool_token_amount,
+            pool_token_supply,
+            swap_base_amount,
+            swap_quote_amount,
+            MODEL_FEE_NUMERATOR,
+            MODEL_FEE_DENOMINATOR,
+        );
+        let model = Model::new_with_pool_tokens(
+            amp_factor,
+            vec![swap_base_amount, swap_quote_amount],
+            n_coin,
+            pool_token_supply,
+        );
+        assert_eq!(
+            result.0,
+            model.sim_calc_withdraw_one_coin(pool_token_amount, 0)
+        );
+    }
+
+    // #[test]
+    // fn test_compute_withdraw_one() {
+    //     let pool_token_amount = 10000;
+    //     let pool_token_supply = 200000;
+    //     let swap_base_amount = 1000000;
+    //     let swap_quote_amount = 1000000;
+
+    //     let amp_factor = 1;
+    //     check_withdraw_one(amp_factor, pool_token_amount, pool_token_supply, swap_base_amount, swap_quote_amount)
+    // }
 }

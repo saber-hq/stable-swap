@@ -7,10 +7,10 @@ const FILE_NAME: &str = "simulation.py";
 const FILE_PATH: &str = "lib/sim/simulation.py";
 const MODULE_NAME: &str = "simulation";
 
-const DEFAULT_POOL_TOKENS: u128 = 0;
-const DEFAULT_TARGET_PRICE: u128 = 1000000000000000000;
-pub const MODEL_FEE_NUMERATOR: u128 = 1;
-pub const MODEL_FEE_DENOMINATOR: u128 = 1000;
+const DEFAULT_POOL_TOKENS: u64 = 0;
+const DEFAULT_TARGET_PRICE: u64 = 1000000000000000000;
+pub const MODEL_FEE_NUMERATOR: u64 = 10000000;
+pub const MODEL_FEE_DENOMINATOR: u64 = 10000000000;
 
 pub struct Model {
     py_src: String,

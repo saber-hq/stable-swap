@@ -1,11 +1,7 @@
-const fs = require("fs");
-const stableSwapClient = require("solana-stable-swap-client");
-const solanaWeb3 = require("@solana/web3.js");
-const splToken = require("@solana/spl-token");
-
-const { StableSwap } = stableSwapClient;
-const { Connection, Account, PublicKey } = solanaWeb3;
-const { Token } = splToken;
+import fs from "fs";
+import { StableSwap } from "../src";
+import { Connection, Account, PublicKey } from "@solana/web3.js";
+import { Token } from "@solana/spl-token";
 
 const ONE_SOL = 1000000000;
 const AMP_FACTOR = 100;
@@ -15,11 +11,14 @@ const TokenProgramId = new PublicKey(
   "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
 );
 
-const sleep = async (ms) => {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+const sleep = async (ms: number) => {
+  return new Promise(resolve => setTimeout(resolve, ms));
 };
 
-const newAccountWithLamports = async (connection, lamports) => {
+const newAccountWithLamports = async (
+  connection: Connection,
+  lamports: number
+) => {
   const account = new Account();
 
   let retries = 30;
@@ -48,7 +47,7 @@ const getDeploymentInfo = () => {
   const deployInfo = JSON.parse(data);
   return {
     clusterUrl: deployInfo.clusterUrl,
-    stableSwapProgramId: new PublicKey(deployInfo.swapProgramId),
+    stableSwapProgramId: new PublicKey(deployInfo.swapProgramId)
   };
 };
 

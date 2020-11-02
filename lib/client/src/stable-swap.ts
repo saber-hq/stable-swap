@@ -16,6 +16,10 @@ import { computeD } from "./util/calculator";
 import { sendAndConfirmTransaction } from "./util/send-and-confirm-transaction";
 import { NumberU64 } from "./util/u64";
 
+const TOKEN_PROGRAM_ID = new PublicKey(
+  "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+);
+
 /**
  * A program to exchange tokens against a pool of liquidity
  */
@@ -164,7 +168,7 @@ export class StableSwap {
     const poolToken = new PublicKey(stableSwapData.tokenPool);
     const mintA = new PublicKey(stableSwapData.mintA);
     const mintB = new PublicKey(stableSwapData.mintB);
-    const tokenProgramId = new PublicKey(stableSwapData.tokenProgramId);
+    const tokenProgramId = TOKEN_PROGRAM_ID;
     const ampFactor = stableSwapData.ampFactor;
     const fees = {
       adminTradeFeeNumerator: stableSwapData.adminTradeFeeNumerator as number,

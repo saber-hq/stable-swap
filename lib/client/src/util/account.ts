@@ -12,7 +12,9 @@ export const loadAccount = async (
   }
 
   if (!accountInfo.owner.equals(programId)) {
-    throw new Error(`Invalid owner: ${JSON.stringify(accountInfo.owner)}`);
+    throw new Error(
+      `Invalid owner: expected ${programId.toBase58()}, found ${accountInfo.owner.toBase58()}`
+    );
   }
 
   return Buffer.from(accountInfo.data);

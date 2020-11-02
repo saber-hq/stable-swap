@@ -45,5 +45,8 @@
   },
   "lint-staged": {
     "*.{js,css,md}": "prettier --write"
+  },
+  "resolutions": {
+    "@solana/web3.js": "^0.86.2"
   }
 }

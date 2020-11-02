@@ -1,5 +1,5 @@
 import fs from "fs";
-import { StableSwap } from "../";
+import { StableSwap } from "../src";
 import { Connection, Account, PublicKey } from "@solana/web3.js";
 import { Token } from "@solana/spl-token";
 

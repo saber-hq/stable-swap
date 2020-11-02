@@ -12,7 +12,7 @@
     "test-int": "jest int --force-exit --testTimeout=10000",
     "test-unit": "jest unit",
     "prepublishOnly": "npm run clean && npm run build",
-    "deploy": "ts-node --project tsconfig.json scripts/deploy.ts"
+    "deploy": "npm run build && node lib/scripts/deploy"
   },
   "devDependencies": {
     "@babel/preset-env": "^7.12.1",

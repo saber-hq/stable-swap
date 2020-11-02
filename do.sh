@@ -70,8 +70,7 @@ perform_action() {
         (
             ./scripts/deploy_stable_swap.sh $2
             yarn --cwd lib/client install
-            yarn --cwd lib/client build
-            node lib/client/lib/scripts/deploy
+            yarn --cwd lib/client deploy
         )
     ;;
     doc)

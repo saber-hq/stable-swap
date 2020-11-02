@@ -30,4 +30,4 @@ solana airdrop 10
 STABLE_SWAP_ID="$(solana deploy target/bpfel-unknown-unknown/release/stable_swap.so | jq .programId -r)"
 echo "StableSwap ProgramID:" $STABLE_SWAP_ID
 jq -n --arg CLUSTER_URL ${CLUSTER_URL} --arg STABLE_SWAP_ID ${STABLE_SWAP_ID} \
-    '{clusterUrl: $CLUSTER_URL, "swapProgramId": $STABLE_SWAP_ID}' > lib/client/last-deploy.json
+    '{clusterUrl: $CLUSTER_URL, "swapProgramId": $STABLE_SWAP_ID}' > last-deploy.json

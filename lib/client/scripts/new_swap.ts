@@ -43,7 +43,7 @@ const newAccountWithLamports = async (
 };
 
 const getDeploymentInfo = () => {
-  const data = fs.readFileSync("../last-deploy.json", "utf-8");
+  const data = fs.readFileSync("../../last-deploy.json", "utf-8");
   const deployInfo = JSON.parse(data);
   return {
     clusterUrl: deployInfo.clusterUrl,

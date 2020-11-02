@@ -352,19 +352,21 @@ impl Processor {
         let token_a = Self::unpack_token_account(&token_a_info.data.borrow())?;
         let token_b = Self::unpack_token_account(&token_b_info.data.borrow())?;
         let pool_mint = Self::unpack_mint(&pool_mint_info.data.borrow())?;
-        let invariant = StableSwap::new(token_swap.amp_factor)?;
 
-        // TODO: Handle overflows
+        // u64 -> u128
+        let swap_balance_a_u128 = to_u128(token_a.amount)?;
+        let swap_balance_b_u128 = to_u128(token_b.amount)?;
+        let invariant = StableSwap::new(token_swap.amp_factor)?;
         // Initial invariant
-        let d_0 = invariant.compute_d(token_a.amount, token_b.amount);
-        let old_balances = [token_a.amount, token_b.amount];
+        let d_0 = invariant.compute_d(swap_balance_a_u128, swap_balance_b_u128);
+        let old_balances = [swap_balance_a_u128, swap_balance_b_u128];
         let mut new_balances = [
-            token_a.amount + token_a_amount,
-            token_b.amount + token_b_amount,
+            swap_balance_a_u128 + to_u128(token_a_amount)?,
+            swap_balance_b_u128 + to_u128(token_b_amount)?,
         ];
         // Invariant after change
         let d_1 = invariant.compute_d(new_balances[0], new_balances[1]);
-        assert!(d_1 > d_0);
+        assert!(d_1 > d_0); // TODO: Handle error properly
         // Recalculate the invariant accounting for fees
         for i in 0..new_balances.len() {
             let ideal_balance = d_1 * old_balances[i] / d_0;
@@ -373,13 +375,15 @@ impl Processor {
             } else {
                 new_balances[i] - ideal_balance
             };
-            let fee = token_swap.fees.trade_fee_numerator * difference
-                / token_swap.fees.trade_fee_denominator;
+            let fee = to_u128(token_swap.fees.trade_fee_numerator)? * difference
+                / to_u128(token_swap.fees.trade_fee_denominator)?;
             new_balances[i] -= fee;
         }
         let d_2 = invariant.compute_d(new_balances[0], new_balances[1]);
+        let mint_amount_u128 = to_u128(pool_mint.supply)? * (d_2 - d_0) / d_0;
 
-        let mint_amount = pool_mint.supply * (d_2 - d_0) / d_0;
+        // u128 -> u64
+        let mint_amount = to_64(mint_amount_u128)?;
         if mint_amount < min_mint_amount {
             return Err(SwapError::ExceededSlippage.into());
         }

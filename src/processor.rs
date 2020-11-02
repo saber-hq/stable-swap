@@ -26,7 +26,6 @@ use solana_sdk::{
     pubkey::Pubkey,
 };
 use spl_token::{pack::Pack as TokenPack, state::Account, state::Mint};
-use std::convert::TryInto;
 
 // Test program id for the swap program.
 #[cfg(not(target_arch = "bpf"))]
@@ -213,7 +212,7 @@ impl Processor {
 
         // LP tokens for bootstrapper
         let invariant = StableSwap { amp_factor };
-        let mint_amount = invariant.compute_d(to_u128(token_a.amount)?, to_u128(token_b.amount)?);
+        let mint_amount = invariant.compute_d(token_a.amount, token_b.amount);
         Self::token_mint_to(
             swap_info.key,
             token_program_info.clone(),
@@ -221,7 +220,7 @@ impl Processor {
             destination_info.clone(),
             authority_info.clone(),
             nonce,
-            to_u64(mint_amount)?,
+            mint_amount,
         )?;
 
         let obj = SwapInfo {
@@ -281,19 +280,18 @@ impl Processor {
             Self::unpack_token_account(&swap_destination_info.data.borrow())?;
 
         let invariant = StableSwap {
-            amp_factor: to_u128(token_swap.amp_factor)?,
+            amp_factor: token_swap.amp_factor,
         };
         let result = invariant
             .swap_to(
-                to_u128(amount_in)?,
-                to_u128(swap_source_account.amount)?,
-                to_u128(swap_destination_account.amount)?,
-                to_u128(token_swap.fees.trade_fee_numerator)?,
-                to_u128(token_swap.fees.trade_fee_denominator)?,
+                amount_in,
+                swap_source_account.amount,
+                swap_destination_account.amount,
+                token_swap.fees.trade_fee_numerator,
+                token_swap.fees.trade_fee_denominator,
             )
             .ok_or(SwapError::CalculationFailure)?;
-        let amount_swapped = to_u64(result.amount_swapped)?;
-        if amount_swapped < minimum_amount_out {
+        if result.amount_swapped < minimum_amount_out {
             return Err(SwapError::ExceededSlippage.into());
         }
 
@@ -313,7 +311,7 @@ impl Processor {
             destination_info.clone(),
             authority_info.clone(),
             token_swap.nonce,
-            amount_swapped,
+            result.amount_swapped,
         )?;
         Ok(())
     }
@@ -357,15 +355,13 @@ impl Processor {
         let invariant = StableSwap {
             amp_factor: token_swap.amp_factor,
         };
-        // Converting all u64 to u128
+        // TODO: Handle overflows
         // Initial invariant
-        let swap_balance_a_u128 = to_u128(token_a.amount)?;
-        let swap_balance_b_u128 = to_u128(token_a.amount)?;
-        let d_0 = invariant.compute_d(swap_balance_a_u128, swap_balance_b_u128);
-        let old_balances = [swap_balance_a_u128, swap_balance_b_u128];
+        let d_0 = invariant.compute_d(token_a.amount, token_b.amount);
+        let old_balances = [token_a.amount, token_b.amount];
         let mut new_balances = [
-            swap_balance_a_u128 + to_u128(token_a_amount)?,
-            swap_balance_b_u128 + to_u128(token_b_amount)?,
+            token_a.amount + token_a_amount,
+            token_b.amount + token_b_amount,
         ];
         // Invariant after change
         let d_1 = invariant.compute_d(new_balances[0], new_balances[1]);
@@ -378,15 +374,13 @@ impl Processor {
             } else {
                 new_balances[i] - ideal_balance
             };
-            let fee = to_u128(token_swap.fees.trade_fee_numerator)? * difference
-                / to_u128(token_swap.fees.trade_fee_denominator)?;
+            let fee = token_swap.fees.trade_fee_numerator * difference
+                / token_swap.fees.trade_fee_denominator;
             new_balances[i] -= fee;
         }
         let d_2 = invariant.compute_d(new_balances[0], new_balances[1]);
 
-        let mint_amount_u128 = to_u128(pool_mint.supply)? * (d_2 - d_0) / d_0;
-        // Convert u128 back to u64
-        let mint_amount = to_u64(mint_amount_u128)?;
+        let mint_amount = pool_mint.supply * (d_2 - d_0) / d_0;
         if mint_amount < min_mint_amount {
             return Err(SwapError::ExceededSlippage.into());
         }
@@ -460,24 +454,16 @@ impl Processor {
 
         let token_a = Self::unpack_token_account(&token_a_info.data.borrow())?;
         let token_b = Self::unpack_token_account(&token_b_info.data.borrow())?;
-        let converter = PoolTokenConverter::new(
-            to_u128(pool_mint.supply)?,
-            to_u128(token_a.amount)?,
-            to_u128(token_b.amount)?,
-        );
-        let a_amount = to_u64(
-            converter
-                .token_a_rate(to_u128(pool_token_amount)?)
-                .ok_or(SwapError::CalculationFailure)?,
-        )?;
+        let converter = PoolTokenConverter::new(pool_mint.supply, token_a.amount, token_b.amount);
+        let a_amount = converter
+            .token_a_rate(pool_token_amount)
+            .ok_or(SwapError::CalculationFailure)?;
         if a_amount < minimum_token_a_amount {
             return Err(SwapError::ExceededSlippage.into());
         }
-        let b_amount = to_u64(
-            converter
-                .token_b_rate(to_u128(pool_token_amount)?)
-                .ok_or(SwapError::CalculationFailure)?,
-        )?;
+        let b_amount = converter
+            .token_b_rate(pool_token_amount)
+            .ok_or(SwapError::CalculationFailure)?;
         if b_amount < minimum_token_b_amount {
             return Err(SwapError::ExceededSlippage.into());
         }
@@ -638,17 +624,8 @@ impl PrintProgramError for SwapError {
             SwapError::ExceededSlippage => {
                 info!("Error: Swap instruction exceeds desired slippage limit")
             }
-            SwapError::ConversionFailure => info!("Error: Conversion to or from u64 failed."),
         }
     }
-}
-
-fn to_u128(val: u64) -> Result<u128, SwapError> {
-    val.try_into().map_err(|_| SwapError::ConversionFailure)
-}
-
-fn to_u64(val: u128) -> Result<u64, SwapError> {
-    val.try_into().map_err(|_| SwapError::ConversionFailure)
 }
 
 // Pull in syscall stubs when building for non-BPF targets

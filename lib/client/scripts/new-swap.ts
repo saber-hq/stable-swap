@@ -83,6 +83,7 @@ const run = async () => {
     2,
     TokenProgramId
   );
+  console.log(mintA.publicKey.toString());
   // create token A account then mint to it
   const adminAccountA = await mintA.createAccount(owner.publicKey);
   const tokenAccountA = await mintA.createAccount(authority);
@@ -96,7 +97,7 @@ const run = async () => {
     2,
     TokenProgramId
   );
-
+  console.log(mintB.publicKey.toString());
   // creating token B account then mint to it
   const adminAccountB = await mintB.createAccount(owner.publicKey);
   const tokenAccountB = await mintB.createAccount(authority);

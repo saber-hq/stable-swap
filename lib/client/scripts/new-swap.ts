@@ -8,7 +8,7 @@ import {
 import { Token } from "@solana/spl-token";
 
 import { StableSwap } from "../src";
-import { DEFAULT_TOKEN_DECIMALS, TokenProgramId } from "../src/constants";
+import { DEFAULT_TOKEN_DECIMALS, TOKEN_PROGRAM_ID } from "../src/constants";
 
 const AMP_FACTOR = 100;
 const INITIAL_TOKEN_A_AMOUNT = LAMPORTS_PER_SOL;
@@ -73,7 +73,7 @@ const run = async () => {
     authority,
     null,
     DEFAULT_TOKEN_DECIMALS,
-    TokenProgramId
+    TOKEN_PROGRAM_ID
   );
   const userPoolAccount = await tokenPool.createAccount(owner.publicKey);
 
@@ -84,7 +84,7 @@ const run = async () => {
     owner.publicKey,
     null,
     DEFAULT_TOKEN_DECIMALS,
-    TokenProgramId
+    TOKEN_PROGRAM_ID
   );
   // create token A account then mint to it
   const adminAccountA = await mintA.createAccount(owner.publicKey);
@@ -97,7 +97,7 @@ const run = async () => {
     owner.publicKey,
     null,
     DEFAULT_TOKEN_DECIMALS,
-    TokenProgramId
+    TOKEN_PROGRAM_ID
   );
   // creating token B account then mint to it
   const adminAccountB = await mintB.createAccount(owner.publicKey);
@@ -121,7 +121,7 @@ const run = async () => {
     mintA.publicKey,
     mintB.publicKey,
     stableSwapProgramId,
-    TokenProgramId,
+    TOKEN_PROGRAM_ID,
     nonce,
     AMP_FACTOR
   );

@@ -33,6 +33,7 @@ const FEES: Fees = {
 };
 //  Other constants
 const ONE_SOL = 1000000000;
+const TOKEN_DECIMALS = 6;
 // Initial amount in each swap token
 const INITIAL_TOKEN_A_AMOUNT = ONE_SOL;
 const INITIAL_TOKEN_B_AMOUNT = ONE_SOL;
@@ -93,7 +94,7 @@ describe("e2e test", () => {
         payer,
         authority,
         null,
-        2,
+        TOKEN_DECIMALS,
         TokenProgramId
       );
     } catch (e) {
@@ -112,7 +113,7 @@ describe("e2e test", () => {
         payer,
         owner.publicKey,
         null,
-        2,
+        TOKEN_DECIMALS,
         TokenProgramId
       );
     } catch (e) {
@@ -133,7 +134,7 @@ describe("e2e test", () => {
         payer,
         owner.publicKey,
         null,
-        2,
+        TOKEN_DECIMALS,
         TokenProgramId
       );
     } catch (e) {
@@ -180,7 +181,9 @@ describe("e2e test", () => {
 
   it("bootstrapper's LP balance", async () => {
     const info = await tokenPool.getAccountInfo(userPoolAccount);
-    expect(info.amount.toNumber()).toEqual(INITIAL_TOKEN_A_AMOUNT + INITIAL_TOKEN_B_AMOUNT);
+    expect(info.amount.toNumber()).toEqual(
+      INITIAL_TOKEN_A_AMOUNT + INITIAL_TOKEN_B_AMOUNT
+    );
   });
 
   it("loadStableSwap", async () => {

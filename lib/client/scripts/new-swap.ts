@@ -5,6 +5,7 @@ import { Token } from "@solana/spl-token";
 
 const ONE_SOL = 1000000000;
 const AMP_FACTOR = 100;
+const TOKEN_DECIMALS = 6;
 const INITIAL_TOKEN_A_AMOUNT = ONE_SOL;
 const INITIAL_TOKEN_B_AMOUNT = ONE_SOL;
 const TokenProgramId = new PublicKey(
@@ -69,7 +70,7 @@ const run = async () => {
     payer,
     authority,
     null,
-    2,
+    TOKEN_DECIMALS,
     TokenProgramId
   );
   const userPoolAccount = await tokenPool.createAccount(owner.publicKey);
@@ -80,10 +81,9 @@ const run = async () => {
     payer,
     owner.publicKey,
     null,
-    2,
+    TOKEN_DECIMALS,
     TokenProgramId
   );
-  console.log(mintA.publicKey.toString());
   // create token A account then mint to it
   const adminAccountA = await mintA.createAccount(owner.publicKey);
   const tokenAccountA = await mintA.createAccount(authority);
@@ -94,10 +94,9 @@ const run = async () => {
     payer,
     owner.publicKey,
     null,
-    2,
+    TOKEN_DECIMALS,
     TokenProgramId
   );
-  console.log(mintB.publicKey.toString());
   // creating token B account then mint to it
   const adminAccountB = await mintB.createAccount(owner.publicKey);
   const tokenAccountB = await mintB.createAccount(authority);
@@ -127,8 +126,10 @@ const run = async () => {
 
   console.log("Payer KP: ", payer.secretKey.toString());
   console.log("Owner KP: ", owner.secretKey.toString());
-  console.log("ProgramID: ", newSwap.swapProgramId.toString());
+  console.log("MintA: ", mintA.publicKey.toString());
+  console.log("MintB: ", mintB.publicKey.toString());
   console.log("Address: ", newSwap.stableSwap.toString());
+  console.log("ProgramID: ", newSwap.swapProgramId.toString());
 };
 
 run();

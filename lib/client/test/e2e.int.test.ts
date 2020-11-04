@@ -4,6 +4,7 @@ import { Token } from "@solana/spl-token";
 import { Account, Connection, PublicKey } from "@solana/web3.js";
 
 import { StableSwap } from "../src";
+import { TokenProgramId } from "../src/constants";
 import {
   DEFAULT_FEE_DENOMINATOR,
   DEFAULT_FEE_NUMERATOR,
@@ -12,10 +13,6 @@ import {
 import { sendAndConfirmTransaction } from "../src/util/send-and-confirm-transaction";
 import { newAccountWithLamports, sleep } from "./helpers";
 
-// Token Program
-const TokenProgramId: PublicKey = new PublicKey(
-  "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
-);
 // Cluster configs
 const CLUSTER_URL = "http://localhost:8899";
 const BOOTSTRAP_TIMEOUT = 300000;

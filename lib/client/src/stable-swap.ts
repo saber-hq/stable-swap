@@ -6,8 +6,9 @@ import {
   SystemProgram,
   Transaction,
 } from "@solana/web3.js";
-import { AccountLayout, MintLayout } from "@solana/spl-token";
+import { AccountLayout, MintLayout, Token } from "@solana/spl-token";
 
+import { TokenProgramId } from "./constants";
 import { DEFAULT_FEES, Fees } from "./fees";
 import * as instructions from "./instructions";
 import * as layout from "./layout";
@@ -15,10 +16,6 @@ import { loadAccount } from "./util/account";
 import { computeD } from "./util/calculator";
 import { sendAndConfirmTransaction } from "./util/send-and-confirm-transaction";
 import { NumberU64 } from "./util/u64";
-
-const TOKEN_PROGRAM_ID = new PublicKey(
-  "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
-);
 
 /**
  * A program to exchange tokens against a pool of liquidity
@@ -168,7 +165,7 @@ export class StableSwap {
     const poolToken = new PublicKey(stableSwapData.tokenPool);
     const mintA = new PublicKey(stableSwapData.mintA);
     const mintB = new PublicKey(stableSwapData.mintB);
-    const tokenProgramId = TOKEN_PROGRAM_ID;
+    const tokenProgramId = TokenProgramId;
     const ampFactor = stableSwapData.ampFactor;
     const fees = {
       adminTradeFeeNumerator: stableSwapData.adminTradeFeeNumerator as number,

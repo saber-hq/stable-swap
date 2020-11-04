@@ -1,16 +1,15 @@
 import fs from "fs";
-import { StableSwap } from "../src";
 import { Connection, Account, PublicKey } from "@solana/web3.js";
 import { Token } from "@solana/spl-token";
+
+import { StableSwap } from "../src";
+import { TokenProgramId } from "../src/constants";
 
 const ONE_SOL = 1000000000;
 const AMP_FACTOR = 100;
 const TOKEN_DECIMALS = 6;
 const INITIAL_TOKEN_A_AMOUNT = ONE_SOL;
 const INITIAL_TOKEN_B_AMOUNT = ONE_SOL;
-const TokenProgramId = new PublicKey(
-  "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
-);
 
 const sleep = async (ms: number) => {
   return new Promise((resolve) => setTimeout(resolve, ms));

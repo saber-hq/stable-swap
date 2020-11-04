@@ -9,7 +9,7 @@ import {
 } from "@solana/web3.js";
 
 import { StableSwap } from "../src";
-import { TOKEN_DECIMALS, TokenProgramId } from "../src/constants";
+import { DEFAULT_TOKEN_DECIMALS, TokenProgramId } from "../src/constants";
 import {
   DEFAULT_FEE_DENOMINATOR,
   DEFAULT_FEE_NUMERATOR,
@@ -94,7 +94,7 @@ describe("e2e test", () => {
         payer,
         authority,
         null,
-        TOKEN_DECIMALS,
+        DEFAULT_TOKEN_DECIMALS,
         TokenProgramId
       );
     } catch (e) {
@@ -113,7 +113,7 @@ describe("e2e test", () => {
         payer,
         owner.publicKey,
         null,
-        TOKEN_DECIMALS,
+        DEFAULT_TOKEN_DECIMALS,
         TokenProgramId
       );
     } catch (e) {
@@ -134,7 +134,7 @@ describe("e2e test", () => {
         payer,
         owner.publicKey,
         null,
-        TOKEN_DECIMALS,
+        DEFAULT_TOKEN_DECIMALS,
         TokenProgramId
       );
     } catch (e) {

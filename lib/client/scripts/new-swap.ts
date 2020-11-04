@@ -1,13 +1,18 @@
 import fs from "fs";
-import { Connection, Account, PublicKey } from "@solana/web3.js";
+import {
+  Connection,
+  Account,
+  LAMPORTS_PER_SOL,
+  PublicKey,
+} from "@solana/web3.js";
 import { Token } from "@solana/spl-token";
 
 import { StableSwap } from "../src";
-import { ONE_SOL, TOKEN_DECIMALS, TokenProgramId } from "../src/constants";
+import { TOKEN_DECIMALS, TokenProgramId } from "../src/constants";
 
 const AMP_FACTOR = 100;
-const INITIAL_TOKEN_A_AMOUNT = ONE_SOL;
-const INITIAL_TOKEN_B_AMOUNT = ONE_SOL;
+const INITIAL_TOKEN_A_AMOUNT = LAMPORTS_PER_SOL;
+const INITIAL_TOKEN_B_AMOUNT = LAMPORTS_PER_SOL;
 
 const sleep = async (ms: number) => {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -52,8 +57,8 @@ const getDeploymentInfo = () => {
 const run = async () => {
   const { clusterUrl, stableSwapProgramId } = getDeploymentInfo();
   const connection = new Connection(clusterUrl);
-  const payer = await newAccountWithLamports(connection, ONE_SOL);
-  const owner = await newAccountWithLamports(connection, ONE_SOL);
+  const payer = await newAccountWithLamports(connection, LAMPORTS_PER_SOL);
+  const owner = await newAccountWithLamports(connection, LAMPORTS_PER_SOL);
 
   const stableSwapAccount = new Account();
   const [authority, nonce] = await PublicKey.findProgramAddress(

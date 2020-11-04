@@ -33,7 +33,6 @@ const FEES: Fees = {
   withdrawFeeNumerator: DEFAULT_FEE_NUMERATOR,
   withdrawFeeDenominator: DEFAULT_FEE_DENOMINATOR,
 };
-//  Other constants
 // Initial amount in each swap token
 const INITIAL_TOKEN_A_AMOUNT = LAMPORTS_PER_SOL;
 const INITIAL_TOKEN_B_AMOUNT = LAMPORTS_PER_SOL;

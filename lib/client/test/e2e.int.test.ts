@@ -4,7 +4,7 @@ import { Token } from "@solana/spl-token";
 import { Account, Connection, PublicKey } from "@solana/web3.js";
 
 import { StableSwap } from "../src";
-import { TOKEN_DECIMALS, TokenProgramId } from "../src/constants";
+import { ONE_SOL, TOKEN_DECIMALS, TokenProgramId } from "../src/constants";
 import {
   DEFAULT_FEE_DENOMINATOR,
   DEFAULT_FEE_NUMERATOR,
@@ -29,7 +29,6 @@ const FEES: Fees = {
   withdrawFeeDenominator: DEFAULT_FEE_DENOMINATOR,
 };
 //  Other constants
-const ONE_SOL = 1000000000;
 // Initial amount in each swap token
 const INITIAL_TOKEN_A_AMOUNT = ONE_SOL;
 const INITIAL_TOKEN_B_AMOUNT = ONE_SOL;

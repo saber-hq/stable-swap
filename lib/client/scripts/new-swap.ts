@@ -3,9 +3,8 @@ import { Connection, Account, PublicKey } from "@solana/web3.js";
 import { Token } from "@solana/spl-token";
 
 import { StableSwap } from "../src";
-import { TOKEN_DECIMALS, TokenProgramId } from "../src/constants";
+import { ONE_SOL, TOKEN_DECIMALS, TokenProgramId } from "../src/constants";
 
-const ONE_SOL = 1000000000;
 const AMP_FACTOR = 100;
 const INITIAL_TOKEN_A_AMOUNT = ONE_SOL;
 const INITIAL_TOKEN_B_AMOUNT = ONE_SOL;

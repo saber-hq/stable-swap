@@ -8,6 +8,7 @@ import {
 } from "@solana/web3.js";
 import { AccountLayout, MintLayout } from "@solana/spl-token";
 
+import { TOKEN_PROGRAM_ID } from "./constants";
 import { DEFAULT_FEES, Fees } from "./fees";
 import * as instructions from "./instructions";
 import * as layout from "./layout";
@@ -15,10 +16,6 @@ import { loadAccount } from "./util/account";
 import { computeD } from "./util/calculator";
 import { sendAndConfirmTransaction } from "./util/send-and-confirm-transaction";
 import { NumberU64 } from "./util/u64";
-
-const TOKEN_PROGRAM_ID = new PublicKey(
-  "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
-);
 
 /**
  * A program to exchange tokens against a pool of liquidity

@@ -1,21 +1,23 @@
 import fs from "fs";
 
 import { Token } from "@solana/spl-token";
-import { Account, Connection, PublicKey } from "@solana/web3.js";
+import {
+  Account,
+  Connection,
+  LAMPORTS_PER_SOL,
+  PublicKey,
+} from "@solana/web3.js";
 
 import { StableSwap } from "../src";
+import { DEFAULT_TOKEN_DECIMALS, TOKEN_PROGRAM_ID } from "../src/constants";
 import {
   DEFAULT_FEE_DENOMINATOR,
   DEFAULT_FEE_NUMERATOR,
   Fees,
 } from "../src/fees";
 import { sendAndConfirmTransaction } from "../src/util/send-and-confirm-transaction";
-import { newAccountWithLamports, sleep } from "./helpers";
+import { getDeploymentInfo, newAccountWithLamports, sleep } from "./helpers";
 
-// Token Program
-const TokenProgramId: PublicKey = new PublicKey(
-  "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
-);
 // Cluster configs
 const CLUSTER_URL = "http://localhost:8899";
 const BOOTSTRAP_TIMEOUT = 300000;
@@ -31,18 +33,9 @@ const FEES: Fees = {
   withdrawFeeNumerator: DEFAULT_FEE_NUMERATOR,
   withdrawFeeDenominator: DEFAULT_FEE_DENOMINATOR,
 };
-//  Other constants
-const ONE_SOL = 1000000000;
-const TOKEN_DECIMALS = 6;
 // Initial amount in each swap token
-const INITIAL_TOKEN_A_AMOUNT = ONE_SOL;
-const INITIAL_TOKEN_B_AMOUNT = ONE_SOL;
-
-const getStableSwapProgramId = (): string => {
-  const deployInfo = fs.readFileSync("../../last-deploy.json", "utf-8");
-  const address = JSON.parse(deployInfo);
-  return address.swapProgramId as string;
-};
+const INITIAL_TOKEN_A_AMOUNT = LAMPORTS_PER_SOL;
+const INITIAL_TOKEN_B_AMOUNT = LAMPORTS_PER_SOL;
 
 describe("e2e test", () => {
   // Cluster connection
@@ -74,10 +67,10 @@ describe("e2e test", () => {
   beforeAll(async (done) => {
     // Bootstrap Test Environment ...
     connection = new Connection(CLUSTER_URL, "single");
-    payer = await newAccountWithLamports(connection, ONE_SOL);
-    owner = await newAccountWithLamports(connection, ONE_SOL);
+    payer = await newAccountWithLamports(connection, LAMPORTS_PER_SOL);
+    owner = await newAccountWithLamports(connection, LAMPORTS_PER_SOL);
 
-    stableSwapProgramId = new PublicKey(getStableSwapProgramId());
+    stableSwapProgramId = getDeploymentInfo().stableSwapProgramId;
     stableSwapAccount = new Account();
     try {
       [authority, nonce] = await PublicKey.findProgramAddress(
@@ -94,8 +87,8 @@ describe("e2e test", () => {
         payer,
         authority,
         null,
-        TOKEN_DECIMALS,
-        TokenProgramId
+        DEFAULT_TOKEN_DECIMALS,
+        TOKEN_PROGRAM_ID
       );
     } catch (e) {
       throw new Error(e);
@@ -113,8 +106,8 @@ describe("e2e test", () => {
         payer,
         owner.publicKey,
         null,
-        TOKEN_DECIMALS,
-        TokenProgramId
+        DEFAULT_TOKEN_DECIMALS,
+        TOKEN_PROGRAM_ID
       );
     } catch (e) {
       throw new Error(e);
@@ -134,8 +127,8 @@ describe("e2e test", () => {
         payer,
         owner.publicKey,
         null,
-        TOKEN_DECIMALS,
-        TokenProgramId
+        DEFAULT_TOKEN_DECIMALS,
+        TOKEN_PROGRAM_ID
       );
     } catch (e) {
       throw new Error(e);
@@ -167,7 +160,7 @@ describe("e2e test", () => {
         mintA.publicKey,
         mintB.publicKey,
         stableSwapProgramId,
-        TokenProgramId,
+        TOKEN_PROGRAM_ID,
         nonce,
         AMP_FACTOR,
         FEES
@@ -209,8 +202,8 @@ describe("e2e test", () => {
   });
 
   it("deposit", async () => {
-    const depositAmountA = ONE_SOL;
-    const depositAmountB = ONE_SOL;
+    const depositAmountA = LAMPORTS_PER_SOL;
+    const depositAmountB = LAMPORTS_PER_SOL;
     // Creating depositor token a account
     const userAccountA = await mintA.createAccount(owner.publicKey);
     await mintA.mintTo(userAccountA, owner, [], depositAmountA);

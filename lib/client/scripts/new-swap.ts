@@ -1,110 +1,79 @@
-import fs from "fs";
-import { StableSwap } from "../src";
-import { Connection, Account, PublicKey } from "@solana/web3.js";
+import {
+  Connection,
+  Account,
+  LAMPORTS_PER_SOL,
+  PublicKey,
+} from "@solana/web3.js";
 import { Token } from "@solana/spl-token";
 
-const ONE_SOL = 1000000000;
+import { StableSwap } from "../src";
+import { DEFAULT_TOKEN_DECIMALS, TOKEN_PROGRAM_ID } from "../src/constants";
+import {
+  getDeploymentInfo,
+  newAccountWithLamports,
+  sleep,
+} from "../test/helpers";
+
 const AMP_FACTOR = 100;
-const TOKEN_DECIMALS = 6;
-const INITIAL_TOKEN_A_AMOUNT = ONE_SOL;
-const INITIAL_TOKEN_B_AMOUNT = ONE_SOL;
-const TokenProgramId = new PublicKey(
-  "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
-);
-
-const sleep = async (ms: number) => {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-};
-
-const newAccountWithLamports = async (
-  connection: Connection,
-  lamports: number
-) => {
-  const account = new Account();
-
-  let retries = 30;
-  try {
-    const txSig = await connection.requestAirdrop(account.publicKey, lamports);
-    console.log(`Airdrop requested: ${txSig}`);
-  } catch (e) {
-    // tslint:disable:no-console
-    console.error(e);
-  }
-  for (;;) {
-    await sleep(1000);
-    let balance = await connection.getBalance(account.publicKey);
-    if (lamports === balance) {
-      return account;
-    }
-    if (--retries <= 0) {
-      break;
-    }
-  }
-  throw new Error(`Airdrop of ${lamports} failed`);
-};
-
-const getDeploymentInfo = () => {
-  const data = fs.readFileSync("../../last-deploy.json", "utf-8");
-  const deployInfo = JSON.parse(data);
-  return {
-    clusterUrl: deployInfo.clusterUrl,
-    stableSwapProgramId: new PublicKey(deployInfo.swapProgramId),
-  };
-};
+const INITIAL_TOKEN_A_AMOUNT = LAMPORTS_PER_SOL;
+const INITIAL_TOKEN_B_AMOUNT = LAMPORTS_PER_SOL;
 
 const run = async () => {
   const { clusterUrl, stableSwapProgramId } = getDeploymentInfo();
   const connection = new Connection(clusterUrl);
-  const payer = await newAccountWithLamports(connection, ONE_SOL);
-  const owner = await newAccountWithLamports(connection, ONE_SOL);
+  console.log("Requesting airdrop ...");
+  const payer = await newAccountWithLamports(connection, LAMPORTS_PER_SOL);
+  const owner = await newAccountWithLamports(connection, LAMPORTS_PER_SOL);
 
   const stableSwapAccount = new Account();
   const [authority, nonce] = await PublicKey.findProgramAddress(
     [stableSwapAccount.publicKey.toBuffer()],
     stableSwapProgramId
   );
-
-  // creating pool mint
+  console.log("Creating pool mint ...");
   const tokenPool = await Token.createMint(
     connection,
     payer,
     authority,
     null,
-    TOKEN_DECIMALS,
-    TokenProgramId
+    DEFAULT_TOKEN_DECIMALS,
+    TOKEN_PROGRAM_ID
   );
   const userPoolAccount = await tokenPool.createAccount(owner.publicKey);
 
-  // creating token A
+  console.log("Creating TokenA mint ...");
   const mintA = await Token.createMint(
     connection,
     payer,
     owner.publicKey,
     null,
-    TOKEN_DECIMALS,
-    TokenProgramId
+    DEFAULT_TOKEN_DECIMALS,
+    TOKEN_PROGRAM_ID
   );
+  console.log("Creating TokenA accounts ...");
   // create token A account then mint to it
   const adminAccountA = await mintA.createAccount(owner.publicKey);
   const tokenAccountA = await mintA.createAccount(authority);
   await mintA.mintTo(tokenAccountA, owner, [], INITIAL_TOKEN_A_AMOUNT);
-  // creating token B
+  console.log("Creating TokenA accounts ...");
   const mintB = await Token.createMint(
     connection,
     payer,
     owner.publicKey,
     null,
-    TOKEN_DECIMALS,
-    TokenProgramId
+    DEFAULT_TOKEN_DECIMALS,
+    TOKEN_PROGRAM_ID
   );
-  // creating token B account then mint to it
+
+  console.log("Creating TokenB accounts ...");
   const adminAccountB = await mintB.createAccount(owner.publicKey);
   const tokenAccountB = await mintB.createAccount(authority);
   await mintB.mintTo(tokenAccountB, owner, [], INITIAL_TOKEN_B_AMOUNT);
+
   // Sleep to make sure token accounts are created ...
   await sleep(500);
 
-  // creating stable swap
+  console.log("Creating new swap ...");
   const newSwap = await StableSwap.createStableSwap(
     connection,
     payer,
@@ -119,7 +88,7 @@ const run = async () => {
     mintA.publicKey,
     mintB.publicKey,
     stableSwapProgramId,
-    TokenProgramId,
+    TOKEN_PROGRAM_ID,
     nonce,
     AMP_FACTOR
   );

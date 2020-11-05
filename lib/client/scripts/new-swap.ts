@@ -8,7 +8,11 @@ import { Token } from "@solana/spl-token";
 
 import { StableSwap } from "../src";
 import { DEFAULT_TOKEN_DECIMALS, TOKEN_PROGRAM_ID } from "../src/constants";
-import { getDeploymentInfo, newAccountWithLamports, sleep } from "test/helpers";
+import {
+  getDeploymentInfo,
+  newAccountWithLamports,
+  sleep,
+} from "../test/helpers";
 
 const AMP_FACTOR = 100;
 const INITIAL_TOKEN_A_AMOUNT = LAMPORTS_PER_SOL;
@@ -17,6 +21,7 @@ const INITIAL_TOKEN_B_AMOUNT = LAMPORTS_PER_SOL;
 const run = async () => {
   const { clusterUrl, stableSwapProgramId } = getDeploymentInfo();
   const connection = new Connection(clusterUrl);
+  console.log("Requesting airdrop ...");
   const payer = await newAccountWithLamports(connection, LAMPORTS_PER_SOL);
   const owner = await newAccountWithLamports(connection, LAMPORTS_PER_SOL);
 
@@ -25,8 +30,7 @@ const run = async () => {
     [stableSwapAccount.publicKey.toBuffer()],
     stableSwapProgramId
   );
-
-  // creating pool mint
+  console.log("Creating pool mint ...");
   const tokenPool = await Token.createMint(
     connection,
     payer,
@@ -37,7 +41,7 @@ const run = async () => {
   );
   const userPoolAccount = await tokenPool.createAccount(owner.publicKey);
 
-  // creating token A
+  console.log("Creating TokenA mint ...");
   const mintA = await Token.createMint(
     connection,
     payer,
@@ -46,11 +50,12 @@ const run = async () => {
     DEFAULT_TOKEN_DECIMALS,
     TOKEN_PROGRAM_ID
   );
+  console.log("Creating TokenA accounts ...");
   // create token A account then mint to it
   const adminAccountA = await mintA.createAccount(owner.publicKey);
   const tokenAccountA = await mintA.createAccount(authority);
   await mintA.mintTo(tokenAccountA, owner, [], INITIAL_TOKEN_A_AMOUNT);
-  // creating token B
+  console.log("Creating TokenA accounts ...");
   const mintB = await Token.createMint(
     connection,
     payer,
@@ -59,14 +64,16 @@ const run = async () => {
     DEFAULT_TOKEN_DECIMALS,
     TOKEN_PROGRAM_ID
   );
-  // creating token B account then mint to it
+
+  console.log("Creating TokenB accounts ...");
   const adminAccountB = await mintB.createAccount(owner.publicKey);
   const tokenAccountB = await mintB.createAccount(authority);
   await mintB.mintTo(tokenAccountB, owner, [], INITIAL_TOKEN_B_AMOUNT);
+
   // Sleep to make sure token accounts are created ...
   await sleep(500);
 
-  // creating stable swap
+  console.log("Creating new swap ...");
   const newSwap = await StableSwap.createStableSwap(
     connection,
     payer,

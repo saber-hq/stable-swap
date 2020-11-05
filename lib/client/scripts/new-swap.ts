@@ -1,4 +1,3 @@
-import fs from "fs";
 import {
   Connection,
   Account,
@@ -9,50 +8,11 @@ import { Token } from "@solana/spl-token";
 
 import { StableSwap } from "../src";
 import { DEFAULT_TOKEN_DECIMALS, TOKEN_PROGRAM_ID } from "../src/constants";
+import { getDeploymentInfo, newAccountWithLamports, sleep } from "test/helpers";
 
 const AMP_FACTOR = 100;
 const INITIAL_TOKEN_A_AMOUNT = LAMPORTS_PER_SOL;
 const INITIAL_TOKEN_B_AMOUNT = LAMPORTS_PER_SOL;
-
-const sleep = async (ms: number) => {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-};
-
-const newAccountWithLamports = async (
-  connection: Connection,
-  lamports: number
-) => {
-  const account = new Account();
-
-  let retries = 30;
-  try {
-    const txSig = await connection.requestAirdrop(account.publicKey, lamports);
-    console.log(`Airdrop requested: ${txSig}`);
-  } catch (e) {
-    // tslint:disable:no-console
-    console.error(e);
-  }
-  for (;;) {
-    await sleep(1000);
-    let balance = await connection.getBalance(account.publicKey);
-    if (lamports === balance) {
-      return account;
-    }
-    if (--retries <= 0) {
-      break;
-    }
-  }
-  throw new Error(`Airdrop of ${lamports} failed`);
-};
-
-const getDeploymentInfo = () => {
-  const data = fs.readFileSync("../../last-deploy.json", "utf-8");
-  const deployInfo = JSON.parse(data);
-  return {
-    clusterUrl: deployInfo.clusterUrl,
-    stableSwapProgramId: new PublicKey(deployInfo.swapProgramId),
-  };
-};
 
 const run = async () => {
   const { clusterUrl, stableSwapProgramId } = getDeploymentInfo();

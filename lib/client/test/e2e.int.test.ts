@@ -16,7 +16,7 @@ import {
   Fees,
 } from "../src/fees";
 import { sendAndConfirmTransaction } from "../src/util/send-and-confirm-transaction";
-import { newAccountWithLamports, sleep } from "./helpers";
+import { getDeploymentInfo, newAccountWithLamports, sleep } from "./helpers";
 
 // Cluster configs
 const CLUSTER_URL = "http://localhost:8899";
@@ -36,12 +36,6 @@ const FEES: Fees = {
 // Initial amount in each swap token
 const INITIAL_TOKEN_A_AMOUNT = LAMPORTS_PER_SOL;
 const INITIAL_TOKEN_B_AMOUNT = LAMPORTS_PER_SOL;
-
-const getStableSwapProgramId = (): string => {
-  const deployInfo = fs.readFileSync("../../last-deploy.json", "utf-8");
-  const address = JSON.parse(deployInfo);
-  return address.swapProgramId as string;
-};
 
 describe("e2e test", () => {
   // Cluster connection
@@ -76,7 +70,7 @@ describe("e2e test", () => {
     payer = await newAccountWithLamports(connection, LAMPORTS_PER_SOL);
     owner = await newAccountWithLamports(connection, LAMPORTS_PER_SOL);
 
-    stableSwapProgramId = new PublicKey(getStableSwapProgramId());
+    stableSwapProgramId = getDeploymentInfo().stableSwapProgramId;
     stableSwapAccount = new Account();
     try {
       [authority, nonce] = await PublicKey.findProgramAddress(

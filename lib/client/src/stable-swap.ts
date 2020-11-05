@@ -291,7 +291,7 @@ export class StableSwap {
   /**
    * Get the virtual price of the pool.
    */
-  async getVirtualPrice(): Promise<BN> {
+  async getVirtualPrice(): Promise<number> {
     let tokenAData;
     let tokenBData;
     let poolMintData;
@@ -317,18 +317,14 @@ export class StableSwap {
 
     const tokenA = AccountLayout.decode(tokenAData);
     const tokenB = AccountLayout.decode(tokenBData);
-    const amountA = NumberU64.fromBuffer(tokenA.amount).toNumber();
-    const amountB = NumberU64.fromBuffer(tokenB.amount).toNumber();
-    const D = computeD(
-      new BN(this.ampFactor),
-      new BN(amountA),
-      new BN(amountB)
-    );
+    const amountA = NumberU64.fromBuffer(tokenA.amount);
+    const amountB = NumberU64.fromBuffer(tokenB.amount);
+    const D = computeD(new BN(this.ampFactor), amountA, amountB);
 
     const poolMint = MintLayout.decode(poolMintData);
-    const poolSupply = NumberU64.fromBuffer(poolMint.supply).toNumber();
+    const poolSupply = NumberU64.fromBuffer(poolMint.supply);
 
-    return D.div(new BN(poolSupply));
+    return D.toNumber() / poolSupply.toNumber();
   }
 
   /**

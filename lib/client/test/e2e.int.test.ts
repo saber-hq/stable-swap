@@ -201,6 +201,10 @@ describe("e2e test", () => {
     expect(fetchedStableSwap.fees).toEqual(FEES);
   });
 
+  it("getVirtualPrice", async () => {
+    expect(await stableSwap.getVirtualPrice()).toBe(1);
+  });
+
   it("deposit", async () => {
     const depositAmountA = LAMPORTS_PER_SOL;
     const depositAmountB = LAMPORTS_PER_SOL;

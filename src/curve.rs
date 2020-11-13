@@ -31,8 +31,11 @@ impl StableSwap {
     fn compute_next_d(&self, initial_d: U256, d_p: U256, sum_x: U256) -> Option<U256> {
         let ann = self.amp_factor.checked_mul(N_COINS.into())?;
         let leverage = ann.checked_mul(sum_x)?;
-        let numerator = initial_d.checked_mul(d_p.checked_mul(N_COINS.into())?.checked_add(leverage)?)?;
-        let denominator = initial_d.checked_mul(ann.checked_sub(1.into())?)?.checked_add(d_p.checked_mul((N_COINS + 1).into())?)?;
+        let numerator =
+            initial_d.checked_mul(d_p.checked_mul(N_COINS.into())?.checked_add(leverage)?)?;
+        let denominator = initial_d
+            .checked_mul(ann.checked_sub(1.into())?)?
+            .checked_add(d_p.checked_mul((N_COINS + 1).into())?)?;
         numerator.checked_div(denominator)
     }
 
@@ -80,7 +83,11 @@ impl StableSwap {
 
         // sum' = prod' = x
         // c =  D ** (n + 1) / (n ** (2 * n) * prod' * A)
-        let c = d.checked_pow(3.into())?.checked_div(x.checked_mul(N_COINS.into())?.checked_mul(N_COINS.into())?.checked_mul(ann)?)?;
+        let c = d.checked_pow(3.into())?.checked_div(
+            x.checked_mul(N_COINS.into())?
+                .checked_mul(N_COINS.into())?
+                .checked_mul(ann)?,
+        )?;
         // b = sum' - (A*n**n - 1) * D / (A * n**n)
         let b = d.checked_div(ann)?.checked_add(x)?; // d is subtracted on line 82
 
@@ -202,7 +209,9 @@ mod tests {
         let swap = StableSwap {
             amp_factor: U256::from(model.amp_factor),
         };
-        let d = swap.compute_d(U256::from(amount_a), U256::from(amount_b)).unwrap();
+        let d = swap
+            .compute_d(U256::from(amount_a), U256::from(amount_b))
+            .unwrap();
         assert_eq!(d, model.sim_d().into());
         d
     }
@@ -211,7 +220,10 @@ mod tests {
         let swap = StableSwap {
             amp_factor: U256::from(model.amp_factor),
         };
-        assert_eq!(swap.compute_y(x.into(), d).unwrap(), model.sim_y(0, 1, x.into()).into())
+        assert_eq!(
+            swap.compute_y(x.into(), d).unwrap(),
+            model.sim_y(0, 1, x.into()).into()
+        )
     }
 
     #[test]
@@ -253,7 +265,11 @@ mod tests {
             amount_a, amount_b, amp_factor
         );
 
-        let model = Model::new(amp_factor.into(), vec![amount_a.into(), amount_b.into()], N_COINS.into());
+        let model = Model::new(
+            amp_factor.into(),
+            vec![amount_a.into(), amount_b.into()],
+            N_COINS.into(),
+        );
         let d = check_d(&model, amount_a.into(), amount_b.into());
         check_y(&model, rng.gen_range(0, amount_a), d);
     }
@@ -264,7 +280,9 @@ mod tests {
         swap_source_amount: u64,
         swap_destination_amount: u64,
     ) {
-        let swap = StableSwap { amp_factor: amp_factor.into() };
+        let swap = StableSwap {
+            amp_factor: amp_factor.into(),
+        };
         let result = swap
             .swap_to(
                 source_amount.into(),
@@ -284,7 +302,10 @@ mod tests {
             result.amount_swapped,
             model.sim_exchange(0, 1, source_amount.into()).into()
         );
-        assert_eq!(result.new_source_amount, U256::from(swap_source_amount) + U256::from(source_amount));
+        assert_eq!(
+            result.new_source_amount,
+            U256::from(swap_source_amount) + U256::from(source_amount)
+        );
         assert_eq!(
             result.new_destination_amount,
             U256::from(swap_destination_amount) - result.amount_swapped

@@ -6,7 +6,7 @@ use uint::construct_uint;
 
 construct_uint! {
     /// 256-bit unsigned integer.
-    pub struct U256(4); 
+    pub struct U256(4);
 }
 
 impl U256 {
@@ -15,14 +15,3 @@ impl U256 {
         val.try_into().map_err(|_| SwapError::ConversionFailure)
     }
 }
-
-
-
-
-
-
-
-
-
-
-

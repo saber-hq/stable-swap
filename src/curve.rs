@@ -89,14 +89,14 @@ impl StableSwap {
                 .checked_mul(ann)?,
         )?;
         // b = sum' - (A*n**n - 1) * D / (A * n**n)
-        let b = d.checked_div(ann)?.checked_add(x)?; // d is subtracted on line 82
+        let b = d.checked_div(ann)?.checked_add(x)?; // d is subtracted on line 101
 
         // Solve for y by approximating: y**2 + b*y = c
         let mut y_prev: U256;
         let mut y = d;
         for _ in 0..128 {
             y_prev = y;
-            // y = (y * y + c) / (2.into() * y + b - d);
+            // y = (y * y + c) / (2 * y + b - d);
             let y_numerator = y.checked_pow(2.into())?.checked_add(c)?;
             let y_denominator = y.checked_mul(2.into())?.checked_add(b)?.checked_sub(d)?;
             y = y_numerator.checked_div(y_denominator)?;

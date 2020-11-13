@@ -211,31 +211,29 @@ mod tests {
         let swap = StableSwap {
             amp_factor: U256::from(model.amp_factor),
         };
-        assert_eq!(swap.compute_y(x.into(), d).unwrap(), model.sim_y(0, 1, x).into())
+        assert_eq!(swap.compute_y(x.into(), d).unwrap(), model.sim_y(0, 1, x.into()).into())
     }
 
     #[test]
     fn test_curve_math() {
-        let n_coin = 2;
-
-        let model_no_balance = Model::new(1, vec![0, 0], n_coin);
+        let model_no_balance = Model::new(1, vec![0, 0], N_COINS.into());
         check_d(&model_no_balance, 0, 0);
 
-        let amount_a = 1_000_000_000;
-        let amount_b = 1_000_000_000;
-        let model_a1 = Model::new(1, vec![amount_a, amount_b], n_coin);
-        let d = check_d(&model_a1, amount_a.into(), amount_b.into());
+        let amount_a = u64::MAX;
+        let amount_b = u64::MAX;
+        let model_a1 = Model::new(1, vec![amount_a.into(), amount_b.into()], N_COINS.into());
+        let d = check_d(&model_a1, amount_a, amount_b);
         check_y(&model_a1, 1, d);
         check_y(&model_a1, 1000, d);
         check_y(&model_a1, amount_a.into(), d);
 
-        let model_a100 = Model::new(100, vec![amount_a, amount_b], n_coin);
+        let model_a100 = Model::new(100, vec![amount_a.into(), amount_b.into()], N_COINS.into());
         let d = check_d(&model_a100, amount_a.into(), amount_b.into());
         check_y(&model_a100, 1, d);
         check_y(&model_a100, 1000, d);
         check_y(&model_a100, amount_a.into(), d);
 
-        let model_a1000 = Model::new(1000, vec![amount_a, amount_b], n_coin);
+        let model_a1000 = Model::new(1000, vec![amount_a.into(), amount_b.into()], N_COINS.into());
         let d = check_d(&model_a1000, amount_a.into(), amount_b.into());
         check_y(&model_a1000, 1, d);
         check_y(&model_a1000, 1000, d);
@@ -246,17 +244,16 @@ mod tests {
     fn test_curve_math_with_random_inputs() {
         let mut rng = rand::thread_rng();
 
-        let n_coin = 2;
         let amp_factor: u64 = rng.gen_range(1, 10_000);
-        let amount_a: u64 = rng.gen_range(1, 10_000_000_000);
-        let amount_b: u64 = rng.gen_range(1, 10_000_000_000);
+        let amount_a: u64 = rng.gen_range(1, u64::MAX);
+        let amount_b: u64 = rng.gen_range(1, u64::MAX);
         println!("testing curve_math_with_random_inputs:");
         println!(
             "amount_a: {}, amount_b: {}, amp_factor: {}",
             amount_a, amount_b, amp_factor
         );
 
-        let model = Model::new(amp_factor, vec![amount_a, amount_b], n_coin);
+        let model = Model::new(amp_factor.into(), vec![amount_a.into(), amount_b.into()], N_COINS.into());
         let d = check_d(&model, amount_a.into(), amount_b.into());
         check_y(&model, rng.gen_range(0, amount_a), d);
     }
@@ -267,7 +264,6 @@ mod tests {
         swap_source_amount: u64,
         swap_destination_amount: u64,
     ) {
-        let n_coin = 2;
         let swap = StableSwap { amp_factor: amp_factor.into() };
         let result = swap
             .swap_to(
@@ -279,16 +275,16 @@ mod tests {
             )
             .unwrap();
         let model = Model::new(
-            amp_factor,
-            vec![swap_source_amount, swap_destination_amount],
-            n_coin,
+            amp_factor.into(),
+            vec![swap_source_amount.into(), swap_destination_amount.into()],
+            N_COINS.into(),
         );
 
         assert_eq!(
             result.amount_swapped,
-            model.sim_exchange(0, 1, source_amount).into()
+            model.sim_exchange(0, 1, source_amount.into()).into()
         );
-        assert_eq!(result.new_source_amount, (swap_source_amount + source_amount).into());
+        assert_eq!(result.new_source_amount, U256::from(swap_source_amount) + U256::from(source_amount));
         assert_eq!(
             result.new_destination_amount,
             U256::from(swap_destination_amount) - result.amount_swapped
@@ -297,9 +293,9 @@ mod tests {
 
     #[test]
     fn test_swap_calculation() {
-        let source_amount: u64 = 10_000_000_000;
-        let swap_source_amount: u64 = 50_000_000_000;
-        let swap_destination_amount: u64 = 50_000_000_000;
+        let source_amount: u64 = u64::MAX;
+        let swap_source_amount: u64 = u64::MAX;
+        let swap_destination_amount: u64 = u64::MAX;
 
         check_swap(
             1,
@@ -338,9 +334,9 @@ mod tests {
         let mut rng = rand::thread_rng();
 
         let amp_factor: u64 = rng.gen_range(1, 10_000);
-        let source_amount: u64 = rng.gen_range(1, 10_000_000_000);
-        let swap_source_amount: u64 = rng.gen_range(1, 10_000_000_000);
-        let swap_destination_amount: u64 = rng.gen_range(1, 10_000_000_000);
+        let source_amount: u64 = rng.gen_range(1, u64::MAX);
+        let swap_source_amount: u64 = rng.gen_range(1, u64::MAX);
+        let swap_destination_amount: u64 = rng.gen_range(1, u64::MAX);
         println!("testing swap_calculation_with_random_inputs:");
         println!(
             "amp_factor: {}, source_amount: {}, swap_source_amount: {}, swap_destination_amount: {}",

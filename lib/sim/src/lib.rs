@@ -7,22 +7,22 @@ const FILE_NAME: &str = "simulation.py";
 const FILE_PATH: &str = "lib/sim/simulation.py";
 const MODULE_NAME: &str = "simulation";
 
-const DEFAULT_POOL_TOKENS: u64 = 0;
-const DEFAULT_TARGET_PRICE: u64 = 1000000000000000000;
-pub const MODEL_FEE_NUMERATOR: u64 = 1;
-pub const MODEL_FEE_DENOMINATOR: u64 = 1000;
+const DEFAULT_POOL_TOKENS: u128 = 0;
+const DEFAULT_TARGET_PRICE: u128 = 1000000000000000000;
+pub const MODEL_FEE_NUMERATOR: u128 = 1;
+pub const MODEL_FEE_DENOMINATOR: u128 = 1000;
 
 pub struct Model {
     py_src: String,
-    pub amp_factor: u64,
-    pub balances: Vec<u64>,
-    pub n_coins: u64,
-    pub target_prices: Vec<u64>,
-    pub pool_tokens: u64,
+    pub amp_factor: u128,
+    pub balances: Vec<u128>,
+    pub n_coins: u128,
+    pub target_prices: Vec<u128>,
+    pub pool_tokens: u128,
 }
 
 impl Model {
-    pub fn new(amp_factor: u64, balances: Vec<u64>, n_coins: u64) -> Model {
+    pub fn new(amp_factor: u128, balances: Vec<u128>, n_coins: u128) -> Model {
         let src_file = File::open(FILE_PATH);
         let mut src_file = match src_file {
             Ok(file) => file,
@@ -43,10 +43,10 @@ impl Model {
     }
 
     pub fn new_with_pool_tokens(
-        amp_factor: u64,
-        balances: Vec<u64>,
-        n_coins: u64,
-        pool_token_amount: u64,
+        amp_factor: u128,
+        balances: Vec<u128>,
+        n_coins: u128,
+        pool_token_amount: u128,
     ) -> Model {
         let src_file = File::open(FILE_PATH);
         let mut src_file = match src_file {
@@ -67,7 +67,7 @@ impl Model {
         }
     }
 
-    pub fn sim_d(&self) -> u64 {
+    pub fn sim_d(&self) -> u128 {
         let gil = Python::acquire_gil();
         return self
             .call0(gil.python(), "D")
@@ -76,7 +76,7 @@ impl Model {
             .unwrap();
     }
 
-    pub fn sim_dy(&self, i: u64, j: u64, dx: u64) -> u64 {
+    pub fn sim_dy(&self, i: u128, j: u128, dx: u128) -> u128 {
         let gil = Python::acquire_gil();
         return self
             .call1(gil.python(), "dy", (i, j, dx))
@@ -85,7 +85,7 @@ impl Model {
             .unwrap();
     }
 
-    pub fn sim_exchange(&self, i: u64, j: u64, dx: u64) -> u64 {
+    pub fn sim_exchange(&self, i: u128, j: u128, dx: u128) -> u128 {
         let gil = Python::acquire_gil();
         return self
             .call1(gil.python(), "exchange", (i, j, dx))
@@ -94,7 +94,7 @@ impl Model {
             .unwrap();
     }
 
-    pub fn sim_xp(&self) -> Vec<u64> {
+    pub fn sim_xp(&self) -> Vec<u128> {
         let gil = Python::acquire_gil();
         return self
             .call0(gil.python(), "xp")
@@ -103,7 +103,7 @@ impl Model {
             .unwrap();
     }
 
-    pub fn sim_y(&self, i: u64, j: u64, x: u64) -> u64 {
+    pub fn sim_y(&self, i: u128, j: u128, x: u128) -> u128 {
         let gil = Python::acquire_gil();
         return self
             .call1(gil.python(), "y", (i, j, x))
@@ -112,7 +112,7 @@ impl Model {
             .unwrap();
     }
 
-    pub fn sim_y_d(&self, i: u64, d: u64) -> u64 {
+    pub fn sim_y_d(&self, i: u128, d: u128) -> u128 {
         let gil = Python::acquire_gil();
         return self
             .call1(gil.python(), "y_D", (i, d))
@@ -121,7 +121,7 @@ impl Model {
             .unwrap();
     }
 
-    pub fn sim_remove_liquidity_imbalance(&self, amounts: Vec<u64>) -> u64 {
+    pub fn sim_remove_liquidity_imbalance(&self, amounts: Vec<u128>) -> u128 {
         let gil = Python::acquire_gil();
         return self
             .call1(
@@ -134,7 +134,7 @@ impl Model {
             .unwrap();
     }
 
-    pub fn sim_calc_withdraw_one_coin(&self, token_amount: u64, i: u64) -> u64 {
+    pub fn sim_calc_withdraw_one_coin(&self, token_amount: u128, i: u128) -> u128 {
         let gil = Python::acquire_gil();
         return self
             .call1(gil.python(), "calc_withdraw_one_coin", (token_amount, i))

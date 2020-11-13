@@ -12,7 +12,7 @@ export async function newAccountWithLamports(
 ): Promise<Account> {
   const account = new Account();
 
-  let retries = 30;
+  let retries = 60;
   try {
     await connection.requestAirdrop(account.publicKey, lamports);
   } catch (e) {
@@ -20,7 +20,7 @@ export async function newAccountWithLamports(
     console.error(e);
   }
   for (;;) {
-    await sleep(500);
+    await sleep(1000);
     if (lamports === (await connection.getBalance(account.publicKey))) {
       return account;
     }

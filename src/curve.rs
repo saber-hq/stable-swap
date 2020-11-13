@@ -94,7 +94,7 @@ impl StableSwap {
         // Solve for y by approximating: y**2 + b*y = c
         let mut y_prev: U256;
         let mut y = d;
-        for _ in 0..128 {
+        for _ in 0..256 {
             y_prev = y;
             // y = (y * y + c) / (2 * y + b - d);
             let y_numerator = y.checked_pow(2.into())?.checked_add(c)?;

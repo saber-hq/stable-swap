@@ -56,8 +56,8 @@ impl StableSwap {
             let mut d = sum_x;
             for _ in 0..256 {
                 let mut d_p = d;
-                d_p = d_p * d / amount_a_times_coins;
-                d_p = d_p * d / amount_b_times_coins;
+                d_p = d_p.checked_mul(d)?.checked_div(amount_a_times_coins)?;
+                d_p = d_p.checked_mul(d)?.checked_div(amount_b_times_coins)?;
                 d_prev = d;
                 d = self.compute_next_d(d, d_p, sum_x)?;
                 // Equality with the precision of 1
@@ -133,7 +133,7 @@ impl StableSwap {
                 .checked_mul(ann)?,
         )?;
         // b = sum' - (A*n**n - 1) * D / (A * n**n)
-        let b = d.checked_div(ann)?.checked_add(x)?; // d is subtracted on line 101
+        let b = d.checked_div(ann)?.checked_add(x)?; // d is subtracted on line 145
 
         // Solve for y by approximating: y**2 + b*y = c
         let mut y_prev: U256;

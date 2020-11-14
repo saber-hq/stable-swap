@@ -359,66 +359,17 @@ impl Processor {
         let token_b = Self::unpack_token_account(&token_b_info.data.borrow())?;
         let pool_mint = Self::unpack_mint(&pool_mint_info.data.borrow())?;
 
-        // u64 -> u256
-        let swap_balance_a_u256 = U256::from(token_a.amount);
-        let swap_balance_b_u256 = U256::from(token_b.amount);
         let invariant = StableSwap::new(token_swap.amp_factor)?;
-        // Initial invariant
-        let d_0 = invariant
-            .compute_d(swap_balance_a_u256, swap_balance_b_u256)
+        let mint_amount_u256 = invariant
+            .compute_mint_amount_for_deposit(
+                U256::from(token_a_amount),
+                U256::from(token_b_amount),
+                U256::from(token_a.amount),
+                U256::from(token_b.amount),
+                U256::from(pool_mint.supply),
+                token_swap.fees,
+            )
             .ok_or(SwapError::CalculationFailure)?;
-        let old_balances = [swap_balance_a_u256, swap_balance_b_u256];
-        let mut new_balances = [
-            swap_balance_a_u256
-                .checked_add(U256::from(token_a_amount))
-                .ok_or(SwapError::CalculationFailure)?,
-            swap_balance_b_u256
-                .checked_add(U256::from(token_b_amount))
-                .ok_or(SwapError::CalculationFailure)?,
-        ];
-        // Invariant after change
-        let d_1 = invariant
-            .compute_d(new_balances[0], new_balances[1])
-            .ok_or(SwapError::CalculationFailure)?;
-
-        assert!(d_1 > d_0); // TODO: Handle error properly
-
-        // Recalculate the invariant accounting for fees
-        for i in 0..new_balances.len() {
-            let ideal_balance = d_1
-                .checked_mul(old_balances[i])
-                .ok_or(SwapError::CalculationFailure)?
-                .checked_div(d_0)
-                .ok_or(SwapError::CalculationFailure)?;
-            let difference = if ideal_balance > new_balances[i] {
-                ideal_balance
-                    .checked_sub(new_balances[i])
-                    .ok_or(SwapError::CalculationFailure)?
-            } else {
-                new_balances[i]
-                    .checked_sub(ideal_balance)
-                    .ok_or(SwapError::CalculationFailure)?
-            };
-            let fee = U256::from(token_swap.fees.trade_fee_numerator)
-                .checked_mul(difference)
-                .ok_or(SwapError::CalculationFailure)?
-                .checked_div(U256::from(token_swap.fees.trade_fee_denominator))
-                .ok_or(SwapError::CalculationFailure)?;
-            new_balances[i] = new_balances[i]
-                .checked_sub(fee)
-                .ok_or(SwapError::CalculationFailure)?;
-        }
-        let d_2 = invariant
-            .compute_d(new_balances[0], new_balances[1])
-            .ok_or(SwapError::CalculationFailure)?;
-        let mint_amount_u256_numerator = U256::from(pool_mint.supply)
-            .checked_mul(d_2.checked_sub(d_0).ok_or(SwapError::CalculationFailure)?)
-            .ok_or(SwapError::CalculationFailure)?;
-        let mint_amount_u256 = mint_amount_u256_numerator
-            .checked_div(d_0)
-            .ok_or(SwapError::CalculationFailure)?;
-
-        // u256 -> u64
         let mint_amount = U256::to_u64(mint_amount_u256)?;
         if mint_amount < min_mint_amount {
             return Err(SwapError::ExceededSlippage.into());

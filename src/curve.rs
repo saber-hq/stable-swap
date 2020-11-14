@@ -1,6 +1,6 @@
 //! Swap calculations and curve implementations
 
-use crate::{bn::U256, error::SwapError};
+use crate::{bn::U256, error::SwapError, fees::Fees};
 
 /// Number of coins
 const N_COINS: u64 = 2;
@@ -71,6 +71,49 @@ impl StableSwap {
 
             Some(d)
         }
+    }
+
+    /// Compute the amount of pool tokens to mint after a deposit
+    pub fn compute_mint_amount_for_deposit(
+        &self,
+        deposit_amount_a: U256,
+        deposit_amount_b: U256,
+        swap_amount_a: U256,
+        swap_amount_b: U256,
+        pool_token_supply: U256,
+        fees: Fees,
+    ) -> Option<U256> {
+        // Initial invariant
+        let d_0 = self.compute_d(swap_amount_a, swap_amount_b)?;
+        let old_balances = [swap_amount_a, swap_amount_b];
+        let mut new_balances = [
+            swap_amount_a.checked_add(deposit_amount_a)?,
+            swap_amount_b.checked_add(deposit_amount_b)?,
+        ];
+
+        // Invariant after change
+        let d_1 = self.compute_d(new_balances[0], new_balances[1])?;
+        assert!(d_1 > d_0); // TODO: Handle error properly
+
+        // Recalculate the invariant accounting for fees
+        for i in 0..new_balances.len() {
+            let ideal_balance = d_1.checked_mul(old_balances[i])?.checked_div(d_0)?;
+            let difference = if ideal_balance > new_balances[i] {
+                ideal_balance.checked_sub(new_balances[i])?
+            } else {
+                new_balances[i].checked_sub(ideal_balance)?
+            };
+            let fee = U256::from(fees.trade_fee_numerator)
+                .checked_mul(difference)?
+                .checked_div(U256::from(fees.trade_fee_denominator))?;
+            new_balances[i] = new_balances[i].checked_sub(fee)?;
+        }
+
+        let d_2 = self.compute_d(new_balances[0], new_balances[1])?;
+        let mint_amount_numerator = pool_token_supply.checked_mul(d_2.checked_sub(d_0)?)?;
+        let mint_amount = mint_amount_numerator.checked_div(d_0)?;
+
+        Some(mint_amount)
     }
 
     /// Compute swap amount `y` in proportion to `x`

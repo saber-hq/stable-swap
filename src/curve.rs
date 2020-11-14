@@ -31,6 +31,7 @@ impl StableSwap {
     fn compute_next_d(&self, initial_d: U256, d_p: U256, sum_x: U256) -> Option<U256> {
         let ann = self.amp_factor.checked_mul(N_COINS.into())?;
         let leverage = ann.checked_mul(sum_x)?;
+        // d = (ann * sum_x + d_p * n_coins) * d / ((ann - 1) * d + (n_coins + 1) * d_p)
         let numerator =
             initial_d.checked_mul(d_p.checked_mul(N_COINS.into())?.checked_add(leverage)?)?;
         let denominator = initial_d
@@ -122,8 +123,7 @@ impl StableSwap {
     /// y**2 + y * (sum' - (A*n**n - 1) * D / (A * n**n)) = D ** (n + 1) / (n ** (2 * n) * prod' * A)
     /// y**2 + b*y = c
     pub fn compute_y(&self, x: U256, d: U256) -> Option<U256> {
-        // TODO: Handle overflows
-        let ann: U256 = self.amp_factor.checked_mul(N_COINS.into())?; // A * n
+        let ann: U256 = self.amp_factor.checked_mul(N_COINS.into())?; // A * n ** n
 
         // sum' = prod' = x
         // c =  D ** (n + 1) / (n ** (2 * n) * prod' * A)

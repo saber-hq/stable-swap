@@ -90,30 +90,31 @@ impl StableSwap {
             swap_amount_a.checked_add(deposit_amount_a)?,
             swap_amount_b.checked_add(deposit_amount_b)?,
         ];
-
         // Invariant after change
         let d_1 = self.compute_d(new_balances[0], new_balances[1])?;
-        assert!(d_1 > d_0); // TODO: Handle error properly
+        if d_1 <= d_0 {
+            None
+        } else {
+            // Recalculate the invariant accounting for fees
+            for i in 0..new_balances.len() {
+                let ideal_balance = d_1.checked_mul(old_balances[i])?.checked_div(d_0)?;
+                let difference = if ideal_balance > new_balances[i] {
+                    ideal_balance.checked_sub(new_balances[i])?
+                } else {
+                    new_balances[i].checked_sub(ideal_balance)?
+                };
+                let fee = U256::from(fees.trade_fee_numerator)
+                    .checked_mul(difference)?
+                    .checked_div(U256::from(fees.trade_fee_denominator))?;
+                new_balances[i] = new_balances[i].checked_sub(fee)?;
+            }
 
-        // Recalculate the invariant accounting for fees
-        for i in 0..new_balances.len() {
-            let ideal_balance = d_1.checked_mul(old_balances[i])?.checked_div(d_0)?;
-            let difference = if ideal_balance > new_balances[i] {
-                ideal_balance.checked_sub(new_balances[i])?
-            } else {
-                new_balances[i].checked_sub(ideal_balance)?
-            };
-            let fee = U256::from(fees.trade_fee_numerator)
-                .checked_mul(difference)?
-                .checked_div(U256::from(fees.trade_fee_denominator))?;
-            new_balances[i] = new_balances[i].checked_sub(fee)?;
+            let d_2 = self.compute_d(new_balances[0], new_balances[1])?;
+            let mint_amount_numerator = pool_token_supply.checked_mul(d_2.checked_sub(d_0)?)?;
+            let mint_amount = mint_amount_numerator.checked_div(d_0)?;
+
+            Some(mint_amount)
         }
-
-        let d_2 = self.compute_d(new_balances[0], new_balances[1])?;
-        let mint_amount_numerator = pool_token_supply.checked_mul(d_2.checked_sub(d_0)?)?;
-        let mint_amount = mint_amount_numerator.checked_div(d_0)?;
-
-        Some(mint_amount)
     }
 
     /// Compute swap amount `y` in proportion to `x`

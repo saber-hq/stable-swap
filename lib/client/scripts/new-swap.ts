@@ -15,8 +15,8 @@ import {
 } from "../test/helpers";
 
 const AMP_FACTOR = 100;
-const INITIAL_TOKEN_A_AMOUNT = LAMPORTS_PER_SOL;
-const INITIAL_TOKEN_B_AMOUNT = LAMPORTS_PER_SOL;
+const INITIAL_TOKEN_A_AMOUNT = 1000000 * Math.pow(10, DEFAULT_TOKEN_DECIMALS);
+const INITIAL_TOKEN_B_AMOUNT = 1000000 * Math.pow(10, DEFAULT_TOKEN_DECIMALS);
 
 const run = async () => {
   const { clusterUrl, stableSwapProgramId } = getDeploymentInfo();

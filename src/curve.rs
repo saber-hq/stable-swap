@@ -84,6 +84,7 @@ impl StableSwap {
         pool_token_supply: U256,
         fees: Fees,
     ) -> Option<U256> {
+        // TODO: Add test
         // Initial invariant
         let d_0 = self.compute_d(swap_amount_a, swap_amount_b)?;
         let old_balances = [swap_amount_a, swap_amount_b];

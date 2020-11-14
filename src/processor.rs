@@ -359,7 +359,7 @@ impl Processor {
         let token_b = Self::unpack_token_account(&token_b_info.data.borrow())?;
         let pool_mint = Self::unpack_mint(&pool_mint_info.data.borrow())?;
 
-        // u64 -> u128
+        // u64 -> u256
         let swap_balance_a_u256 = U256::from(token_a.amount);
         let swap_balance_b_u256 = U256::from(token_b.amount);
         let invariant = StableSwap::new(token_swap.amp_factor)?;
@@ -393,10 +393,10 @@ impl Processor {
         let d_2 = invariant
             .compute_d(new_balances[0], new_balances[1])
             .ok_or(SwapError::CalculationFailure)?;
-        let mint_amount_u128 = U256::from(pool_mint.supply) * (d_2 - d_0) / d_0;
+        let mint_amount_u256 = U256::from(pool_mint.supply) * (d_2 - d_0) / d_0;
 
-        // u128 -> u64
-        let mint_amount = U256::to_u64(mint_amount_u128)?;
+        // u256 -> u64
+        let mint_amount = U256::to_u64(mint_amount_u256)?;
         if mint_amount < min_mint_amount {
             return Err(SwapError::ExceededSlippage.into());
         }
@@ -471,7 +471,7 @@ impl Processor {
         let token_a = Self::unpack_token_account(&token_a_info.data.borrow())?;
         let token_b = Self::unpack_token_account(&token_b_info.data.borrow())?;
 
-        let pool_token_amount_u128 = U256::from(pool_token_amount);
+        let pool_token_amount_u256 = U256::from(pool_token_amount);
         let converter = PoolTokenConverter::new(
             U256::from(pool_mint.supply),
             U256::from(token_a.amount),
@@ -479,7 +479,7 @@ impl Processor {
         );
         let a_amount = U256::to_u64(
             converter
-                .token_a_rate(pool_token_amount_u128)
+                .token_a_rate(pool_token_amount_u256)
                 .ok_or(SwapError::CalculationFailure)?,
         )?;
         if a_amount < minimum_token_a_amount {
@@ -487,7 +487,7 @@ impl Processor {
         }
         let b_amount = U256::to_u64(
             converter
-                .token_b_rate(pool_token_amount_u128)
+                .token_b_rate(pool_token_amount_u256)
                 .ok_or(SwapError::CalculationFailure)?,
         )?;
         if b_amount < minimum_token_b_amount {

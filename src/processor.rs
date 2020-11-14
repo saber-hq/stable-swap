@@ -3,10 +3,10 @@
 #![cfg(feature = "program")]
 
 use crate::{
+    bn::U256,
     curve::{PoolTokenConverter, StableSwap},
     error::SwapError,
     fees::Fees,
-    helpers::{to_u128, to_u64},
     instruction::SwapInstruction,
     state::SwapInfo,
 };
@@ -217,7 +217,9 @@ impl Processor {
 
         // LP tokens for bootstrapper
         let invariant = StableSwap::new(amp_factor)?;
-        let mint_amount = invariant.compute_d(to_u128(token_a.amount)?, to_u128(token_b.amount)?);
+        let mint_amount = invariant
+            .compute_d(U256::from(token_a.amount), U256::from(token_b.amount))
+            .ok_or(SwapError::CalculationFailure)?;
         Self::token_mint_to(
             swap_info.key,
             token_program_info.clone(),
@@ -225,7 +227,7 @@ impl Processor {
             destination_info.clone(),
             authority_info.clone(),
             nonce,
-            to_u64(mint_amount)?,
+            U256::to_u64(mint_amount)?,
         )?;
 
         let obj = SwapInfo {
@@ -287,14 +289,14 @@ impl Processor {
         let invariant = StableSwap::new(token_swap.amp_factor)?;
         let result = invariant
             .swap_to(
-                to_u128(amount_in)?,
-                to_u128(swap_source_account.amount)?,
-                to_u128(swap_destination_account.amount)?,
-                to_u128(token_swap.fees.trade_fee_numerator)?,
-                to_u128(token_swap.fees.trade_fee_denominator)?,
+                U256::from(amount_in),
+                U256::from(swap_source_account.amount),
+                U256::from(swap_destination_account.amount),
+                U256::from(token_swap.fees.trade_fee_numerator),
+                U256::from(token_swap.fees.trade_fee_denominator),
             )
             .ok_or(SwapError::CalculationFailure)?;
-        let amount_swapped = to_u64(result.amount_swapped)?;
+        let amount_swapped = U256::to_u64(result.amount_swapped)?;
         if amount_swapped < minimum_amount_out {
             return Err(SwapError::ExceededSlippage.into());
         }
@@ -358,18 +360,22 @@ impl Processor {
         let pool_mint = Self::unpack_mint(&pool_mint_info.data.borrow())?;
 
         // u64 -> u128
-        let swap_balance_a_u128 = to_u128(token_a.amount)?;
-        let swap_balance_b_u128 = to_u128(token_b.amount)?;
+        let swap_balance_a_u256 = U256::from(token_a.amount);
+        let swap_balance_b_u256 = U256::from(token_b.amount);
         let invariant = StableSwap::new(token_swap.amp_factor)?;
         // Initial invariant
-        let d_0 = invariant.compute_d(swap_balance_a_u128, swap_balance_b_u128);
-        let old_balances = [swap_balance_a_u128, swap_balance_b_u128];
+        let d_0 = invariant
+            .compute_d(swap_balance_a_u256, swap_balance_b_u256)
+            .ok_or(SwapError::CalculationFailure)?;
+        let old_balances = [swap_balance_a_u256, swap_balance_b_u256];
         let mut new_balances = [
-            swap_balance_a_u128 + to_u128(token_a_amount)?,
-            swap_balance_b_u128 + to_u128(token_b_amount)?,
+            swap_balance_a_u256 + U256::from(token_a_amount),
+            swap_balance_b_u256 + U256::from(token_b_amount),
         ];
         // Invariant after change
-        let d_1 = invariant.compute_d(new_balances[0], new_balances[1]);
+        let d_1 = invariant
+            .compute_d(new_balances[0], new_balances[1])
+            .ok_or(SwapError::CalculationFailure)?;
         assert!(d_1 > d_0); // TODO: Handle error properly
 
         // Recalculate the invariant accounting for fees
@@ -380,15 +386,17 @@ impl Processor {
             } else {
                 new_balances[i] - ideal_balance
             };
-            let fee = to_u128(token_swap.fees.trade_fee_numerator)? * difference
-                / to_u128(token_swap.fees.trade_fee_denominator)?;
+            let fee = U256::from(token_swap.fees.trade_fee_numerator) * difference
+                / U256::from(token_swap.fees.trade_fee_denominator);
             new_balances[i] -= fee;
         }
-        let d_2 = invariant.compute_d(new_balances[0], new_balances[1]);
-        let mint_amount_u128 = to_u128(pool_mint.supply)? * (d_2 - d_0) / d_0;
+        let d_2 = invariant
+            .compute_d(new_balances[0], new_balances[1])
+            .ok_or(SwapError::CalculationFailure)?;
+        let mint_amount_u128 = U256::from(pool_mint.supply) * (d_2 - d_0) / d_0;
 
         // u128 -> u64
-        let mint_amount = to_u64(mint_amount_u128)?;
+        let mint_amount = U256::to_u64(mint_amount_u128)?;
         if mint_amount < min_mint_amount {
             return Err(SwapError::ExceededSlippage.into());
         }
@@ -463,13 +471,13 @@ impl Processor {
         let token_a = Self::unpack_token_account(&token_a_info.data.borrow())?;
         let token_b = Self::unpack_token_account(&token_b_info.data.borrow())?;
 
-        let pool_token_amount_u128 = to_u128(pool_token_amount)?;
+        let pool_token_amount_u128 = U256::from(pool_token_amount);
         let converter = PoolTokenConverter::new(
-            to_u128(pool_mint.supply)?,
-            to_u128(token_a.amount)?,
-            to_u128(token_b.amount)?,
+            U256::from(pool_mint.supply),
+            U256::from(token_a.amount),
+            U256::from(token_b.amount),
         );
-        let a_amount = to_u64(
+        let a_amount = U256::to_u64(
             converter
                 .token_a_rate(pool_token_amount_u128)
                 .ok_or(SwapError::CalculationFailure)?,
@@ -477,7 +485,7 @@ impl Processor {
         if a_amount < minimum_token_a_amount {
             return Err(SwapError::ExceededSlippage.into());
         }
-        let b_amount = to_u64(
+        let b_amount = U256::to_u64(
             converter
                 .token_b_rate(pool_token_amount_u128)
                 .ok_or(SwapError::CalculationFailure)?,

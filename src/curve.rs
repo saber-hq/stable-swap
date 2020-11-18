@@ -1,6 +1,6 @@
-//! Swap calculations and curve implementations
+//! Swap calculations and curve invariant implementation
 
-use crate::{bn::U256, error::SwapError, fees::Fees};
+use crate::{bn::U256, fees::Fees};
 
 /// Number of coins
 const N_COINS: u64 = 2;
@@ -23,9 +23,10 @@ pub struct StableSwap {
 
 impl StableSwap {
     /// New StableSwap calculator
-    pub fn new(amp_factor_u64: u64) -> Result<StableSwap, SwapError> {
-        let amp_factor = U256::from(amp_factor_u64);
-        Ok(Self { amp_factor })
+    pub fn new(amp_factor_u64: u64) -> Self {
+        Self {
+            amp_factor: U256::from(amp_factor_u64),
+        }
     }
 
     fn compute_next_d(&self, d_init: U256, d_prod: U256, sum_x: U256) -> Option<U256> {
@@ -134,7 +135,7 @@ impl StableSwap {
                 .checked_mul(ann)?,
         )?;
         // b = sum' - (A*n**n - 1) * D / (A * n**n)
-        let b = d.checked_div(ann)?.checked_add(x)?; // d is subtracted on line 145
+        let b = d.checked_div(ann)?.checked_add(x)?; // d is subtracted on line 147
 
         // Solve for y by approximating: y**2 + b*y = c
         let mut y_prev: U256;

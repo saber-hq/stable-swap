@@ -216,7 +216,7 @@ impl Processor {
         }
 
         // LP tokens for bootstrapper
-        let invariant = StableSwap::new(amp_factor)?;
+        let invariant = StableSwap::new(amp_factor);
         let mint_amount = invariant
             .compute_d(U256::from(token_a.amount), U256::from(token_b.amount))
             .ok_or(SwapError::CalculationFailure)?;
@@ -286,7 +286,7 @@ impl Processor {
         let swap_destination_account =
             Self::unpack_token_account(&swap_destination_info.data.borrow())?;
 
-        let invariant = StableSwap::new(token_swap.amp_factor)?;
+        let invariant = StableSwap::new(token_swap.amp_factor);
         let result = invariant
             .swap_to(
                 U256::from(amount_in),
@@ -359,7 +359,7 @@ impl Processor {
         let token_b = Self::unpack_token_account(&token_b_info.data.borrow())?;
         let pool_mint = Self::unpack_mint(&pool_mint_info.data.borrow())?;
 
-        let invariant = StableSwap::new(token_swap.amp_factor)?;
+        let invariant = StableSwap::new(token_swap.amp_factor);
         let mint_amount_u256 = invariant
             .compute_mint_amount_for_deposit(
                 U256::from(token_a_amount),
@@ -2935,7 +2935,7 @@ mod tests {
                 )
                 .unwrap();
 
-            let invariant = StableSwap::new(amp_factor).unwrap();
+            let invariant = StableSwap::new(amp_factor);
             let results = invariant
                 .swap_to(
                     U256::from(a_to_b_amount),
@@ -2991,7 +2991,7 @@ mod tests {
                 )
                 .unwrap();
 
-            let invariant = StableSwap::new(amp_factor).unwrap();
+            let invariant = StableSwap::new(amp_factor);
             let results = invariant
                 .swap_to(
                     U256::from(a_to_b_amount),

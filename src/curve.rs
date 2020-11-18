@@ -164,14 +164,13 @@ impl StableSwap {
     /// 2. Solve Eqn against y_i for D - _token_amount
     pub fn compute_withdraw_one(
         &self,
-        pool_token_amount: u64,
-        pool_token_supply: u64,
-        swap_base_amount: u64,  // Same denomination of token to be withdrawn
-        swap_quote_amount: u64, // Counter denomination of token to be withdrawn
-        fee_numerator: u64,
-        fee_denominator: u64,
-    ) -> (u64, u64) {
-        // XXX: Curve uses u256
+        pool_token_amount: U256,
+        pool_token_supply: U256,
+        swap_base_amount: U256,  // Same denomination of token to be withdrawn
+        swap_quote_amount: U256, // Counter denomination of token to be withdrawn
+        fee_numerator: U256,
+        fee_denominator: U256,
+    ) -> (U256, U256) {
         // TODO: Handle overflows
         let n_coins = 2;
         let d_0 = self.compute_d(swap_base_amount, swap_quote_amount);

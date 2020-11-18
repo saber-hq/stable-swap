@@ -172,21 +172,26 @@ impl StableSwap {
         fee_denominator: U256,
     ) -> Option<(U256, U256)> {
         let d_0 = self.compute_d(swap_base_amount, swap_quote_amount)?;
-        let d_1 = d_0.checked_sub(pool_token_amount.checked_mul(d_0.checked_div(pool_token_supply)?)?)?;
+        let d_1 =
+            d_0.checked_sub(pool_token_amount.checked_mul(d_0.checked_div(pool_token_supply)?)?)?;
         let new_y = self.compute_y(swap_quote_amount, d_1)?;
-       
+
         // Adjust fee so that it is the same as swap trade fee
         // fee = fee_numerator * n_coins / (4 * (n_coins - 1));     // XXX: Why divide by 4?
         let fee = fee_numerator.checked_mul((N_COINS / (4 * (N_COINS - 1))).into())?;
 
         // expected_base_amount = swap_base_amount * d_1 / d_0 - new_y;
-        let expected_base_amount = swap_base_amount.checked_mul(d_1.checked_div(d_0.checked_sub(new_y)?)?)?;
+        let expected_base_amount =
+            swap_base_amount.checked_mul(d_1.checked_div(d_0.checked_sub(new_y)?)?)?;
         // expected_quote_amount = swap_quote_amount - swap_quote_amount * d_1 / d_0;
-        let expected_quote_amount = swap_quote_amount.checked_sub(swap_quote_amount.checked_mul(d_1.checked_div(d_0)?)?)?;
+        let expected_quote_amount =
+            swap_quote_amount.checked_sub(swap_quote_amount.checked_mul(d_1.checked_div(d_0)?)?)?;
         // new_base_amount = swap_base_amount - expected_base_amount * fee / fee_denominator;
-        let new_base_amount = swap_base_amount.checked_sub(expected_base_amount.checked_mul(fee.checked_div(fee_denominator)?)?)?;
+        let new_base_amount = swap_base_amount
+            .checked_sub(expected_base_amount.checked_mul(fee.checked_div(fee_denominator)?)?)?;
         // new_quote_amount = swap_quote_amount - expected_quote_amount * fee / fee_denominator;
-        let new_quote_amount = swap_quote_amount.checked_sub(expected_quote_amount.checked_mul(fee.checked_div(fee_denominator)?)?)?;
+        let new_quote_amount = swap_quote_amount
+            .checked_sub(expected_quote_amount.checked_mul(fee.checked_div(fee_denominator)?)?)?;
 
         let dy = new_base_amount.checked_sub(self.compute_y(new_quote_amount, d_1)?)?;
         let dy_0 = swap_base_amount.checked_sub(new_y)?;
@@ -461,15 +466,19 @@ mod tests {
         swap_base_amount: u64,
         swap_quote_amount: u64,
     ) {
-        let swap = StableSwap { amp_factor: amp_factor.into() };
-        let result = swap.compute_withdraw_one(
-            pool_token_amount.into(),
-            pool_token_supply.into(),
-            swap_base_amount.into(),
-            swap_quote_amount.into(),
-            MODEL_FEE_NUMERATOR.into(),
-            MODEL_FEE_DENOMINATOR.into(),
-        ).unwrap();
+        let swap = StableSwap {
+            amp_factor: amp_factor.into(),
+        };
+        let result = swap
+            .compute_withdraw_one(
+                pool_token_amount.into(),
+                pool_token_supply.into(),
+                swap_base_amount.into(),
+                swap_quote_amount.into(),
+                MODEL_FEE_NUMERATOR.into(),
+                MODEL_FEE_DENOMINATOR.into(),
+            )
+            .unwrap();
         let model = Model::new_with_pool_tokens(
             amp_factor.into(),
             vec![swap_base_amount.into(), swap_quote_amount.into()],
@@ -478,7 +487,9 @@ mod tests {
         );
         assert_eq!(
             result.0,
-            model.sim_calc_withdraw_one_coin(pool_token_amount.into(), 0).into()
+            model
+                .sim_calc_withdraw_one_coin(pool_token_amount.into(), 0)
+                .into()
         );
     }
 

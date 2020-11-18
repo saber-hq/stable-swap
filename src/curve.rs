@@ -28,15 +28,15 @@ impl StableSwap {
         Ok(Self { amp_factor })
     }
 
-    fn compute_next_d(&self, initial_d: U256, d_p: U256, sum_x: U256) -> Option<U256> {
+    fn compute_next_d(&self, d_init: U256, d_prod: U256, sum_x: U256) -> Option<U256> {
         let ann = self.amp_factor.checked_mul(N_COINS.into())?;
         let leverage = ann.checked_mul(sum_x)?;
-        // d = (ann * sum_x + d_p * n_coins) * d / ((ann - 1) * d + (n_coins + 1) * d_p)
+        // d = (ann * sum_x + d_prod * n_coins) * d / ((ann - 1) * d + (n_coins + 1) * d_prod)
         let numerator =
-            initial_d.checked_mul(d_p.checked_mul(N_COINS.into())?.checked_add(leverage)?)?;
-        let denominator = initial_d
+            d_init.checked_mul(d_prod.checked_mul(N_COINS.into())?.checked_add(leverage)?)?;
+        let denominator = d_init
             .checked_mul(ann.checked_sub(1.into())?)?
-            .checked_add(d_p.checked_mul((N_COINS + 1).into())?)?;
+            .checked_add(d_prod.checked_mul((N_COINS + 1).into())?)?;
         numerator.checked_div(denominator)
     }
 
@@ -55,13 +55,13 @@ impl StableSwap {
             let mut d_prev: U256;
             let mut d = sum_x;
             for _ in 0..256 {
-                let mut d_p = d;
-                d_p = d_p.checked_mul(d)?.checked_div(amount_a_times_coins)?;
-                d_p = d_p.checked_mul(d)?.checked_div(amount_b_times_coins)?;
+                let mut d_prod = d;
+                d_prod = d_prod.checked_mul(d)?.checked_div(amount_a_times_coins)?;
+                d_prod = d_prod.checked_mul(d)?.checked_div(amount_b_times_coins)?;
                 d_prev = d;
-                d = self.compute_next_d(d, d_p, sum_x)?;
+                d = self.compute_next_d(d, d_prod, sum_x)?;
                 // Equality with the precision of 1
-                if d > d_p {
+                if d > d_prod {
                     if d.checked_sub(d_prev)? <= 1.into() {
                         break;
                     }
@@ -128,7 +128,7 @@ impl StableSwap {
 
         // sum' = prod' = x
         // c =  D ** (n + 1) / (n ** (2 * n) * prod' * A)
-        let c = d.checked_pow(3.into())?.checked_div(
+        let c = d.checked_pow((N_COINS + 1).into())?.checked_div(
             x.checked_mul(N_COINS.into())?
                 .checked_mul(N_COINS.into())?
                 .checked_mul(ann)?,

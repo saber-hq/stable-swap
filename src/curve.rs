@@ -204,7 +204,9 @@ impl StableSwap {
                 .checked_mul(fee)?
                 .checked_div(fee_denominator)?,
         )?;
-        let dy = new_base_amount.checked_sub(self.compute_y(new_quote_amount, d_1)?)?;
+        let dy = new_base_amount
+            .checked_sub(self.compute_y(new_quote_amount, d_1)?)?
+            .checked_sub(1.into())?; // Withdraw less to account for rounding errors
         let dy_0 = swap_base_amount.checked_sub(new_y)?;
 
         Some((dy, dy_0 - dy))

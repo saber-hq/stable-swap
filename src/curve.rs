@@ -62,7 +62,7 @@ impl StableSwap {
                 d_prev = d;
                 d = self.compute_next_d(d, d_prod, sum_x)?;
                 // Equality with the precision of 1
-                if d > d_prod {
+                if d > d_prev {
                     if d.checked_sub(d_prev)? <= 1.into() {
                         break;
                     }
@@ -350,6 +350,18 @@ mod tests {
         check_y(&model_a1000, 1, d);
         check_y(&model_a1000, 1000, d);
         check_y(&model_a1000, amount_a.into(), d);
+
+        // Special cases
+        let amount_a: u64 = 4121182445371274471;
+        let amount_b: u64 = 1548320254244695773;
+        let model = Model::new(79, vec![amount_a.into(), amount_b.into()], N_COINS.into());
+        let d = check_d(&model, amount_a.into(), amount_b.into());
+        check_y(&model, amount_a.into(), d);
+        let amount_a: u64 = 363098410348824848;
+        let amount_b: u64 = 12848414054630911272;
+        let model = Model::new(401, vec![amount_a.into(), amount_b.into()], N_COINS.into());
+        let d = check_d(&model, amount_a.into(), amount_b.into());
+        check_y(&model, amount_a.into(), d);
     }
 
     #[test]

@@ -3,14 +3,14 @@ use pyo3::types::PyTuple;
 use std::fs::File;
 use std::io::prelude::*;
 
-const FILE_NAME: &str = "simulation.py";
-const FILE_PATH: &str = "lib/sim/simulation.py";
-const MODULE_NAME: &str = "simulation";
+pub const MODEL_FEE_NUMERATOR: u64 = 10000000;
+pub const MODEL_FEE_DENOMINATOR: u64 = 10000000000;
 
 const DEFAULT_POOL_TOKENS: u128 = 0;
 const DEFAULT_TARGET_PRICE: u128 = 1000000000000000000;
-pub const MODEL_FEE_NUMERATOR: u128 = 1;
-pub const MODEL_FEE_DENOMINATOR: u128 = 1000;
+const FILE_NAME: &str = "simulation.py";
+const FILE_PATH: &str = "lib/sim/simulation.py";
+const MODULE_NAME: &str = "simulation";
 
 pub struct Model {
     py_src: String,
@@ -134,7 +134,7 @@ impl Model {
             .unwrap();
     }
 
-    pub fn sim_calc_withdraw_one_coin(&self, token_amount: u128, i: u128) -> u128 {
+    pub fn sim_calc_withdraw_one_coin(&self, token_amount: u128, i: u128) -> (u128, u128) {
         let gil = Python::acquire_gil();
         return self
             .call1(gil.python(), "calc_withdraw_one_coin", (token_amount, i))

@@ -369,27 +369,29 @@ mod tests {
 
     #[test]
     fn test_curve_math_with_random_inputs() {
-        let mut rng = rand::thread_rng();
+        for _ in 0..100 {
+            let mut rng = rand::thread_rng();
 
-        let amp_factor: u64 = rng.gen_range(1, 10_000);
-        let amount_a: u64 = rng.gen_range(1, u64::MAX);
-        let amount_b: u64 = rng.gen_range(1, u64::MAX);
-        println!("testing curve_math_with_random_inputs:");
-        println!(
-            "amount_a: {}, amount_b: {}, amp_factor: {}",
-            amount_a, amount_b, amp_factor
-        );
+            let amp_factor: u64 = rng.gen_range(1, 10_000);
+            let amount_a: u64 = rng.gen_range(1, u64::MAX);
+            let amount_b: u64 = rng.gen_range(1, u64::MAX);
+            println!("testing curve_math_with_random_inputs:");
+            println!(
+                "amount_a: {}, amount_b: {}, amp_factor: {}",
+                amount_a, amount_b, amp_factor
+            );
 
-        let model = Model::new(
-            amp_factor.into(),
-            vec![amount_a.into(), amount_b.into()],
-            N_COINS.into(),
-        );
-        let d = check_d(&model, amount_a.into(), amount_b.into());
-        let amount_x: u64 = rng.gen_range(0, amount_a);
+            let model = Model::new(
+                amp_factor.into(),
+                vec![amount_a.into(), amount_b.into()],
+                N_COINS.into(),
+            );
+            let d = check_d(&model, amount_a.into(), amount_b.into());
+            let amount_x: u64 = rng.gen_range(0, amount_a);
 
-        println!("amount_x: {}", amount_x);
-        check_y(&model, amount_x, d);
+            println!("amount_x: {}", amount_x);
+            check_y(&model, amount_x, d);
+        }
     }
 
     fn check_swap(
@@ -470,24 +472,26 @@ mod tests {
 
     #[test]
     fn test_swap_calculation_with_random_inputs() {
-        let mut rng = rand::thread_rng();
+        for _ in 0..100 {
+            let mut rng = rand::thread_rng();
 
-        let amp_factor: u64 = rng.gen_range(1, 10_000);
-        let source_amount: u64 = rng.gen_range(1, u64::MAX);
-        let swap_source_amount: u64 = rng.gen_range(1, u64::MAX);
-        let swap_destination_amount: u64 = rng.gen_range(1, u64::MAX);
-        println!("testing swap_calculation_with_random_inputs:");
-        println!(
-            "amp_factor: {}, source_amount: {}, swap_source_amount: {}, swap_destination_amount: {}",
-            amp_factor, source_amount, swap_source_amount, swap_destination_amount
-        );
+            let amp_factor: u64 = rng.gen_range(1, 10_000);
+            let source_amount: u64 = rng.gen_range(1, u64::MAX);
+            let swap_source_amount: u64 = rng.gen_range(1, u64::MAX);
+            let swap_destination_amount: u64 = rng.gen_range(1, u64::MAX);
+            println!("testing swap_calculation_with_random_inputs:");
+            println!(
+                "amp_factor: {}, source_amount: {}, swap_source_amount: {}, swap_destination_amount: {}",
+                amp_factor, source_amount, swap_source_amount, swap_destination_amount
+            );
 
-        check_swap(
-            amp_factor,
-            source_amount,
-            swap_source_amount,
-            swap_destination_amount,
-        );
+            check_swap(
+                amp_factor,
+                source_amount,
+                swap_source_amount,
+                swap_destination_amount,
+            );
+        }
     }
 
     fn check_withdraw_one(
@@ -578,23 +582,27 @@ mod tests {
 
     #[test]
     fn test_compute_withdraw_one_with_random_inputs() {
-        let mut rng = rand::thread_rng();
-        let amp_factor: u64 = rng.gen_range(1, 10_000);
-        let swap_base_amount: u64 = rng.gen_range(1, u64::MAX / 2);
-        let swap_quote_amount: u64 = rng.gen_range(1, u64::MAX / 2);
-        let pool_token_amount: u64 = rng.gen_range(1, u64::MAX / 10);
-        let pool_token_supply = swap_base_amount + swap_quote_amount;
-        println!("testing compute_withdraw_one_with_random_inputs:");
-        println!(
-            "amp_factor: {}, swap_base_amount: {}, swap_quote_amount: {}, pool_token_amount: {}, pool_token_supply: {}",
-            amp_factor, swap_base_amount, swap_quote_amount, pool_token_amount, pool_token_supply
-        );
-        check_withdraw_one(
-            amp_factor,
-            pool_token_amount,
-            pool_token_supply,
-            swap_base_amount,
-            swap_quote_amount,
-        );
+        for _ in 0..100 {
+            let mut rng = rand::thread_rng();
+
+            let amp_factor: u64 = rng.gen_range(1, 10_000);
+            let swap_base_amount: u64 = rng.gen_range(1, u64::MAX / 2);
+            let swap_quote_amount: u64 = rng.gen_range(1, u64::MAX / 2);
+            let pool_token_supply = swap_base_amount + swap_quote_amount;
+            let pool_token_amount: u64 = rng.gen_range(1, pool_token_supply);
+            println!("testing compute_withdraw_one_with_random_inputs:");
+            println!(
+                "amp_factor: {}, swap_base_amount: {}, swap_quote_amount: {}, pool_token_amount: {}, pool_token_supply: {}",
+                amp_factor, swap_base_amount, swap_quote_amount, pool_token_amount, pool_token_supply
+            );
+
+            check_withdraw_one(
+                amp_factor,
+                pool_token_amount,
+                pool_token_supply,
+                swap_base_amount,
+                swap_quote_amount,
+            );
+        }
     }
 }

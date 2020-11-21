@@ -134,7 +134,7 @@ impl Model {
             .unwrap();
     }
 
-    pub fn sim_calc_withdraw_one_coin(&self, token_amount: u128, i: u128) -> u128 {
+    pub fn sim_calc_withdraw_one_coin(&self, token_amount: u128, i: u128) -> (u128, u128) {
         let gil = Python::acquire_gil();
         return self
             .call1(gil.python(), "calc_withdraw_one_coin", (token_amount, i))

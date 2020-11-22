@@ -7,7 +7,9 @@ use crate::{
     curve::{PoolTokenConverter, StableSwap},
     error::SwapError,
     fees::Fees,
-    instruction::{DepositData, InitializeData, SwapData, SwapInstruction, WithdrawData},
+    instruction::{
+        DepositData, InitializeData, SwapData, SwapInstruction, WithdrawData, WithdrawOneData,
+    },
     state::SwapInfo,
 };
 use num_traits::FromPrimitive;
@@ -498,6 +500,16 @@ impl Processor {
         Ok(())
     }
 
+    /// Processes an [WithdrawOne](enum.Instruction.html).
+    pub fn process_withdraw_one(
+        program_id: &Pubkey,
+        pool_token_amount: u64,
+        minimum_token_amount: u64,
+        accounts: &[AccountInfo],
+    ) -> ProgramResult {
+        unimplemented!("process_withdraw_one not implemented");
+    }
+
     /// Processes an [Instruction](enum.Instruction.html).
     pub fn process(program_id: &Pubkey, accounts: &[AccountInfo], input: &[u8]) -> ProgramResult {
         let instruction = SwapInstruction::unpack(input)?;
@@ -542,6 +554,18 @@ impl Processor {
                     pool_token_amount,
                     minimum_token_a_amount,
                     minimum_token_b_amount,
+                    accounts,
+                )
+            }
+            SwapInstruction::WithdrawOne(WithdrawOneData {
+                pool_token_amount,
+                minimum_token_amount,
+            }) => {
+                info!("Instruction: WithdrawOne");
+                Self::process_withdraw_one(
+                    program_id,
+                    pool_token_amount,
+                    minimum_token_amount,
                     accounts,
                 )
             }

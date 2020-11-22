@@ -7,7 +7,7 @@ use crate::{
     curve::{PoolTokenConverter, StableSwap},
     error::SwapError,
     fees::Fees,
-    instruction::SwapInstruction,
+    instruction::{DepositData, InitializeData, SwapData, SwapInstruction, WithdrawData},
     state::SwapInfo,
 };
 use num_traits::FromPrimitive;
@@ -502,26 +502,26 @@ impl Processor {
     pub fn process(program_id: &Pubkey, accounts: &[AccountInfo], input: &[u8]) -> ProgramResult {
         let instruction = SwapInstruction::unpack(input)?;
         match instruction {
-            SwapInstruction::Initialize {
+            SwapInstruction::Initialize(InitializeData {
                 nonce,
                 amp_factor,
                 fees,
-            } => {
+            }) => {
                 info!("Instruction: Init");
                 Self::process_initialize(program_id, nonce, amp_factor, fees, accounts)
             }
-            SwapInstruction::Swap {
+            SwapInstruction::Swap(SwapData {
                 amount_in,
                 minimum_amount_out,
-            } => {
+            }) => {
                 info!("Instruction: Swap");
                 Self::process_swap(program_id, amount_in, minimum_amount_out, accounts)
             }
-            SwapInstruction::Deposit {
+            SwapInstruction::Deposit(DepositData {
                 token_a_amount,
                 token_b_amount,
                 min_mint_amount,
-            } => {
+            }) => {
                 info!("Instruction: Deposit");
                 Self::process_deposit(
                     program_id,
@@ -531,11 +531,11 @@ impl Processor {
                     accounts,
                 )
             }
-            SwapInstruction::Withdraw {
+            SwapInstruction::Withdraw(WithdrawData {
                 pool_token_amount,
                 minimum_token_a_amount,
                 minimum_token_b_amount,
-            } => {
+            }) => {
                 info!("Instruction: Withdraw");
                 Self::process_withdraw(
                     program_id,

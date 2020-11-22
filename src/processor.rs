@@ -525,10 +525,13 @@ impl Processor {
         if *authority_info.key != Self::authority_id(program_id, swap_info.key, token_swap.nonce)? {
             return Err(SwapError::InvalidProgramAddress.into());
         }
-        if *base_token_info.key != token_swap.token_b && *base_token_info != token_swap.token_a {
+        if *base_token_info.key != token_swap.token_b && *base_token_info.key != token_swap.token_a
+        {
             return Err(SwapError::IncorrectSwapAccount.into());
         }
-        if *quote_token_info.key != token_swap.token_b && *quote_token_info != token_swap.token_a {
+        if *quote_token_info.key != token_swap.token_b
+            && *quote_token_info.key != token_swap.token_a
+        {
             return Err(SwapError::IncorrectSwapAccount.into());
         }
         if *pool_mint_info.key != token_swap.pool_mint {
@@ -543,18 +546,18 @@ impl Processor {
         let quote_token = Self::unpack_token_account(&quote_token_info.data.borrow())?;
 
         let invariant = StableSwap::new(token_swap.amp_factor);
-        let token_amount = U256.to_u64(
-            invariant
-                .compute_withdraw_one(
-                    U256::from(pool_token_amount),
-                    U256::from(pool_mint.supply),
-                    U256::from(base_token.amount),
-                    U256::from(quote_token.amount),
-                    U256::from(token_swap.fees.trade_fee_numerator),
-                    U256::from(token_swap.fees.trade_fee_denominator),
-                )
-                .ok_or(SwapError::CalculationFailure),
-        )?;
+        let (dy, _dy_fee) = invariant
+            .compute_withdraw_one(
+                U256::from(pool_token_amount),
+                U256::from(pool_mint.supply),
+                U256::from(base_token.amount),
+                U256::from(quote_token.amount),
+                U256::from(token_swap.fees.trade_fee_numerator),
+                U256::from(token_swap.fees.trade_fee_denominator),
+            )
+            .ok_or(SwapError::CalculationFailure)?;
+
+        let token_amount = U256::to_u64(dy)?;
         if token_amount < minimum_token_amount {
             return Err(SwapError::ExceededSlippage.into());
         }

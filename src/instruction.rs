@@ -60,6 +60,17 @@ pub struct WithdrawData {
     pub minimum_token_b_amount: u64,
 }
 
+/// Withdraw instruction data
+#[repr(C)]
+#[derive(Clone, Debug, PartialEq)]
+pub struct WithdrawOneData {
+    /// Amount of pool tokens to burn. User receives an output of token a
+    /// or b based on the percentage of the pool tokens that are returned.
+    pub pool_token_amount: u64,
+    /// Minimum amount of token A or B to receive, prevents excessive slippage
+    pub minimum_token_amount: u64,
+}
+
 /// Instructions supported by the SwapInfo program.
 #[repr(C)]
 #[derive(Debug, PartialEq)]
@@ -98,7 +109,7 @@ pub enum SwapInstruction {
     ///   8. '[]` Token program id
     Deposit(DepositData),
 
-    ///   Withdraw the token from the pool at the current ratio.
+    ///   Withdraw tokens from the pool at the current ratio.
     ///
     ///   0. `[]` Token-swap
     ///   1. `[]` $authority
@@ -110,6 +121,17 @@ pub enum SwapInstruction {
     ///   7. `[writable]` token_b user Account to credit.
     ///   8. '[]` Token program id
     Withdraw(WithdrawData),
+
+    ///   Withdraw one token from the pool at the current ratio.
+    ///
+    ///   0. `[]` Token-swap
+    ///   1. `[]` $authority
+    ///   2. `[writable]` Pool mint account, $authority is the owner
+    ///   3. `[writable]` SOURCE Pool account, amount is transferable by $authority.
+    ///   5. `[writable]` token Swap Account to withdraw FROM.
+    ///   7. `[writable]` token user Account to credit.
+    ///   8. '[]` Token program id
+    WithdrawOne(WithdrawOneData),
 }
 
 impl SwapInstruction {
@@ -153,6 +175,14 @@ impl SwapInstruction {
                     pool_token_amount,
                     minimum_token_a_amount,
                     minimum_token_b_amount,
+                })
+            }
+            4 => {
+                let (pool_token_amount, rest) = Self::unpack_u64(rest)?;
+                let (minimum_token_amount, _rest) = Self::unpack_u64(rest)?;
+                Self::WithdrawOne(WithdrawOneData {
+                    pool_token_amount,
+                    minimum_token_amount,
                 })
             }
             _ => return Err(SwapError::InvalidInstruction.into()),
@@ -216,6 +246,14 @@ impl SwapInstruction {
                 buf.extend_from_slice(&pool_token_amount.to_le_bytes());
                 buf.extend_from_slice(&minimum_token_a_amount.to_le_bytes());
                 buf.extend_from_slice(&minimum_token_b_amount.to_le_bytes());
+            }
+            Self::WithdrawOne(WithdrawOneData {
+                pool_token_amount,
+                minimum_token_amount,
+            }) => {
+                buf.push(4);
+                buf.extend_from_slice(&pool_token_amount.to_le_bytes());
+                buf.extend_from_slice(&minimum_token_amount.to_le_bytes());
             }
         }
         buf
@@ -384,6 +422,42 @@ pub fn swap(
     })
 }
 
+/// Creates a 'withdraw_one' instruction.
+pub fn withdraw_one(
+    program_id: &Pubkey,
+    token_program_id: &Pubkey,
+    swap_pubkey: &Pubkey,
+    authority_pubkey: &Pubkey,
+    pool_mint_pubkey: &Pubkey,
+    source_pubkey: &Pubkey,
+    swap_token_pubkey: &Pubkey,
+    destination_token_pubkey: &Pubkey,
+    pool_token_amount: u64,
+    minimum_token_amount: u64,
+) -> Result<Instruction, ProgramError> {
+    let data = SwapInstruction::WithdrawOne(WithdrawOneData {
+        pool_token_amount,
+        minimum_token_amount,
+    })
+    .pack();
+
+    let accounts = vec![
+        AccountMeta::new(*swap_pubkey, false),
+        AccountMeta::new(*authority_pubkey, false),
+        AccountMeta::new(*pool_mint_pubkey, false),
+        AccountMeta::new(*source_pubkey, false),
+        AccountMeta::new(*swap_token_pubkey, false),
+        AccountMeta::new(*destination_token_pubkey, false),
+        AccountMeta::new(*token_program_id, false),
+    ];
+
+    Ok(Instruction {
+        program_id: *program_id,
+        accounts,
+        data,
+    })
+}
+
 /// Unpacks a reference from a bytes buffer.
 /// TODO actually pack / unpack instead of relying on normal memory layout.
 pub fn unpack<T>(input: &[u8]) -> Result<&T, ProgramError> {
@@ -477,5 +551,17 @@ mod tests {
         assert_eq!(packed, expect);
         let unpacked = SwapInstruction::unpack(&expect).unwrap();
         assert_eq!(unpacked, check);
+
+        let pool_token_amount: u64 = 1212438012089;
+        let minimum_token_amount: u64 = 102198761982612;
+        let check = SwapInstruction::WithdrawOne(WithdrawOneData {
+            pool_token_amount,
+            minimum_token_amount,
+        });
+        let packed = check.pack();
+        let mut expect = vec![4];
+        expect.extend_from_slice(&pool_token_amount.to_le_bytes());
+        expect.extend_from_slice(&minimum_token_amount.to_le_bytes());
+        assert_eq!(packed, expect);
     }
 }

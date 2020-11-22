@@ -502,10 +502,10 @@ impl Processor {
 
     /// Processes an [WithdrawOne](enum.Instruction.html).
     pub fn process_withdraw_one(
-        program_id: &Pubkey,
-        pool_token_amount: u64,
-        minimum_token_amount: u64,
-        accounts: &[AccountInfo],
+        _program_id: &Pubkey,
+        _pool_token_amount: u64,
+        _minimum_token_amount: u64,
+        _accounts: &[AccountInfo],
     ) -> ProgramResult {
         unimplemented!("process_withdraw_one not implemented");
     }

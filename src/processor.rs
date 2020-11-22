@@ -502,12 +502,82 @@ impl Processor {
 
     /// Processes an [WithdrawOne](enum.Instruction.html).
     pub fn process_withdraw_one(
-        _program_id: &Pubkey,
-        _pool_token_amount: u64,
-        _minimum_token_amount: u64,
-        _accounts: &[AccountInfo],
+        program_id: &Pubkey,
+        pool_token_amount: u64,
+        minimum_token_amount: u64,
+        accounts: &[AccountInfo],
     ) -> ProgramResult {
-        unimplemented!("process_withdraw_one not implemented");
+        let account_info_iter = &mut accounts.iter();
+        let swap_info = next_account_info(account_info_iter)?;
+        let authority_info = next_account_info(account_info_iter)?;
+        let pool_mint_info = next_account_info(account_info_iter)?;
+        let source_info = next_account_info(account_info_iter)?;
+        let base_token_info = next_account_info(account_info_iter)?;
+        let quote_token_info = next_account_info(account_info_iter)?;
+        let destination_info = next_account_info(account_info_iter)?;
+        let token_program_info = next_account_info(account_info_iter)?;
+
+        if *base_token_info.key == *quote_token_info.key {
+            return Err(SwapError::IncorrectSwapAccount.into());
+        }
+
+        let token_swap = SwapInfo::unpack(&swap_info.data.borrow())?;
+        if *authority_info.key != Self::authority_id(program_id, swap_info.key, token_swap.nonce)? {
+            return Err(SwapError::InvalidProgramAddress.into());
+        }
+        if *base_token_info.key != token_swap.token_b && *base_token_info != token_swap.token_a {
+            return Err(SwapError::IncorrectSwapAccount.into());
+        }
+        if *quote_token_info.key != token_swap.token_b && *quote_token_info != token_swap.token_a {
+            return Err(SwapError::IncorrectSwapAccount.into());
+        }
+        if *pool_mint_info.key != token_swap.pool_mint {
+            return Err(SwapError::IncorrectPoolMint.into());
+        }
+        let pool_mint = Self::unpack_mint(&pool_mint_info.data.borrow())?;
+        if pool_mint.supply == 0 {
+            return Err(SwapError::EmptyPool.into());
+        }
+
+        let base_token = Self::unpack_token_account(&base_token_info.data.borrow())?;
+        let quote_token = Self::unpack_token_account(&quote_token_info.data.borrow())?;
+
+        let invariant = StableSwap::new(token_swap.amp_factor);
+        let token_amount = U256.to_u64(
+            invariant
+                .compute_withdraw_one(
+                    U256::from(pool_token_amount),
+                    U256::from(pool_mint.supply),
+                    U256::from(base_token.amount),
+                    U256::from(quote_token.amount),
+                    U256::from(token_swap.fees.trade_fee_numerator),
+                    U256::from(token_swap.fees.trade_fee_denominator),
+                )
+                .ok_or(SwapError::CalculationFailure),
+        )?;
+        if token_amount < minimum_token_amount {
+            return Err(SwapError::ExceededSlippage.into());
+        }
+
+        Self::token_transfer(
+            swap_info.key,
+            token_program_info.clone(),
+            base_token_info.clone(),
+            destination_info.clone(),
+            authority_info.clone(),
+            token_swap.nonce,
+            token_amount,
+        );
+
+        Self::token_burn(
+            swap_info.key,
+            token_program_info.clone(),
+            source_info.clone(),
+            pool_mint_info.clone(),
+            authority_info.clone(),
+            token_swap.nonce,
+            pool_token_amount,
+        )
     }
 
     /// Processes an [Instruction](enum.Instruction.html).

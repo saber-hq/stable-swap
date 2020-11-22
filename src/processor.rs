@@ -561,7 +561,7 @@ impl Processor {
                 pool_token_amount,
                 minimum_token_amount,
             }) => {
-                info!("Instruction: WithdrawOne");
+                info!("Instruction: Withdraw One");
                 Self::process_withdraw_one(
                     program_id,
                     pool_token_amount,

@@ -570,7 +570,7 @@ impl Processor {
             authority_info.clone(),
             token_swap.nonce,
             token_amount,
-        );
+        )?;
 
         Self::token_burn(
             swap_info.key,
@@ -580,7 +580,8 @@ impl Processor {
             authority_info.clone(),
             token_swap.nonce,
             pool_token_amount,
-        )
+        )?;
+        Ok(())
     }
 
     /// Processes an [Instruction](enum.Instruction.html).

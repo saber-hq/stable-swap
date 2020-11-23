@@ -518,9 +518,8 @@ impl Processor {
         let token_program_info = next_account_info(account_info_iter)?;
 
         if *base_token_info.key == *quote_token_info.key {
-            return Err(SwapError::IncorrectSwapAccount.into());
+            return Err(SwapError::InvalidInput.into());
         }
-
         let token_swap = SwapInfo::unpack(&swap_info.data.borrow())?;
         if *authority_info.key != Self::authority_id(program_id, swap_info.key, token_swap.nonce)? {
             return Err(SwapError::InvalidProgramAddress.into());
@@ -538,8 +537,8 @@ impl Processor {
             return Err(SwapError::IncorrectPoolMint.into());
         }
         let pool_mint = Self::unpack_mint(&pool_mint_info.data.borrow())?;
-        if pool_mint.supply == 0 {
-            return Err(SwapError::EmptyPool.into());
+        if pool_token_amount > pool_mint.supply {
+            return Err(SwapError::InvalidInput.into());
         }
 
         let base_token = Self::unpack_token_account(&base_token_info.data.borrow())?;
@@ -556,7 +555,6 @@ impl Processor {
                 U256::from(token_swap.fees.trade_fee_denominator),
             )
             .ok_or(SwapError::CalculationFailure)?;
-
         let token_amount = U256::to_u64(dy)?;
         if token_amount < minimum_token_amount {
             return Err(SwapError::ExceededSlippage.into());
@@ -3233,5 +3231,66 @@ mod tests {
         }
 
         accounts.initialize_swap().unwrap();
+
+        // wrong nonce for authority_key
+        {
+            let (
+                token_a_key,
+                mut token_a_account,
+                _token_b_key,
+                _token_b_account,
+                pool_key,
+                mut pool_account,
+            ) = accounts.setup_token_accounts(&user_key, &withdrawer_key, initial_a, initial_b, 0);
+            let old_authority = accounts.authority_key;
+            let (bad_authority_key, _nonce) = Pubkey::find_program_address(
+                &[&accounts.swap_key.to_bytes()[..]],
+                &TOKEN_PROGRAM_ID,
+            );
+            accounts.authority_key = bad_authority_key;
+            assert_eq!(
+                Err(SwapError::InvalidProgramAddress.into()),
+                accounts.withdraw_one(
+                    &withdrawer_key,
+                    &pool_key,
+                    &mut pool_account,
+                    &token_a_key,
+                    &mut token_a_account,
+                    withdraw_amount,
+                    minimum_amount,
+                )
+            );
+            accounts.authority_key = old_authority;
+        }
+
+        // not enough pool tokens
+        {
+            let (
+                token_a_key,
+                mut token_a_account,
+                _token_b_key,
+                _token_b_account,
+                pool_key,
+                mut pool_account,
+            ) = accounts.setup_token_accounts(
+                &user_key,
+                &withdrawer_key,
+                initial_a,
+                initial_b,
+                withdraw_amount / 2,
+            );
+            assert_eq!(
+                Err(SwapError::InvalidInput.into()),
+                accounts.withdraw_one(
+                    &withdrawer_key,
+                    &pool_key,
+                    &mut pool_account,
+                    &token_a_key,
+                    &mut token_a_account,
+                    withdraw_amount,
+                    minimum_amount / 2,
+                )
+            );
+        }
     }
 }

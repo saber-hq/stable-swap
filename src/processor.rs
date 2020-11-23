@@ -3307,5 +3307,39 @@ mod tests {
                 )
             );
         }
+
+        // same swap / quote accounts
+        {
+            let (
+                token_a_key,
+                mut token_a_account,
+                _token_b_key,
+                _token_b_account,
+                pool_key,
+                mut pool_account,
+            ) = accounts.setup_token_accounts(
+                &user_key,
+                &withdrawer_key,
+                initial_a,
+                initial_b,
+                withdraw_amount / 2,
+            );
+            assert_eq!(
+                Err(SwapError::InvalidInput.into()),
+                accounts.withdraw_one(
+                    &withdrawer_key,
+                    &pool_key,
+                    &mut pool_account,
+                    &accounts.token_a_key.clone(),
+                    &mut accounts.token_a_account.clone(),
+                    &accounts.token_a_key.clone(),
+                    &mut accounts.token_a_account.clone(),
+                    &token_a_key,
+                    &mut token_a_account,
+                    withdraw_amount,
+                    minimum_amount / 2,
+                )
+            );
+        }
     }
 }

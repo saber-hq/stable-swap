@@ -128,10 +128,10 @@ pub enum SwapInstruction {
     ///   1. `[]` $authority
     ///   2. `[writable]` Pool mint account, $authority is the owner
     ///   3. `[writable]` SOURCE Pool account, amount is transferable by $authority.
-    ///   5. `[writable]` base token Swap Account to withdraw FROM.
-    ///   6. `[writable]` quote token Swap Account to exchange to base token.
-    ///   7. `[writable]` base token user Account to credit.
-    ///   8. '[]` Token program id
+    ///   4. `[writable]` base token Swap Account to withdraw FROM.
+    ///   5. `[writable]` quote token Swap Account to exchange to base token.
+    ///   6. `[writable]` base token user Account to credit.
+    ///   7. '[]` Token program id
     WithdrawOne(WithdrawOneData),
 }
 

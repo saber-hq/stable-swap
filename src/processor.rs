@@ -738,7 +738,7 @@ solana_sdk::program_stubs!();
 mod tests {
     use super::*;
     use crate::fees::Fees;
-    use crate::instruction::{deposit, initialize, swap, withdraw};
+    use crate::instruction::{deposit, initialize, swap, withdraw, withdraw_one};
     use solana_sdk::{
         account::Account, account_info::create_is_signer_account_infos, instruction::Instruction,
         rent::Rent, sysvar::rent,
@@ -1177,6 +1177,64 @@ mod tests {
                     &mut self.token_b_account,
                     &mut token_a_account,
                     &mut token_b_account,
+                    &mut Account::default(),
+                ],
+            )
+        }
+
+        pub fn withdraw_one(
+            &mut self,
+            user_key: &Pubkey,
+            pool_key: &Pubkey,
+            mut pool_account: &mut Account,
+            dest_token_key: &Pubkey,
+            mut dest_token_account: &mut Account,
+            pool_amount: u64,
+            minimum_amount: u64,
+        ) -> ProgramResult {
+            // approve swap program to take out pool tokens
+            do_process_instruction(
+                approve(
+                    &TOKEN_PROGRAM_ID,
+                    &pool_key,
+                    &self.authority_key,
+                    &user_key,
+                    &[],
+                    pool_amount,
+                )
+                .unwrap(),
+                vec![
+                    &mut pool_account,
+                    &mut Account::default(),
+                    &mut Account::default(),
+                ],
+            )
+            .unwrap();
+
+            // withraw token a and b correctly
+            do_process_instruction(
+                withdraw_one(
+                    &SWAP_PROGRAM_ID,
+                    &TOKEN_PROGRAM_ID,
+                    &self.swap_key,
+                    &self.authority_key,
+                    &self.pool_mint_key,
+                    &pool_key,
+                    &self.token_a_key,
+                    &self.token_b_key,
+                    &dest_token_key,
+                    pool_amount,
+                    minimum_amount,
+                )
+                .unwrap(),
+                vec![
+                    &mut self.swap_account,
+                    &mut Account::default(),
+                    &mut self.pool_mint_account,
+                    &mut pool_account,
+                    &mut self.token_a_account, // Swap base token account
+                    &mut self.token_b_account, // Swap pool token account
+                    &mut dest_token_account,
                     &mut Account::default(),
                 ],
             )
@@ -2191,7 +2249,7 @@ mod tests {
         let withdrawer_key = pubkey_rand();
         let initial_a = token_a_amount / 10;
         let initial_b = token_b_amount / 10;
-        let initial_pool = INITIAL_SWAP_POOL_AMOUNT / 10;
+        let initial_pool = INITIAL_SWAP_POOL_AMOUNT;
         let withdraw_amount = initial_pool / 4;
         let minimum_a_amount = initial_a / 40;
         let minimum_b_amount = initial_b / 40;
@@ -3128,5 +3186,52 @@ mod tests {
                 initial_b + U256::to_u64(first_swap_amount).unwrap() - b_to_a_amount
             );
         }
+    }
+
+    #[test]
+    fn test_withdraw_one() {
+        let user_key = pubkey_rand();
+        let amp_factor = 1;
+        let token_a_amount = 1000;
+        let token_b_amount = 2000;
+        let mut accounts = SwapAccountInfo::new(
+            &user_key,
+            amp_factor,
+            token_a_amount,
+            token_b_amount,
+            DEFAULT_TEST_FEES,
+        );
+        let withdrawer_key = pubkey_rand();
+        let initial_a = token_a_amount / 10;
+        let initial_b = token_b_amount / 10;
+        let initial_pool = INITIAL_SWAP_POOL_AMOUNT;
+        let withdraw_amount = initial_pool / 4;
+        let minimum_amount = initial_a / 40;
+
+        // swap not initialized
+        {
+            let (
+                token_a_key,
+                mut token_a_account,
+                _token_b_key,
+                _token_b_account,
+                pool_key,
+                mut pool_account,
+            ) = accounts.setup_token_accounts(&user_key, &withdrawer_key, initial_a, initial_b, 0);
+            assert_eq!(
+                Err(ProgramError::UninitializedAccount),
+                accounts.withdraw_one(
+                    &withdrawer_key,
+                    &pool_key,
+                    &mut pool_account,
+                    &token_a_key,
+                    &mut token_a_account,
+                    withdraw_amount,
+                    minimum_amount,
+                )
+            );
+        }
+
+        accounts.initialize_swap().unwrap();
     }
 }

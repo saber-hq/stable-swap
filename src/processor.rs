@@ -1184,10 +1184,6 @@ mod tests {
             user_key: &Pubkey,
             pool_key: &Pubkey,
             mut pool_account: &mut Account,
-            base_token_key: &Pubkey,
-            mut base_token_account: &mut Account,
-            quote_token_key: &Pubkey,
-            mut quote_token_account: &mut Account,
             dest_token_key: &Pubkey,
             mut dest_token_account: &mut Account,
             pool_amount: u64,
@@ -1221,8 +1217,8 @@ mod tests {
                     &self.authority_key,
                     &self.pool_mint_key,
                     &pool_key,
-                    &base_token_key,
-                    &quote_token_key,
+                    &self.token_a_key,
+                    &self.token_b_key,
                     &dest_token_key,
                     pool_amount,
                     minimum_amount,
@@ -1233,8 +1229,8 @@ mod tests {
                     &mut Account::default(),
                     &mut self.pool_mint_account,
                     &mut pool_account,
-                    &mut base_token_account,
-                    &mut quote_token_account,
+                    &mut self.token_a_account,
+                    &mut self.token_b_account,
                     &mut dest_token_account,
                     &mut Account::default(),
                 ],
@@ -3225,10 +3221,6 @@ mod tests {
                     &withdrawer_key,
                     &pool_key,
                     &mut pool_account,
-                    &accounts.token_a_key.clone(),
-                    &mut accounts.token_a_account.clone(),
-                    &accounts.token_b_key.clone(),
-                    &mut accounts.token_b_account.clone(),
                     &token_a_key,
                     &mut token_a_account,
                     withdraw_amount,
@@ -3261,10 +3253,6 @@ mod tests {
                     &withdrawer_key,
                     &pool_key,
                     &mut pool_account,
-                    &accounts.token_a_key.clone(),
-                    &mut accounts.token_a_account.clone(),
-                    &accounts.token_b_key.clone(),
-                    &mut accounts.token_b_account.clone(),
                     &token_a_key,
                     &mut token_a_account,
                     withdraw_amount,
@@ -3296,10 +3284,6 @@ mod tests {
                     &withdrawer_key,
                     &pool_key,
                     &mut pool_account,
-                    &accounts.token_a_key.clone(),
-                    &mut accounts.token_a_account.clone(),
-                    &accounts.token_b_key.clone(),
-                    &mut accounts.token_b_account.clone(),
                     &token_a_key,
                     &mut token_a_account,
                     withdraw_amount,
@@ -3324,22 +3308,27 @@ mod tests {
                 initial_b,
                 withdraw_amount / 2,
             );
+
+            let old_token_b_key = accounts.token_b_key;
+            let old_token_b_account = accounts.token_b_account;
+            accounts.token_b_key = accounts.token_a_key.clone();
+            accounts.token_b_account = accounts.token_a_account.clone();
+
             assert_eq!(
                 Err(SwapError::InvalidInput.into()),
                 accounts.withdraw_one(
                     &withdrawer_key,
                     &pool_key,
                     &mut pool_account,
-                    &accounts.token_a_key.clone(),
-                    &mut accounts.token_a_account.clone(),
-                    &accounts.token_a_key.clone(),
-                    &mut accounts.token_a_account.clone(),
                     &token_a_key,
                     &mut token_a_account,
                     withdraw_amount,
                     minimum_amount / 2,
                 )
             );
+
+            accounts.token_b_key = old_token_b_key;
+            accounts.token_b_account = old_token_b_account;
         }
 
         // foreign swap / quote accounts
@@ -3370,22 +3359,10 @@ mod tests {
                 0,
             );
 
-            assert_eq!(
-                Err(SwapError::IncorrectSwapAccount.into()),
-                accounts.withdraw_one(
-                    &withdrawer_key,
-                    &pool_key,
-                    &mut pool_account,
-                    &foreign_token_key.clone(),
-                    &mut foreign_token_account.clone(),
-                    &accounts.token_b_key.clone(),
-                    &mut accounts.token_b_account.clone(),
-                    &token_a_key,
-                    &mut token_a_account,
-                    withdraw_amount,
-                    minimum_amount / 2,
-                )
-            );
+            let old_token_a_key = accounts.token_a_key;
+            let old_token_a_account = accounts.token_a_account;
+            accounts.token_a_key = foreign_token_key.clone();
+            accounts.token_a_account = foreign_token_account.clone();
 
             assert_eq!(
                 Err(SwapError::IncorrectSwapAccount.into()),
@@ -3393,16 +3370,36 @@ mod tests {
                     &withdrawer_key,
                     &pool_key,
                     &mut pool_account,
-                    &accounts.token_a_key.clone(),
-                    &mut accounts.token_a_account.clone(),
-                    &foreign_token_key.clone(),
-                    &mut foreign_token_account.clone(),
                     &token_a_key,
                     &mut token_a_account,
                     withdraw_amount,
                     minimum_amount / 2,
                 )
             );
+
+            accounts.token_a_key = old_token_a_key;
+            accounts.token_a_account = old_token_a_account;
+
+            let old_token_b_key = accounts.token_b_key;
+            let old_token_b_account = accounts.token_b_account;
+            accounts.token_b_key = foreign_token_key.clone();
+            accounts.token_b_account = foreign_token_account.clone();
+
+            assert_eq!(
+                Err(SwapError::IncorrectSwapAccount.into()),
+                accounts.withdraw_one(
+                    &withdrawer_key,
+                    &pool_key,
+                    &mut pool_account,
+                    &token_a_key,
+                    &mut token_a_account,
+                    withdraw_amount,
+                    minimum_amount / 2,
+                )
+            );
+
+            accounts.token_b_key = old_token_b_key;
+            accounts.token_b_account = old_token_b_account;
         }
 
         // wrong pool token account
@@ -3427,10 +3424,6 @@ mod tests {
                     &withdrawer_key,
                     &wrong_token_b_key,
                     &mut wrong_token_b_account,
-                    &accounts.token_a_key.clone(),
-                    &mut accounts.token_a_account.clone(),
-                    &accounts.token_b_key.clone(),
-                    &mut accounts.token_b_account.clone(),
                     &token_a_key,
                     &mut token_a_account,
                     withdraw_amount,

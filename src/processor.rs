@@ -3560,5 +3560,36 @@ mod tests {
             accounts.pool_mint_key = old_pool_key;
             accounts.pool_mint_account = old_pool_account;
         }
+
+        // wrong destination account
+        {
+            let (
+                _token_a_key,
+                _token_a_account,
+                token_b_key,
+                mut token_b_account,
+                pool_key,
+                mut pool_account,
+            ) = accounts.setup_token_accounts(
+                &user_key,
+                &withdrawer_key,
+                initial_a,
+                initial_b,
+                withdraw_amount,
+            );
+
+            assert_eq!(
+                Err(TokenError::MintMismatch.into()),
+                accounts.withdraw_one(
+                    &withdrawer_key,
+                    &pool_key,
+                    &mut pool_account,
+                    &token_b_key,
+                    &mut token_b_account,
+                    withdraw_amount,
+                    minimum_amount / 2,
+                )
+            );
+        }
     }
 }

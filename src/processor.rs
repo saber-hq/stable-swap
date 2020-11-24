@@ -3358,15 +3358,15 @@ mod tests {
                 initial_b,
                 withdraw_amount / 2,
             );
-
+            let foreign_authority = pubkey_rand();
             let (foreign_mint_key, mut foreign_mint_account) =
-                create_mint(&TOKEN_PROGRAM_ID, &user_key);
+                create_mint(&TOKEN_PROGRAM_ID, &foreign_authority);
             let (foreign_token_key, foreign_token_account) = mint_token(
                 &TOKEN_PROGRAM_ID,
                 &foreign_mint_key,
                 &mut foreign_mint_account,
-                &user_key,
-                &withdrawer_key,
+                &foreign_authority,
+                &pubkey_rand(),
                 0,
             );
 

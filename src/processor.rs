@@ -3438,5 +3438,46 @@ mod tests {
                 )
             );
         }
+
+        // no approval
+        {
+            let (
+                token_a_key,
+                mut token_a_account,
+                _token_b_key,
+                _token_b_account,
+                pool_key,
+                mut pool_account,
+            ) = accounts.setup_token_accounts(&user_key, &withdrawer_key, 0, 0, withdraw_amount);
+            assert_eq!(
+                Err(TokenError::OwnerMismatch.into()),
+                do_process_instruction(
+                    withdraw_one(
+                        &SWAP_PROGRAM_ID,
+                        &TOKEN_PROGRAM_ID,
+                        &accounts.swap_key,
+                        &accounts.authority_key,
+                        &accounts.pool_mint_key,
+                        &pool_key,
+                        &accounts.token_a_key,
+                        &accounts.token_b_key,
+                        &token_a_key,
+                        withdraw_amount,
+                        minimum_amount,
+                    )
+                    .unwrap(),
+                    vec![
+                        &mut accounts.swap_account,
+                        &mut Account::default(),
+                        &mut accounts.pool_mint_account,
+                        &mut pool_account,
+                        &mut accounts.token_a_account,
+                        &mut accounts.token_b_account,
+                        &mut token_a_account,
+                        &mut Account::default(),
+                    ],
+                )
+            );
+        }
     }
 }

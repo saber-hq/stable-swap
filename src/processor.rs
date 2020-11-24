@@ -3341,5 +3341,68 @@ mod tests {
                 )
             );
         }
+
+        // foreign swap / quote accounts
+        {
+            let (
+                token_a_key,
+                mut token_a_account,
+                _token_b_key,
+                _token_b_account,
+                pool_key,
+                mut pool_account,
+            ) = accounts.setup_token_accounts(
+                &user_key,
+                &withdrawer_key,
+                initial_a,
+                initial_b,
+                withdraw_amount / 2,
+            );
+
+            let (foreign_mint_key, mut foreign_mint_account) =
+                create_mint(&TOKEN_PROGRAM_ID, &user_key);
+            let (foreign_token_key, foreign_token_account) = mint_token(
+                &TOKEN_PROGRAM_ID,
+                &foreign_mint_key,
+                &mut foreign_mint_account,
+                &user_key,
+                &withdrawer_key,
+                0,
+            );
+
+            assert_eq!(
+                Err(SwapError::IncorrectSwapAccount.into()),
+                accounts.withdraw_one(
+                    &withdrawer_key,
+                    &pool_key,
+                    &mut pool_account,
+                    &foreign_token_key.clone(),
+                    &mut foreign_token_account.clone(),
+                    &accounts.token_b_key.clone(),
+                    &mut accounts.token_b_account.clone(),
+                    &token_a_key,
+                    &mut token_a_account,
+                    withdraw_amount,
+                    minimum_amount / 2,
+                )
+            );
+
+            assert_eq!(
+                Err(SwapError::IncorrectSwapAccount.into()),
+                accounts.withdraw_one(
+                    &withdrawer_key,
+                    &pool_key,
+                    &mut pool_account,
+                    &accounts.token_a_key.clone(),
+                    &mut accounts.token_a_account.clone(),
+                    &foreign_token_key.clone(),
+                    &mut foreign_token_account.clone(),
+                    &token_a_key,
+                    &mut token_a_account,
+                    withdraw_amount,
+                    minimum_amount / 2,
+                )
+            );
+        }
     }
 }

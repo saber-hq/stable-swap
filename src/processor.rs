@@ -3404,5 +3404,39 @@ mod tests {
                 )
             );
         }
+
+        // wrong pool token account
+        {
+            let (
+                token_a_key,
+                mut token_a_account,
+                wrong_token_b_key,
+                mut wrong_token_b_account,
+                _pool_key,
+                _pool_account,
+            ) = accounts.setup_token_accounts(
+                &user_key,
+                &withdrawer_key,
+                initial_a,
+                initial_b,
+                withdraw_amount,
+            );
+            assert_eq!(
+                Err(TokenError::MintMismatch.into()),
+                accounts.withdraw_one(
+                    &withdrawer_key,
+                    &wrong_token_b_key,
+                    &mut wrong_token_b_account,
+                    &accounts.token_a_key.clone(),
+                    &mut accounts.token_a_account.clone(),
+                    &accounts.token_b_key.clone(),
+                    &mut accounts.token_b_account.clone(),
+                    &token_a_key,
+                    &mut token_a_account,
+                    withdraw_amount,
+                    minimum_amount / 2,
+                )
+            );
+        }
     }
 }

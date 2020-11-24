@@ -3591,5 +3591,37 @@ mod tests {
                 )
             );
         }
+
+        // slippage exceeeded
+        {
+            let (
+                token_a_key,
+                mut token_a_account,
+                _token_b_key,
+                _token_b_account,
+                pool_key,
+                mut pool_account,
+            ) = accounts.setup_token_accounts(
+                &user_key,
+                &withdrawer_key,
+                initial_a,
+                initial_b,
+                initial_pool,
+            );
+
+            // minimum amount out too high
+            assert_eq!(
+                Err(SwapError::ExceededSlippage.into()),
+                accounts.withdraw_one(
+                    &withdrawer_key,
+                    &pool_key,
+                    &mut pool_account,
+                    &token_a_key,
+                    &mut token_a_account,
+                    withdraw_amount,
+                    minimum_amount * 100, // XXX: 10 -> 100; Revisit this splippage multiplier
+                )
+            );
+        }
     }
 }

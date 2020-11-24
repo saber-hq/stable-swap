@@ -3520,5 +3520,45 @@ mod tests {
                 )
             );
         }
+
+        // wrong mint
+        {
+            let (
+                token_a_key,
+                mut token_a_account,
+                _token_b_key,
+                _token_b_account,
+                pool_key,
+                mut pool_account,
+            ) = accounts.setup_token_accounts(
+                &user_key,
+                &withdrawer_key,
+                initial_a,
+                initial_b,
+                initial_pool,
+            );
+            let (pool_mint_key, pool_mint_account) =
+                create_mint(&TOKEN_PROGRAM_ID, &accounts.authority_key);
+            let old_pool_key = accounts.pool_mint_key;
+            let old_pool_account = accounts.pool_mint_account;
+            accounts.pool_mint_key = pool_mint_key;
+            accounts.pool_mint_account = pool_mint_account;
+
+            assert_eq!(
+                Err(SwapError::IncorrectPoolMint.into()),
+                accounts.withdraw_one(
+                    &withdrawer_key,
+                    &pool_key,
+                    &mut pool_account,
+                    &token_a_key,
+                    &mut token_a_account,
+                    withdraw_amount,
+                    minimum_amount,
+                )
+            );
+
+            accounts.pool_mint_key = old_pool_key;
+            accounts.pool_mint_account = old_pool_account;
+        }
     }
 }

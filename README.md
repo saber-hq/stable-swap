@@ -2,6 +2,8 @@
 
 An adaptation of the Solana [token-swap](https://github.com/solana-labs/solana-program-library/tree/master/token-swap/program) program implementing Curve's [StableSwap](https://www.curve.fi/stableswap-paper.pdf) invariant.
 
+Click [here](https://stableswap.pro) to try it out live on the Solana testnet!
+
 ## Development
 
 Download or update the BPF-SDK by running:

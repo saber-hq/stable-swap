@@ -3395,7 +3395,7 @@ mod tests {
                     &token_a_key,
                     &mut token_a_account,
                     withdraw_amount,
-                    minimum_amount / 2,
+                    minimum_amount,
                 )
             );
 

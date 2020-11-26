@@ -3647,6 +3647,18 @@ mod tests {
             Processor::unpack_token_account(&accounts.token_b_account.data).unwrap();
         let old_pool_mint = Processor::unpack_mint(&accounts.pool_mint_account.data).unwrap();
 
+        let invariant = StableSwap::new(amp_factor);
+        let (expected_withdraw_one_amount, _) = invariant
+            .compute_withdraw_one(
+                withdraw_amount.into(),
+                old_pool_mint.supply.into(),
+                old_swap_token_a.amount.into(),
+                old_swap_token_b.amount.into(),
+                DEFAULT_TEST_FEES.trade_fee_numerator.into(),
+                DEFAULT_TEST_FEES.trade_fee_denominator.into(),
+            )
+            .unwrap();
+
         accounts
             .withdraw_one(
                 &withdrawer_key,
@@ -3664,9 +3676,9 @@ mod tests {
         let pool_mint = Processor::unpack_mint(&accounts.pool_mint_account.data).unwrap();
 
         assert_eq!(
-            swap_token_a.amount,
-            old_swap_token_a.amount - withdraw_amount / 2 - 1
-        ); // XXX: Verfiy this is the correct delta
+            old_swap_token_a.amount - swap_token_a.amount,
+            U256::to_u64(expected_withdraw_one_amount).unwrap()
+        );
         assert_eq!(swap_token_b.amount, old_swap_token_b.amount);
         assert_eq!(pool_mint.supply, old_pool_mint.supply - withdraw_amount);
     }

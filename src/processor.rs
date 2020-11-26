@@ -3190,7 +3190,7 @@ mod tests {
         let user_key = pubkey_rand();
         let amp_factor = 1;
         let token_a_amount = 1000;
-        let token_b_amount = 2000;
+        let token_b_amount = 1000;
         let mut accounts = SwapAccountInfo::new(
             &user_key,
             amp_factor,
@@ -3201,9 +3201,10 @@ mod tests {
         let withdrawer_key = pubkey_rand();
         let initial_a = token_a_amount / 10;
         let initial_b = token_b_amount / 10;
-        let initial_pool = INITIAL_SWAP_POOL_AMOUNT;
-        let withdraw_amount = initial_pool / 4;
-        let minimum_amount = initial_a / 40;
+        let initial_pool = initial_a + initial_b;
+        // Withdraw entire pool share
+        let withdraw_amount = initial_pool;
+        let minimum_amount = 0;
 
         // swap not initialized
         {
@@ -3276,7 +3277,7 @@ mod tests {
                 &withdrawer_key,
                 initial_a,
                 initial_b,
-                withdraw_amount / 2,
+                withdraw_amount,
             );
             assert_eq!(
                 Err(SwapError::InvalidInput.into()),
@@ -3286,8 +3287,8 @@ mod tests {
                     &mut pool_account,
                     &token_a_key,
                     &mut token_a_account,
-                    withdraw_amount,
-                    minimum_amount / 2,
+                    withdraw_amount * 100,
+                    minimum_amount,
                 )
             );
         }
@@ -3323,7 +3324,7 @@ mod tests {
                     &token_a_key,
                     &mut token_a_account,
                     withdraw_amount,
-                    minimum_amount / 2,
+                    minimum_amount,
                 )
             );
 
@@ -3373,7 +3374,7 @@ mod tests {
                     &token_a_key,
                     &mut token_a_account,
                     withdraw_amount,
-                    minimum_amount / 2,
+                    minimum_amount,
                 )
             );
 
@@ -3427,7 +3428,7 @@ mod tests {
                     &token_a_key,
                     &mut token_a_account,
                     withdraw_amount,
-                    minimum_amount / 2,
+                    minimum_amount,
                 )
             );
         }
@@ -3587,7 +3588,7 @@ mod tests {
                     &token_b_key,
                     &mut token_b_account,
                     withdraw_amount,
-                    minimum_amount / 2,
+                    minimum_amount,
                 )
             );
         }
@@ -3609,7 +3610,7 @@ mod tests {
                 initial_pool,
             );
 
-            // minimum amount out too high
+            let high_minimum_amount = 100000;
             assert_eq!(
                 Err(SwapError::ExceededSlippage.into()),
                 accounts.withdraw_one(
@@ -3619,9 +3620,54 @@ mod tests {
                     &token_a_key,
                     &mut token_a_account,
                     withdraw_amount,
-                    minimum_amount * 100, // XXX: 10 -> 100; Revisit this splippage multiplier
+                    high_minimum_amount,
                 )
             );
         }
+
+        // correct withdraw
+        let (
+            token_a_key,
+            mut token_a_account,
+            _token_b_key,
+            _token_b_account,
+            pool_key,
+            mut pool_account,
+        ) = accounts.setup_token_accounts(
+            &user_key,
+            &withdrawer_key,
+            initial_a,
+            initial_b,
+            initial_pool,
+        );
+
+        let old_swap_token_a =
+            Processor::unpack_token_account(&accounts.token_a_account.data).unwrap();
+        let old_swap_token_b =
+            Processor::unpack_token_account(&accounts.token_b_account.data).unwrap();
+        let old_pool_mint = Processor::unpack_mint(&accounts.pool_mint_account.data).unwrap();
+
+        accounts
+            .withdraw_one(
+                &withdrawer_key,
+                &pool_key,
+                &mut pool_account,
+                &token_a_key,
+                &mut token_a_account,
+                withdraw_amount,
+                minimum_amount / 10,
+            )
+            .unwrap();
+
+        let swap_token_a = Processor::unpack_token_account(&accounts.token_a_account.data).unwrap();
+        let swap_token_b = Processor::unpack_token_account(&accounts.token_b_account.data).unwrap();
+        let pool_mint = Processor::unpack_mint(&accounts.pool_mint_account.data).unwrap();
+
+        assert_eq!(
+            swap_token_a.amount,
+            old_swap_token_a.amount - withdraw_amount / 2 - 1
+        ); // XXX: Verfiy this is the correct delta
+        assert_eq!(swap_token_b.amount, old_swap_token_b.amount);
+        assert_eq!(pool_mint.supply, old_pool_mint.supply - withdraw_amount);
     }
 }

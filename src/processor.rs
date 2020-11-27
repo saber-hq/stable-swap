@@ -551,8 +551,7 @@ impl Processor {
                 U256::from(pool_mint.supply),
                 U256::from(base_token.amount),
                 U256::from(quote_token.amount),
-                U256::from(token_swap.fees.trade_fee_numerator),
-                U256::from(token_swap.fees.trade_fee_denominator),
+                token_swap.fees,
             )
             .ok_or(SwapError::CalculationFailure)?;
         let token_amount = U256::to_u64(dy)?;
@@ -3654,8 +3653,7 @@ mod tests {
                 old_pool_mint.supply.into(),
                 old_swap_token_a.amount.into(),
                 old_swap_token_b.amount.into(),
-                DEFAULT_TEST_FEES.trade_fee_numerator.into(),
-                DEFAULT_TEST_FEES.trade_fee_denominator.into(),
+                DEFAULT_TEST_FEES,
             )
             .unwrap();
 

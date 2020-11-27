@@ -170,8 +170,7 @@ impl StableSwap {
         pool_token_supply: U256,
         swap_base_amount: U256,  // Same denomination of token to be withdrawn
         swap_quote_amount: U256, // Counter denomination of token to be withdrawn
-        fee_numerator: U256,
-        fee_denominator: U256,
+        fees: Fees,
     ) -> Option<(U256, U256)> {
         let d_0 = self.compute_d(swap_base_amount, swap_quote_amount)?;
         let d_1 = d_0.checked_sub(
@@ -181,11 +180,6 @@ impl StableSwap {
         )?;
         let new_y = self.compute_y(swap_quote_amount, d_1)?;
 
-        // Adjust fee so that it is the same as swap trade fee
-        // fee = fee_numerator * n_coins / (4 * (n_coins - 1));     // XXX: Why divide by 4?
-        let fee = fee_numerator
-            .checked_mul(N_COINS.into())?
-            .checked_div((4 * (N_COINS - 1)).into())?;
         // expected_base_amount = swap_base_amount * d_1 / d_0 - new_y;
         let expected_base_amount = swap_base_amount
             .checked_mul(d_1)?
@@ -195,17 +189,11 @@ impl StableSwap {
         let expected_quote_amount =
             swap_quote_amount.checked_sub(swap_quote_amount.checked_mul(d_1)?.checked_div(d_0)?)?;
         // new_base_amount = swap_base_amount - expected_base_amount * fee / fee_denominator;
-        let new_base_amount = swap_base_amount.checked_sub(
-            expected_base_amount
-                .checked_mul(fee)?
-                .checked_div(fee_denominator)?,
-        )?;
+        let new_base_amount = swap_base_amount
+            .checked_sub(fees.normalized_trade_fee(N_COINS, expected_base_amount)?)?;
         // new_quote_amount = swap_quote_amount - expected_quote_amount * fee / fee_denominator;
-        let new_quote_amount = swap_quote_amount.checked_sub(
-            expected_quote_amount
-                .checked_mul(fee)?
-                .checked_div(fee_denominator)?,
-        )?;
+        let new_quote_amount = swap_quote_amount
+            .checked_sub(fees.normalized_trade_fee(N_COINS, expected_quote_amount)?)?;
         let dy = new_base_amount
             .checked_sub(self.compute_y(new_quote_amount, d_1)?)?
             .checked_sub(1.into())?; // Withdraw less to account for rounding errors
@@ -505,14 +493,23 @@ mod tests {
         let swap = StableSwap {
             amp_factor: amp_factor.into(),
         };
+        let fees = Fees {
+            admin_trade_fee_numerator: 0,
+            admin_trade_fee_denominator: 1,
+            admin_withdraw_fee_numerator: 2,
+            admin_withdraw_fee_denominator: 3,
+            trade_fee_numerator: MODEL_FEE_NUMERATOR,
+            trade_fee_denominator: MODEL_FEE_DENOMINATOR,
+            withdraw_fee_numerator: 4,
+            withdraw_fee_denominator: 5,
+        };
         let result = swap
             .compute_withdraw_one(
                 pool_token_amount.into(),
                 pool_token_supply.into(),
                 swap_base_amount.into(),
                 swap_quote_amount.into(),
-                MODEL_FEE_NUMERATOR.into(),
-                MODEL_FEE_DENOMINATOR.into(),
+                fees,
             )
             .unwrap();
         let model = Model::new_with_pool_tokens(

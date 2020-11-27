@@ -67,11 +67,16 @@ impl Fees {
     }
 
     /// Compute normalized fee for symmetric/asymmetric for deposits/withdraws
-    pub fn normalized_u256_fee_numerator(&self, n_coins: u64) -> Option<U256> {
-        // _fee: uint256 = self.fee * N_COINS / (4 * (N_COINS - 1))
-        let top = self.trade_fee_numerator.checked_mul(n_coins)?;
-        let bottom = (n_coins.checked_sub(1)?).checked_mul(4)?;
-        Some(U256::from(top.checked_div(bottom)?))
+    pub fn normalized_trade_fee(&self, n_coins: u64, amount: U256) -> Option<U256> {
+        // adjusted_fee_numerator: uint256 = self.fee * N_COINS / (4 * (N_COINS - 1))
+        let adjusted_trade_fee_numerator = self
+            .trade_fee_numerator
+            .checked_mul(n_coins)?
+            .checked_div((n_coins.checked_sub(1)?).checked_mul(4)?)?;
+        let fee = amount
+            .checked_mul(adjusted_trade_fee_numerator.into())?
+            .checked_div(self.trade_fee_denominator.into())?;
+        Some(fee)
     }
 }
 
@@ -208,11 +213,14 @@ mod tests {
         assert_eq!(withdraw_fee_result.admin_fee, expected_admin_withdraw_fee);
 
         let n_coins = 2;
-        let expected_normalized_fee_numerator =
-            U256::from(trade_fee_numerator * n_coins / (4 * (n_coins - 1)));
+
+        let adjusted_trade_fee_numerator = trade_fee_numerator * n_coins / (4 * (n_coins - 1));
+        let expected_normalized_fee =
+            U256::from(trade_amount * adjusted_trade_fee_numerator / trade_fee_denominator);
         assert_eq!(
-            fees.normalized_u256_fee_numerator(n_coins).unwrap(),
-            expected_normalized_fee_numerator
+            fees.normalized_trade_fee(n_coins, trade_amount.into())
+                .unwrap(),
+            expected_normalized_fee
         );
     }
 }

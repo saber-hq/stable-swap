@@ -206,17 +206,14 @@ impl StableSwap {
         source_amount: U256,
         swap_source_amount: U256,
         swap_destination_amount: U256,
-        fee_numerator: U256,
-        fee_denominator: U256,
+        fees: Fees,
     ) -> Option<SwapResult> {
         let y = self.compute_y(
             swap_source_amount.checked_add(source_amount)?,
             self.compute_d(swap_source_amount, swap_destination_amount)?,
         )?;
         let dy = swap_destination_amount.checked_sub(y)?;
-        let dy_fee = dy
-            .checked_mul(fee_numerator)?
-            .checked_div(fee_denominator)?;
+        let dy_fee = fees.trade_fee(dy)?;
 
         let amount_swapped = dy.checked_sub(dy_fee)?;
         let new_destination_amount = swap_destination_amount.checked_sub(amount_swapped)?;
@@ -271,6 +268,17 @@ mod tests {
     use super::*;
     use rand::Rng;
     use sim::{Model, MODEL_FEE_DENOMINATOR, MODEL_FEE_NUMERATOR};
+
+    const MODEL_FEES: Fees = Fees {
+        admin_trade_fee_numerator: 0,
+        admin_trade_fee_denominator: 1,
+        admin_withdraw_fee_numerator: 0,
+        admin_withdraw_fee_denominator: 1,
+        trade_fee_numerator: MODEL_FEE_NUMERATOR,
+        trade_fee_denominator: MODEL_FEE_DENOMINATOR,
+        withdraw_fee_numerator: 0,
+        withdraw_fee_denominator: 1,
+    };
 
     fn check_pool_token_a_rate(
         token_a: U256,
@@ -395,8 +403,7 @@ mod tests {
                 source_amount.into(),
                 swap_source_amount.into(),
                 swap_destination_amount.into(),
-                MODEL_FEE_NUMERATOR.into(),
-                MODEL_FEE_DENOMINATOR.into(),
+                MODEL_FEES,
             )
             .unwrap();
         let model = Model::new(
@@ -491,23 +498,13 @@ mod tests {
         let swap = StableSwap {
             amp_factor: amp_factor.into(),
         };
-        let fees = Fees {
-            admin_trade_fee_numerator: 0,
-            admin_trade_fee_denominator: 1,
-            admin_withdraw_fee_numerator: 2,
-            admin_withdraw_fee_denominator: 3,
-            trade_fee_numerator: MODEL_FEE_NUMERATOR,
-            trade_fee_denominator: MODEL_FEE_DENOMINATOR,
-            withdraw_fee_numerator: 4,
-            withdraw_fee_denominator: 5,
-        };
         let result = swap
             .compute_withdraw_one(
                 pool_token_amount.into(),
                 pool_token_supply.into(),
                 swap_base_amount.into(),
                 swap_quote_amount.into(),
-                fees,
+                MODEL_FEES,
             )
             .unwrap();
         let model = Model::new_with_pool_tokens(

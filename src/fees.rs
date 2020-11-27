@@ -31,38 +31,38 @@ pub struct Fees {
 
 impl Fees {
     /// Apply admin trade fee
-    pub fn admin_trade_fee(&self, fee_amount: u64) -> Option<u64> {
+    pub fn admin_trade_fee(&self, fee_amount: U256) -> Option<U256> {
         Some(
             fee_amount
-                .checked_mul(self.admin_trade_fee_numerator)?
-                .checked_div(self.admin_trade_fee_denominator)?,
+                .checked_mul(self.admin_trade_fee_numerator.into())?
+                .checked_div(self.admin_trade_fee_denominator.into())?,
         )
     }
 
     /// Apply admin withdraw fee
-    pub fn admin_withdraw_fee(&self, fee_amount: u64) -> Option<u64> {
+    pub fn admin_withdraw_fee(&self, fee_amount: U256) -> Option<U256> {
         Some(
             fee_amount
-                .checked_mul(self.admin_withdraw_fee_numerator)?
-                .checked_div(self.admin_withdraw_fee_denominator)?,
+                .checked_mul(self.admin_withdraw_fee_numerator.into())?
+                .checked_div(self.admin_withdraw_fee_denominator.into())?,
         )
     }
 
     /// Apply trade fee to amount
-    pub fn trade_fee(&self, trade_amount: u64) -> Option<u64> {
+    pub fn trade_fee(&self, trade_amount: U256) -> Option<U256> {
         Some(
             trade_amount
-                .checked_mul(self.trade_fee_numerator)?
-                .checked_div(self.trade_fee_denominator)?,
+                .checked_mul(self.trade_fee_numerator.into())?
+                .checked_div(self.trade_fee_denominator.into())?,
         )
     }
 
     /// Apply withdraw fee to amount
-    pub fn withdraw_fee(&self, withdraw_amount: u64) -> Option<u64> {
+    pub fn withdraw_fee(&self, withdraw_amount: U256) -> Option<U256> {
         Some(
             withdraw_amount
-                .checked_mul(self.withdraw_fee_numerator)?
-                .checked_div(self.withdraw_fee_denominator)?,
+                .checked_mul(self.withdraw_fee_numerator.into())?
+                .checked_div(self.withdraw_fee_denominator.into())?,
         )
     }
 
@@ -197,25 +197,26 @@ mod tests {
 
         let trade_amount = 1_000_000_000;
         let expected_trade_fee = trade_amount * trade_fee_numerator / trade_fee_denominator;
-        let trade_fee = fees.trade_fee(trade_amount).unwrap();
-        assert_eq!(trade_fee, expected_trade_fee);
+        let trade_fee = fees.trade_fee(trade_amount.into()).unwrap();
+        assert_eq!(trade_fee, expected_trade_fee.into());
         let expected_admin_trade_fee =
             expected_trade_fee * admin_trade_fee_numerator / admin_trade_fee_denominator;
         assert_eq!(
             fees.admin_trade_fee(trade_fee).unwrap(),
-            expected_admin_trade_fee
+            expected_admin_trade_fee.into()
         );
 
         let withdraw_amount = 100_000_000_000;
         let expected_withdraw_fee =
             withdraw_amount * withdraw_fee_numerator / withdraw_fee_denominator;
-        let withdraw_fee = fees.withdraw_fee(withdraw_amount).unwrap();
-        assert_eq!(withdraw_fee, expected_withdraw_fee);
+        let withdraw_fee = fees.withdraw_fee(withdraw_amount.into()).unwrap();
+        assert_eq!(withdraw_fee, expected_withdraw_fee.into());
         let expected_admin_withdraw_fee =
             expected_withdraw_fee * admin_withdraw_fee_numerator / admin_withdraw_fee_denominator;
         assert_eq!(
-            fees.admin_withdraw_fee(expected_withdraw_fee).unwrap(),
-            expected_admin_withdraw_fee
+            fees.admin_withdraw_fee(expected_withdraw_fee.into())
+                .unwrap(),
+            expected_admin_withdraw_fee.into()
         );
 
         let n_coins = 2;
@@ -225,7 +226,7 @@ mod tests {
         assert_eq!(
             fees.normalized_trade_fee(n_coins, trade_amount.into())
                 .unwrap(),
-            expected_normalized_fee
+            expected_normalized_fee.into()
         );
     }
 }

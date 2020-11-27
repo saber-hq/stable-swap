@@ -294,8 +294,7 @@ impl Processor {
                 U256::from(amount_in),
                 U256::from(swap_source_account.amount),
                 U256::from(swap_destination_account.amount),
-                U256::from(token_swap.fees.trade_fee_numerator),
-                U256::from(token_swap.fees.trade_fee_denominator),
+                token_swap.fees,
             )
             .ok_or(SwapError::CalculationFailure)?;
         let amount_swapped = U256::to_u64(result.amount_swapped)?;
@@ -3093,8 +3092,7 @@ mod tests {
                     U256::from(a_to_b_amount),
                     U256::from(token_a_amount),
                     U256::from(token_b_amount),
-                    U256::from(DEFAULT_TEST_FEES.trade_fee_numerator),
-                    U256::from(DEFAULT_TEST_FEES.trade_fee_denominator),
+                    DEFAULT_TEST_FEES,
                 )
                 .unwrap();
 
@@ -3149,8 +3147,7 @@ mod tests {
                     U256::from(a_to_b_amount),
                     U256::from(token_b_amount),
                     U256::from(token_a_amount),
-                    U256::from(DEFAULT_TEST_FEES.trade_fee_numerator),
-                    U256::from(DEFAULT_TEST_FEES.trade_fee_denominator),
+                    DEFAULT_TEST_FEES,
                 )
                 .unwrap();
 

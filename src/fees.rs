@@ -72,7 +72,7 @@ impl Fees {
         let adjusted_trade_fee_numerator = self
             .trade_fee_numerator
             .checked_mul(n_coins)?
-            .checked_div((n_coins.checked_sub(1)?).checked_mul(4)?)?;
+            .checked_div((n_coins.checked_sub(1)?).checked_mul(4)?)?; // XXX: Why divide by 4?
         let fee = amount
             .checked_mul(adjusted_trade_fee_numerator.into())?
             .checked_div(self.trade_fee_denominator.into())?;

@@ -1208,7 +1208,7 @@ mod tests {
             )
             .unwrap();
 
-            // withraw token a and b correctly
+            // withraw base token correctly
             do_process_instruction(
                 withdraw_one(
                     &SWAP_PROGRAM_ID,

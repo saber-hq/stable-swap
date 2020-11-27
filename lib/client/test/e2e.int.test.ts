@@ -56,9 +56,9 @@ describe("e2e test", () => {
   let mintB: Token;
   let tokenAccountA: PublicKey;
   let tokenAccountB: PublicKey;
-  // Admin accounts
-  let adminAccountA: PublicKey;
-  let adminAccountB: PublicKey;
+  // Admin fee accounts
+  let adminFeeAccountA: PublicKey;
+  let adminFeeAccountB: PublicKey;
   // Stable swap
   let stableSwap: StableSwap;
   let stableSwapAccount: Account;
@@ -114,7 +114,7 @@ describe("e2e test", () => {
     }
     // create token A account then mint to it
     try {
-      adminAccountA = await mintA.createAccount(owner.publicKey);
+      adminFeeAccountA = await mintA.createAccount(owner.publicKey);
       tokenAccountA = await mintA.createAccount(authority);
       await mintA.mintTo(tokenAccountA, owner, [], INITIAL_TOKEN_A_AMOUNT);
     } catch (e) {
@@ -135,7 +135,7 @@ describe("e2e test", () => {
     }
     // creating token B account then mint to it
     try {
-      adminAccountB = await mintB.createAccount(owner.publicKey);
+      adminFeeAccountB = await mintB.createAccount(owner.publicKey);
       tokenAccountB = await mintB.createAccount(authority);
       await mintB.mintTo(tokenAccountB, owner, [], INITIAL_TOKEN_B_AMOUNT);
     } catch (e) {
@@ -151,8 +151,8 @@ describe("e2e test", () => {
         payer,
         stableSwapAccount,
         authority,
-        adminAccountA,
-        adminAccountB,
+        adminFeeAccountA,
+        adminFeeAccountB,
         tokenAccountA,
         tokenAccountB,
         tokenPool.publicKey,
@@ -192,6 +192,8 @@ describe("e2e test", () => {
     }
 
     expect(fetchedStableSwap.stableSwap).toEqual(stableSwapAccount.publicKey);
+    expect(fetchedStableSwap.adminFeeAccountA).toEqual(adminFeeAccountA);
+    expect(fetchedStableSwap.adminFeeAccountB).toEqual(adminFeeAccountB);
     expect(fetchedStableSwap.tokenAccountA).toEqual(tokenAccountA);
     expect(fetchedStableSwap.tokenAccountB).toEqual(tokenAccountB);
     expect(fetchedStableSwap.mintA).toEqual(mintA.publicKey);

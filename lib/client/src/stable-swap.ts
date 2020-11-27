@@ -52,6 +52,16 @@ export class StableSwap {
   authority: PublicKey;
 
   /**
+   * Admin fee account for token A
+   */
+  adminFeeAccountA: PublicKey;
+
+  /**
+   * Admin fee account for token B
+   */
+  adminFeeAccountB: PublicKey;
+
+  /**
    * The public key for the first token account of the trading pair
    */
   tokenAccountA: PublicKey;
@@ -104,6 +114,8 @@ export class StableSwap {
     tokenProgramId: PublicKey,
     poolToken: PublicKey,
     authority: PublicKey,
+    adminFeeAccountA: PublicKey,
+    adminFeeAccountB: PublicKey,
     tokenAccountA: PublicKey,
     tokenAccountB: PublicKey,
     mintA: PublicKey,
@@ -117,6 +129,8 @@ export class StableSwap {
     this.tokenProgramId = tokenProgramId;
     this.poolToken = poolToken;
     this.authority = authority;
+    this.adminFeeAccountA = adminFeeAccountA;
+    this.adminFeeAccountB = adminFeeAccountB;
     this.tokenAccountA = tokenAccountA;
     this.tokenAccountB = tokenAccountB;
     this.mintA = mintA;
@@ -160,6 +174,8 @@ export class StableSwap {
       [address.toBuffer()],
       programId
     );
+    const adminFeeAccountA = new PublicKey(stableSwapData.adminFeeAccountA);
+    const adminFeeAccountB = new PublicKey(stableSwapData.adminFeeAccountB);
     const tokenAccountA = new PublicKey(stableSwapData.tokenAccountA);
     const tokenAccountB = new PublicKey(stableSwapData.tokenAccountB);
     const poolToken = new PublicKey(stableSwapData.tokenPool);
@@ -185,6 +201,8 @@ export class StableSwap {
       tokenProgramId,
       poolToken,
       authority,
+      adminFeeAccountA,
+      adminFeeAccountB,
       tokenAccountA,
       tokenAccountB,
       mintA,
@@ -279,6 +297,8 @@ export class StableSwap {
       tokenProgramId,
       poolToken,
       authority,
+      adminFeeAccountA,
+      adminFeeAccountB,
       tokenAccountA,
       tokenAccountB,
       mintA,

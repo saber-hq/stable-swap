@@ -7,14 +7,6 @@ use solana_sdk::{
     program_pack::{Pack, Sealed},
 };
 
-/// Fee details after apply fees
-pub struct FeeResult {
-    /// Withdraw or trade fee
-    pub fee: u64,
-    /// Admin withdraw or trade fee
-    pub admin_fee: u64,
-}
-
 /// Fees struct
 #[repr(C)]
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
@@ -38,32 +30,40 @@ pub struct Fees {
 }
 
 impl Fees {
+    /// Apply admin trade fee
+    pub fn admin_trade_fee(&self, fee_amount: u64) -> Option<u64> {
+        Some(
+            fee_amount
+                .checked_mul(self.admin_trade_fee_numerator)?
+                .checked_div(self.admin_trade_fee_denominator)?,
+        )
+    }
+
+    /// Apply admin withdraw fee
+    pub fn admin_withdraw_fee(&self, fee_amount: u64) -> Option<u64> {
+        Some(
+            fee_amount
+                .checked_mul(self.admin_withdraw_fee_numerator)?
+                .checked_div(self.admin_withdraw_fee_denominator)?,
+        )
+    }
+
     /// Apply trade fee to amount
-    pub fn trade_fee(&self, amount: u64) -> Option<FeeResult> {
-        let trade_fee = amount
-            .checked_mul(self.trade_fee_numerator)?
-            .checked_div(self.trade_fee_denominator)?;
-        let admin_fee = trade_fee
-            .checked_mul(self.admin_trade_fee_numerator)?
-            .checked_div(self.admin_trade_fee_denominator)?;
-        Some(FeeResult {
-            fee: trade_fee,
-            admin_fee,
-        })
+    pub fn trade_fee(&self, trade_amount: u64) -> Option<u64> {
+        Some(
+            trade_amount
+                .checked_mul(self.trade_fee_numerator)?
+                .checked_div(self.trade_fee_denominator)?,
+        )
     }
 
     /// Apply withdraw fee to amount
-    pub fn withdraw_fee(&self, amount: u64) -> Option<FeeResult> {
-        let withdraw_fee = amount
-            .checked_mul(self.withdraw_fee_numerator)?
-            .checked_div(self.withdraw_fee_denominator)?;
-        let admin_fee = withdraw_fee
-            .checked_mul(self.admin_withdraw_fee_numerator)?
-            .checked_div(self.admin_withdraw_fee_denominator)?;
-        Some(FeeResult {
-            fee: withdraw_fee,
-            admin_fee,
-        })
+    pub fn withdraw_fee(&self, withdraw_amount: u64) -> Option<u64> {
+        Some(
+            withdraw_amount
+                .checked_mul(self.withdraw_fee_numerator)?
+                .checked_div(self.withdraw_fee_denominator)?,
+        )
     }
 
     /// Compute normalized fee for symmetric/asymmetric for deposits/withdraws
@@ -197,23 +197,28 @@ mod tests {
 
         let trade_amount = 1_000_000_000;
         let expected_trade_fee = trade_amount * trade_fee_numerator / trade_fee_denominator;
+        let trade_fee = fees.trade_fee(trade_amount).unwrap();
+        assert_eq!(trade_fee, expected_trade_fee);
         let expected_admin_trade_fee =
             expected_trade_fee * admin_trade_fee_numerator / admin_trade_fee_denominator;
-        let trade_fee_result = fees.trade_fee(trade_amount).unwrap();
-        assert_eq!(trade_fee_result.fee, expected_trade_fee);
-        assert_eq!(trade_fee_result.admin_fee, expected_admin_trade_fee);
+        assert_eq!(
+            fees.admin_trade_fee(trade_fee).unwrap(),
+            expected_admin_trade_fee
+        );
 
         let withdraw_amount = 100_000_000_000;
         let expected_withdraw_fee =
             withdraw_amount * withdraw_fee_numerator / withdraw_fee_denominator;
+        let withdraw_fee = fees.withdraw_fee(withdraw_amount).unwrap();
+        assert_eq!(withdraw_fee, expected_withdraw_fee);
         let expected_admin_withdraw_fee =
             expected_withdraw_fee * admin_withdraw_fee_numerator / admin_withdraw_fee_denominator;
-        let withdraw_fee_result = fees.withdraw_fee(withdraw_amount).unwrap();
-        assert_eq!(withdraw_fee_result.fee, expected_withdraw_fee);
-        assert_eq!(withdraw_fee_result.admin_fee, expected_admin_withdraw_fee);
+        assert_eq!(
+            fees.admin_withdraw_fee(expected_withdraw_fee).unwrap(),
+            expected_admin_withdraw_fee
+        );
 
         let n_coins = 2;
-
         let adjusted_trade_fee_numerator = trade_fee_numerator * n_coins / (4 * (n_coins - 1));
         let expected_normalized_fee =
             U256::from(trade_amount * adjusted_trade_fee_numerator / trade_fee_denominator);

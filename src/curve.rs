@@ -124,6 +124,7 @@ impl StableSwap {
     /// Solve for y:
     /// y**2 + y * (sum' - (A*n**n - 1) * D / (A * n**n)) = D ** (n + 1) / (n ** (2 * n) * prod' * A)
     /// y**2 + b*y = c
+    #[allow(clippy::many_single_char_names)]
     pub fn compute_y(&self, x: U256, d: U256) -> Option<U256> {
         let ann: U256 = self.amp_factor.checked_mul(N_COINS.into())?; // A * n ** n
 

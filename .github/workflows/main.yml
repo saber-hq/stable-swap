@@ -2,42 +2,42 @@ name: CI
 
 on:
   push:
-    branches: [ master ]
+    branches: [master]
   pull_request:
-    branches: [ master ]
+    branches: [master]
 
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
-    - uses: borales/actions-yarn@v2.0.0
-    - name: Run unit tests
-      run: ./do.sh test -- --nocapture
-    - name: Build
-      run: ./do.sh build
-    - name: Run e2e tests
-      run: ./do.sh e2e-test --silent
+      - uses: actions/checkout@v2
+      - uses: borales/actions-yarn@v2.0.0
+      - name: Clippy
+        run: cargo clippy
+      - name: Run unit tests
+        run: ./do.sh test -- --nocapture
+      - name: Build
+        run: ./do.sh build
+      - name: Run e2e tests
+        run: ./do.sh e2e-test --silent
 
   build-client:
- 
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
-    - uses: borales/actions-yarn@v2.0.0
-    - name: Install deps
-      run: yarn --cwd lib/client install
-    - name: Lint
-      run: |
-        yarn --cwd lib/client prettier -c
-        yarn --cwd lib/client lint
-    - name: Test
-      run: yarn --cwd lib/client test-unit
-    - name: Build
-      run: yarn --cwd lib/client build
+      - uses: actions/checkout@v2
+      - uses: borales/actions-yarn@v2.0.0
+      - name: Install deps
+        run: yarn --cwd lib/client install
+      - name: Lint
+        run: |
+          yarn --cwd lib/client prettier -c
+          yarn --cwd lib/client lint
+      - name: Test
+        run: yarn --cwd lib/client test-unit
+      - name: Build
+        run: yarn --cwd lib/client build

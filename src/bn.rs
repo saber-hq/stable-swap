@@ -1,5 +1,8 @@
 //! Big number types
 
+#![allow(clippy::assign_op_pattern)]
+#![allow(clippy::ptr_offset_with_cast)]
+
 use crate::error::SwapError;
 use std::convert::TryInto;
 use uint::construct_uint;

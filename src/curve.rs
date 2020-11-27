@@ -106,9 +106,7 @@ impl StableSwap {
                 } else {
                     new_balances[i].checked_sub(ideal_balance)?
                 };
-                let fee = U256::from(fees.trade_fee_numerator)
-                    .checked_mul(difference)?
-                    .checked_div(U256::from(fees.trade_fee_denominator))?;
+                let fee = fees.normalized_trade_fee(N_COINS, difference)?;
                 new_balances[i] = new_balances[i].checked_sub(fee)?;
             }
 

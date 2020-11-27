@@ -83,7 +83,7 @@ impl StableSwap {
         swap_amount_a: U256,
         swap_amount_b: U256,
         pool_token_supply: U256,
-        fees: Fees,
+        fees: &Fees,
     ) -> Option<U256> {
         // TODO: Add test
         // Initial invariant
@@ -168,7 +168,7 @@ impl StableSwap {
         pool_token_supply: U256,
         swap_base_amount: U256,  // Same denomination of token to be withdrawn
         swap_quote_amount: U256, // Counter denomination of token to be withdrawn
-        fees: Fees,
+        fees: &Fees,
     ) -> Option<(U256, U256)> {
         let d_0 = self.compute_d(swap_base_amount, swap_quote_amount)?;
         let d_1 = d_0.checked_sub(
@@ -206,7 +206,7 @@ impl StableSwap {
         source_amount: U256,
         swap_source_amount: U256,
         swap_destination_amount: U256,
-        fees: Fees,
+        fees: &Fees,
     ) -> Option<SwapResult> {
         let y = self.compute_y(
             swap_source_amount.checked_add(source_amount)?,
@@ -403,7 +403,7 @@ mod tests {
                 source_amount.into(),
                 swap_source_amount.into(),
                 swap_destination_amount.into(),
-                MODEL_FEES,
+                &MODEL_FEES,
             )
             .unwrap();
         let model = Model::new(
@@ -504,7 +504,7 @@ mod tests {
                 pool_token_supply.into(),
                 swap_base_amount.into(),
                 swap_quote_amount.into(),
-                MODEL_FEES,
+                &MODEL_FEES,
             )
             .unwrap();
         let model = Model::new_with_pool_tokens(

@@ -294,7 +294,7 @@ impl Processor {
                 U256::from(amount_in),
                 U256::from(swap_source_account.amount),
                 U256::from(swap_destination_account.amount),
-                token_swap.fees,
+                &token_swap.fees,
             )
             .ok_or(SwapError::CalculationFailure)?;
         let amount_swapped = U256::to_u64(result.amount_swapped)?;
@@ -368,7 +368,7 @@ impl Processor {
                 U256::from(token_a.amount),
                 U256::from(token_b.amount),
                 U256::from(pool_mint.supply),
-                token_swap.fees,
+                &token_swap.fees,
             )
             .ok_or(SwapError::CalculationFailure)?;
         let mint_amount = U256::to_u64(mint_amount_u256)?;
@@ -550,7 +550,7 @@ impl Processor {
                 U256::from(pool_mint.supply),
                 U256::from(base_token.amount),
                 U256::from(quote_token.amount),
-                token_swap.fees,
+                &token_swap.fees,
             )
             .ok_or(SwapError::CalculationFailure)?;
         let token_amount = U256::to_u64(dy)?;
@@ -3092,7 +3092,7 @@ mod tests {
                     U256::from(a_to_b_amount),
                     U256::from(token_a_amount),
                     U256::from(token_b_amount),
-                    DEFAULT_TEST_FEES,
+                    &DEFAULT_TEST_FEES,
                 )
                 .unwrap();
 
@@ -3147,7 +3147,7 @@ mod tests {
                     U256::from(a_to_b_amount),
                     U256::from(token_b_amount),
                     U256::from(token_a_amount),
-                    DEFAULT_TEST_FEES,
+                    &DEFAULT_TEST_FEES,
                 )
                 .unwrap();
 
@@ -3650,7 +3650,7 @@ mod tests {
                 old_pool_mint.supply.into(),
                 old_swap_token_a.amount.into(),
                 old_swap_token_b.amount.into(),
-                DEFAULT_TEST_FEES,
+                &DEFAULT_TEST_FEES,
             )
             .unwrap();
 

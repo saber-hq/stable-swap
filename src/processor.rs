@@ -3307,7 +3307,7 @@ mod tests {
                 &withdrawer_key,
                 initial_a,
                 initial_b,
-                withdraw_amount / 2,
+                withdraw_amount,
             );
 
             let old_token_b_key = accounts.token_b_key;
@@ -3346,7 +3346,7 @@ mod tests {
                 &withdrawer_key,
                 initial_a,
                 initial_b,
-                withdraw_amount / 2,
+                withdraw_amount,
             );
             let foreign_authority = pubkey_rand();
             let (foreign_mint_key, mut foreign_mint_account) =

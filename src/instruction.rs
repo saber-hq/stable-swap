@@ -128,9 +128,10 @@ pub enum SwapInstruction {
     ///   1. `[]` $authority
     ///   2. `[writable]` Pool mint account, $authority is the owner
     ///   3. `[writable]` SOURCE Pool account, amount is transferable by $authority.
-    ///   5. `[writable]` token Swap Account to withdraw FROM.
-    ///   7. `[writable]` token user Account to credit.
-    ///   8. '[]` Token program id
+    ///   4. `[writable]` base token Swap Account to withdraw FROM.
+    ///   5. `[writable]` quote token Swap Account to exchange to base token.
+    ///   6. `[writable]` base token user Account to credit.
+    ///   7. '[]` Token program id
     WithdrawOne(WithdrawOneData),
 }
 
@@ -430,7 +431,8 @@ pub fn withdraw_one(
     authority_pubkey: &Pubkey,
     pool_mint_pubkey: &Pubkey,
     source_pubkey: &Pubkey,
-    swap_token_pubkey: &Pubkey,
+    base_token_pubkey: &Pubkey,
+    quote_token_pubkey: &Pubkey,
     destination_token_pubkey: &Pubkey,
     pool_token_amount: u64,
     minimum_token_amount: u64,
@@ -446,7 +448,8 @@ pub fn withdraw_one(
         AccountMeta::new(*authority_pubkey, false),
         AccountMeta::new(*pool_mint_pubkey, false),
         AccountMeta::new(*source_pubkey, false),
-        AccountMeta::new(*swap_token_pubkey, false),
+        AccountMeta::new(*base_token_pubkey, false),
+        AccountMeta::new(*quote_token_pubkey, false),
         AccountMeta::new(*destination_token_pubkey, false),
         AccountMeta::new(*token_program_id, false),
     ];

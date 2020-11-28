@@ -397,6 +397,7 @@ pub fn swap(
     swap_source_pubkey: &Pubkey,
     swap_destination_pubkey: &Pubkey,
     destination_pubkey: &Pubkey,
+    admin_fee_destination_pubkey: &Pubkey,
     amount_in: u64,
     minimum_amount_out: u64,
 ) -> Result<Instruction, ProgramError> {
@@ -413,6 +414,7 @@ pub fn swap(
         AccountMeta::new(*swap_source_pubkey, false),
         AccountMeta::new(*swap_destination_pubkey, false),
         AccountMeta::new(*destination_pubkey, false),
+        AccountMeta::new(*admin_fee_destination_pubkey, false),
         AccountMeta::new(*token_program_id, false),
     ];
 

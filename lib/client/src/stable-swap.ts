@@ -364,6 +364,10 @@ export class StableSwap {
     amountIn: number,
     minimumAmountOut: number
   ): Transaction {
+    const adminDestination =
+      poolDestination === this.tokenAccountA
+        ? this.adminFeeAccountA
+        : this.adminFeeAccountB;
     return new Transaction().add(
       instructions.swapInstruction(
         this.stableSwap,
@@ -372,6 +376,7 @@ export class StableSwap {
         poolSource,
         poolDestination,
         userDestination,
+        adminDestination,
         this.swapProgramId,
         this.tokenProgramId,
         amountIn,

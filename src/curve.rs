@@ -13,6 +13,8 @@ pub struct SwapResult {
     pub new_destination_amount: U256,
     /// Amount of destination token swapped
     pub amount_swapped: U256,
+    /// Admin fee for the swap
+    pub admin_fee: U256,
 }
 
 /// The StableSwap invariant calculator.
@@ -214,15 +216,19 @@ impl StableSwap {
         )?;
         let dy = swap_destination_amount.checked_sub(y)?;
         let dy_fee = fees.trade_fee(dy)?;
+        let admin_fee = fees.admin_trade_fee(dy_fee)?;
 
         let amount_swapped = dy.checked_sub(dy_fee)?;
-        let new_destination_amount = swap_destination_amount.checked_sub(amount_swapped)?;
+        let new_destination_amount = swap_destination_amount
+            .checked_sub(amount_swapped)?
+            .checked_sub(admin_fee)?;
         let new_source_amount = swap_source_amount.checked_add(source_amount)?;
 
         Some(SwapResult {
             new_source_amount,
             new_destination_amount,
             amount_swapped,
+            admin_fee,
         })
     }
 }

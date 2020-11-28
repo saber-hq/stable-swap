@@ -263,10 +263,10 @@ impl Processor {
         let swap_source_info = next_account_info(account_info_iter)?;
         let swap_destination_info = next_account_info(account_info_iter)?;
         let destination_info = next_account_info(account_info_iter)?;
+        let admin_destination_info = next_account_info(account_info_iter)?;
         let token_program_info = next_account_info(account_info_iter)?;
 
         let token_swap = SwapInfo::unpack(&swap_info.data.borrow())?;
-
         if *authority_info.key != Self::authority_id(program_id, swap_info.key, token_swap.nonce)? {
             return Err(SwapError::InvalidProgramAddress.into());
         }
@@ -279,6 +279,16 @@ impl Processor {
             || *swap_destination_info.key == token_swap.token_b)
         {
             return Err(SwapError::IncorrectSwapAccount.into());
+        }
+        if *swap_destination_info.key == token_swap.token_a
+            && *admin_destination_info.key != token_swap.admin_fee_account_a
+        {
+            return Err(SwapError::InvalidAdmin.into());
+        }
+        if *swap_destination_info.key == token_swap.token_b
+            && *admin_destination_info.key != token_swap.admin_fee_account_b
+        {
+            return Err(SwapError::InvalidAdmin.into());
         }
         if *swap_source_info.key == *swap_destination_info.key {
             return Err(SwapError::InvalidInput.into());
@@ -319,6 +329,15 @@ impl Processor {
             authority_info.clone(),
             token_swap.nonce,
             amount_swapped,
+        )?;
+        Self::token_transfer(
+            swap_info.key,
+            token_program_info.clone(),
+            swap_destination_info.clone(),
+            admin_destination_info.clone(),
+            authority_info.clone(),
+            token_swap.nonce,
+            U256::to_u64(result.admin_fee)?,
         )?;
         Ok(())
     }
@@ -753,13 +772,13 @@ mod tests {
     /// Fees for testing
     const DEFAULT_TEST_FEES: Fees = Fees {
         admin_trade_fee_numerator: 1,
-        admin_trade_fee_denominator: 1,
+        admin_trade_fee_denominator: 2,
         admin_withdraw_fee_numerator: 1,
-        admin_withdraw_fee_denominator: 1,
+        admin_withdraw_fee_denominator: 2,
         trade_fee_numerator: 6,
         trade_fee_denominator: 100,
-        withdraw_fee_numerator: 1,
-        withdraw_fee_denominator: 1,
+        withdraw_fee_numerator: 6,
+        withdraw_fee_denominator: 100,
     };
 
     struct SwapAccountInfo {
@@ -780,10 +799,10 @@ mod tests {
         token_b_account: Account,
         token_b_mint_key: Pubkey,
         token_b_mint_account: Account,
-        admin_fee_key_a: Pubkey,
-        admin_fee_account_a: Account,
-        admin_fee_key_b: Pubkey,
-        admin_fee_account_b: Account,
+        admin_fee_a_key: Pubkey,
+        admin_fee_a_account: Account,
+        admin_fee_b_key: Pubkey,
+        admin_fee_b_account: Account,
         fees: Fees,
     }
 
@@ -820,7 +839,7 @@ mod tests {
                 &authority_key,
                 token_a_amount,
             );
-            let (admin_fee_key_a, admin_fee_account_a) = mint_token(
+            let (admin_fee_a_key, admin_fee_a_account) = mint_token(
                 &TOKEN_PROGRAM_ID,
                 &token_a_mint_key,
                 &mut token_a_mint_account,
@@ -838,7 +857,7 @@ mod tests {
                 &authority_key,
                 token_b_amount,
             );
-            let (admin_fee_key_b, admin_fee_account_b) = mint_token(
+            let (admin_fee_b_key, admin_fee_b_account) = mint_token(
                 &TOKEN_PROGRAM_ID,
                 &token_b_mint_key,
                 &mut token_b_mint_account,
@@ -865,10 +884,10 @@ mod tests {
                 token_b_account,
                 token_b_mint_key,
                 token_b_mint_account,
-                admin_fee_key_a,
-                admin_fee_account_a,
-                admin_fee_key_b,
-                admin_fee_account_b,
+                admin_fee_a_key,
+                admin_fee_a_account,
+                admin_fee_b_key,
+                admin_fee_b_account,
                 fees,
             }
         }
@@ -884,8 +903,8 @@ mod tests {
                     &self.token_b_key,
                     &self.pool_mint_key,
                     &self.pool_token_key,
-                    &self.admin_fee_key_a,
-                    &self.admin_fee_key_b,
+                    &self.admin_fee_a_key,
+                    &self.admin_fee_b_key,
                     self.nonce,
                     self.amp_factor,
                     self.fees,
@@ -899,8 +918,8 @@ mod tests {
                     &mut self.pool_mint_account,
                     &mut self.pool_token_account,
                     &mut Account::default(),
-                    &mut self.admin_fee_account_a,
-                    &mut self.admin_fee_account_b,
+                    &mut self.admin_fee_a_account,
+                    &mut self.admin_fee_b_account,
                 ],
             )
         }
@@ -945,6 +964,35 @@ mod tests {
                 pool_key,
                 pool_account,
             )
+        }
+
+        fn get_admin_fee_key(&self, account_key: &Pubkey) -> Pubkey {
+            if *account_key == self.token_a_key {
+                return self.admin_fee_a_key;
+            } else if *account_key == self.token_b_key {
+                return self.admin_fee_b_key;
+            }
+            panic!("Could not find matching admin fee account");
+        }
+
+        fn get_admin_fee_account(&self, account_key: &Pubkey) -> &Account {
+            if *account_key == self.admin_fee_a_key {
+                return &self.admin_fee_a_account;
+            } else if *account_key == self.admin_fee_b_key {
+                return &self.admin_fee_b_account;
+            }
+            panic!("Could not find matching admin fee account");
+        }
+
+        fn set_admin_fee_account(&mut self, account_key: &Pubkey, account: Account) {
+            if *account_key == self.admin_fee_a_key {
+                self.admin_fee_a_account = account;
+                return;
+            } else if *account_key == self.admin_fee_b_key {
+                self.admin_fee_b_account = account;
+                return;
+            }
+            panic!("Could not find matching admin fee account");
         }
 
         fn get_token_account(&self, account_key: &Pubkey) -> &Account {
@@ -998,6 +1046,9 @@ mod tests {
             )
             .unwrap();
 
+            let admin_destination_key = self.get_admin_fee_key(swap_destination_key);
+            let mut admin_destination_account =
+                self.get_admin_fee_account(&admin_destination_key).clone();
             let mut swap_source_account = self.get_token_account(swap_source_key).clone();
             let mut swap_destination_account = self.get_token_account(swap_destination_key).clone();
 
@@ -1012,6 +1063,7 @@ mod tests {
                     &swap_source_key,
                     &swap_destination_key,
                     &user_destination_key,
+                    &admin_destination_key,
                     amount_in,
                     minimum_amount_out,
                 )
@@ -1023,10 +1075,12 @@ mod tests {
                     &mut swap_source_account,
                     &mut swap_destination_account,
                     &mut user_destination_account,
+                    &mut admin_destination_account,
                     &mut Account::default(),
                 ],
             )?;
 
+            self.set_admin_fee_account(&admin_destination_key, admin_destination_account);
             self.set_token_account(swap_source_key, swap_source_account);
             self.set_token_account(swap_destination_key, swap_destination_account);
 
@@ -2860,6 +2914,7 @@ mod tests {
                         &accounts.token_a_key,
                         &accounts.token_b_key,
                         &token_b_key,
+                        &accounts.admin_fee_b_key,
                         initial_a,
                         minimum_b_amount,
                     )
@@ -2871,6 +2926,7 @@ mod tests {
                         &mut accounts.token_a_account,
                         &mut accounts.token_b_account,
                         &mut token_b_account,
+                        &mut accounts.admin_fee_b_account,
                         &mut Account::default(),
                     ],
                 ),
@@ -2925,6 +2981,7 @@ mod tests {
                         &token_a_key,
                         &token_b_key,
                         &token_b_key,
+                        &accounts.admin_fee_b_key,
                         initial_a,
                         minimum_b_amount,
                     )
@@ -2936,6 +2993,7 @@ mod tests {
                         &mut token_a_account,
                         &mut token_b_account.clone(),
                         &mut token_b_account,
+                        &mut accounts.admin_fee_b_account,
                         &mut Account::default(),
                     ],
                 ),
@@ -3016,6 +3074,7 @@ mod tests {
                         &accounts.token_a_key,
                         &accounts.token_b_key,
                         &token_b_key,
+                        &accounts.admin_fee_b_key,
                         initial_a,
                         minimum_b_amount,
                     )
@@ -3026,6 +3085,7 @@ mod tests {
                         &mut token_a_account,
                         &mut accounts.token_a_account,
                         &mut accounts.token_b_account,
+                        &mut accounts.admin_fee_b_account,
                         &mut token_b_account,
                         &mut Account::default(),
                     ],
@@ -3087,7 +3147,7 @@ mod tests {
                 .unwrap();
 
             let invariant = StableSwap::new(amp_factor);
-            let results = invariant
+            let result = invariant
                 .swap_to(
                     U256::from(a_to_b_amount),
                     U256::from(token_a_amount),
@@ -3102,7 +3162,7 @@ mod tests {
             assert_eq!(token_a_amount, 5100);
             assert_eq!(
                 token_a_amount,
-                U256::to_u64(results.new_source_amount).unwrap()
+                U256::to_u64(result.new_source_amount).unwrap()
             );
             let token_a = Processor::unpack_token_account(&token_a_account.data).unwrap();
             assert_eq!(token_a.amount, initial_a - a_to_b_amount);
@@ -3110,19 +3170,25 @@ mod tests {
             let swap_token_b =
                 Processor::unpack_token_account(&accounts.token_b_account.data).unwrap();
             let token_b_amount = swap_token_b.amount;
-            assert_eq!(token_b_amount, 4906);
+            assert_eq!(token_b_amount, 4903);
             assert_eq!(
                 token_b_amount,
-                U256::to_u64(results.new_destination_amount).unwrap()
+                U256::to_u64(result.new_destination_amount).unwrap()
             );
             let token_b = Processor::unpack_token_account(&token_b_account.data).unwrap();
             assert_eq!(token_b.amount, 1094);
             assert_eq!(
                 token_b.amount,
-                initial_b + U256::to_u64(results.amount_swapped).unwrap()
+                initial_b + U256::to_u64(result.amount_swapped).unwrap()
+            );
+            let admin_fee_b_account =
+                Processor::unpack_token_account(&accounts.admin_fee_b_account.data).unwrap();
+            assert_eq!(
+                admin_fee_b_account.amount,
+                U256::to_u64(result.admin_fee).unwrap()
             );
 
-            let first_swap_amount = results.amount_swapped;
+            let first_swap_amount = result.amount_swapped;
 
             // swap the other way
             let b_to_a_amount = initial_b / 10;
@@ -3142,9 +3208,9 @@ mod tests {
                 .unwrap();
 
             let invariant = StableSwap::new(amp_factor);
-            let results = invariant
+            let result = invariant
                 .swap_to(
-                    U256::from(a_to_b_amount),
+                    U256::from(b_to_a_amount),
                     U256::from(token_b_amount),
                     U256::from(token_a_amount),
                     &DEFAULT_TEST_FEES,
@@ -3153,30 +3219,36 @@ mod tests {
 
             let swap_token_a =
                 Processor::unpack_token_account(&accounts.token_a_account.data).unwrap();
-            assert_eq!(swap_token_a.amount, 5005);
+            assert_eq!(swap_token_a.amount, 5002);
             assert_eq!(
                 swap_token_a.amount,
-                U256::to_u64(results.new_destination_amount).unwrap()
+                U256::to_u64(result.new_destination_amount).unwrap()
             );
             let token_a = Processor::unpack_token_account(&token_a_account.data).unwrap();
             assert_eq!(token_a.amount, 995);
             assert_eq!(
                 token_a.amount,
-                initial_a - a_to_b_amount + U256::to_u64(results.amount_swapped).unwrap()
+                initial_a - a_to_b_amount + U256::to_u64(result.amount_swapped).unwrap()
             );
 
             let swap_token_b =
                 Processor::unpack_token_account(&accounts.token_b_account.data).unwrap();
-            assert_eq!(swap_token_b.amount, 5006);
+            assert_eq!(swap_token_b.amount, 5003);
             assert_eq!(
                 swap_token_b.amount,
-                U256::to_u64(results.new_source_amount).unwrap()
+                U256::to_u64(result.new_source_amount).unwrap()
             );
             let token_b = Processor::unpack_token_account(&token_b_account.data).unwrap();
             assert_eq!(token_b.amount, 994);
             assert_eq!(
                 token_b.amount,
                 initial_b + U256::to_u64(first_swap_amount).unwrap() - b_to_a_amount
+            );
+            let admin_fee_a_account =
+                Processor::unpack_token_account(&accounts.admin_fee_a_account.data).unwrap();
+            assert_eq!(
+                admin_fee_a_account.amount,
+                U256::to_u64(result.admin_fee).unwrap()
             );
         }
     }

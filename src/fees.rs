@@ -48,7 +48,7 @@ impl Fees {
         )
     }
 
-    /// Apply trade fee to amount
+    /// Compute trade fee from amount
     pub fn trade_fee(&self, trade_amount: U256) -> Option<U256> {
         Some(
             trade_amount
@@ -57,7 +57,7 @@ impl Fees {
         )
     }
 
-    /// Apply withdraw fee to amount
+    /// Compute withdraw fee from amount
     pub fn withdraw_fee(&self, withdraw_amount: U256) -> Option<U256> {
         Some(
             withdraw_amount
@@ -66,7 +66,7 @@ impl Fees {
         )
     }
 
-    /// Compute normalized fee for symmetric/asymmetric for deposits/withdraws
+    /// Compute normalized fee for symmetric/asymmetric deposits/withdraws
     pub fn normalized_trade_fee(&self, n_coins: u64, amount: U256) -> Option<U256> {
         // adjusted_fee_numerator: uint256 = self.fee * N_COINS / (4 * (N_COINS - 1))
         let adjusted_trade_fee_numerator = self

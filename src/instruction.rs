@@ -92,7 +92,8 @@ pub enum SwapInstruction {
     ///   3. `[writable]` token_(A|B) Base Account to swap INTO.  Must be the SOURCE token.
     ///   4. `[writable]` token_(A|B) Base Account to swap FROM.  Must be the DESTINATION token.
     ///   5. `[writable]` token_(A|B) DESTINATION Account assigned to USER as the owner.
-    ///   6. '[]` Token program id
+    ///   6. `[writable]` token_(A|B) admin fee Account. Shares same mint as DESTINATION token.
+    ///   7. '[]` Token program id
     Swap(SwapData),
 
     ///   Deposit some tokens into the pool.  The output is a "pool" token representing ownership
@@ -119,7 +120,9 @@ pub enum SwapInstruction {
     ///   5. `[writable]` token_b Swap Account to withdraw FROM.
     ///   6. `[writable]` token_a user Account to credit.
     ///   7. `[writable]` token_b user Account to credit.
-    ///   8. '[]` Token program id
+    ///   8. `[wrtaible]` admin_fee_a admin fee Account for token_a.
+    ///   9. `[wrtaible]` admin_fee_b admin fee Account for token_b.
+    ///   10. '[]` Token program id
     Withdraw(WithdrawData),
 
     ///   Withdraw one token from the pool at the current ratio.
@@ -357,6 +360,8 @@ pub fn withdraw(
     swap_token_b_pubkey: &Pubkey,
     destination_token_a_pubkey: &Pubkey,
     destination_token_b_pubkey: &Pubkey,
+    admin_fee_a_pubkey: &Pubkey,
+    admin_fee_b_pubkey: &Pubkey,
     pool_token_amount: u64,
     minimum_token_a_amount: u64,
     minimum_token_b_amount: u64,
@@ -377,6 +382,8 @@ pub fn withdraw(
         AccountMeta::new(*swap_token_b_pubkey, false),
         AccountMeta::new(*destination_token_a_pubkey, false),
         AccountMeta::new(*destination_token_b_pubkey, false),
+        AccountMeta::new(*admin_fee_a_pubkey, false),
+        AccountMeta::new(*admin_fee_b_pubkey, false),
         AccountMeta::new(*token_program_id, false),
     ];
 

@@ -443,8 +443,8 @@ impl Processor {
         let token_b_info = next_account_info(account_info_iter)?;
         let dest_token_a_info = next_account_info(account_info_iter)?;
         let dest_token_b_info = next_account_info(account_info_iter)?;
-        // let admin_fee_dest_a_info = next_account_info(account_info_iter)?;
-        // let admin_fee_dest_b_info = next_account_info(account_info_iter)?;
+        let admin_fee_dest_a_info = next_account_info(account_info_iter)?;
+        let admin_fee_dest_b_info = next_account_info(account_info_iter)?;
         let token_program_info = next_account_info(account_info_iter)?;
 
         let token_swap = SwapInfo::unpack(&swap_info.data.borrow())?;
@@ -460,12 +460,12 @@ impl Processor {
         if *pool_mint_info.key != token_swap.pool_mint {
             return Err(SwapError::IncorrectPoolMint.into());
         }
-        // if *admin_fee_dest_a_info.key != token_swap.admin_fee_account_a {
-        //     return Err(SwapError::InvalidAdmin.into());
-        // }
-        // if *admin_fee_dest_b_info.key != token_swap.admin_fee_account_b {
-        //     return Err(SwapError::InvalidAdmin.into());
-        // }
+        if *admin_fee_dest_a_info.key != token_swap.admin_fee_account_a {
+            return Err(SwapError::InvalidAdmin.into());
+        }
+        if *admin_fee_dest_b_info.key != token_swap.admin_fee_account_b {
+            return Err(SwapError::InvalidAdmin.into());
+        }
         let pool_mint = Self::unpack_mint(&pool_mint_info.data.borrow())?;
         if pool_mint.supply == 0 {
             return Err(SwapError::EmptyPool.into());
@@ -474,25 +474,26 @@ impl Processor {
         let token_a = Self::unpack_token_account(&token_a_info.data.borrow())?;
         let token_b = Self::unpack_token_account(&token_b_info.data.borrow())?;
 
-        let pool_token_amount_u256 = U256::from(pool_token_amount);
         let converter = Converter {
             supply: U256::from(pool_mint.supply),
             token_a: U256::from(token_a.amount),
             token_b: U256::from(token_b.amount),
+            fees: &token_swap.fees,
         };
-        let a_amount = U256::to_u64(
-            converter
-                .token_a_rate(pool_token_amount_u256)
-                .ok_or(SwapError::CalculationFailure)?,
-        )?;
+        let pool_token_amount_u256 = U256::from(pool_token_amount);
+        let (a_amount_u256, a_admin_fee_u256) = converter
+            .token_a_rate(pool_token_amount_u256)
+            .ok_or(SwapError::CalculationFailure)?;
+        let a_admin_fee = U256::to_u64(a_admin_fee_u256)?;
+        let a_amount = U256::to_u64(a_amount_u256)?;
         if a_amount < minimum_token_a_amount {
             return Err(SwapError::ExceededSlippage.into());
         }
-        let b_amount = U256::to_u64(
-            converter
-                .token_b_rate(pool_token_amount_u256)
-                .ok_or(SwapError::CalculationFailure)?,
-        )?;
+        let (b_amount_u256, b_admin_fee_u256) = converter
+            .token_b_rate(pool_token_amount_u256)
+            .ok_or(SwapError::CalculationFailure)?;
+        let b_admin_fee = U256::to_u64(b_admin_fee_u256)?;
+        let b_amount = U256::to_u64(b_amount_u256)?;
         if b_amount < minimum_token_b_amount {
             return Err(SwapError::ExceededSlippage.into());
         }
@@ -509,11 +510,29 @@ impl Processor {
         Self::token_transfer(
             swap_info.key,
             token_program_info.clone(),
+            token_a_info.clone(),
+            admin_fee_dest_a_info.clone(),
+            authority_info.clone(),
+            token_swap.nonce,
+            a_admin_fee,
+        )?;
+        Self::token_transfer(
+            swap_info.key,
+            token_program_info.clone(),
             token_b_info.clone(),
             dest_token_b_info.clone(),
             authority_info.clone(),
             token_swap.nonce,
             b_amount,
+        )?;
+        Self::token_transfer(
+            swap_info.key,
+            token_program_info.clone(),
+            token_b_info.clone(),
+            admin_fee_dest_b_info.clone(),
+            authority_info.clone(),
+            token_swap.nonce,
+            b_admin_fee,
         )?;
         Self::token_burn(
             swap_info.key,
@@ -1221,6 +1240,8 @@ mod tests {
                     &self.token_b_key,
                     &token_a_key,
                     &token_b_key,
+                    &self.admin_fee_a_key,
+                    &self.admin_fee_b_key,
                     pool_amount,
                     minimum_a_amount,
                     minimum_b_amount,
@@ -1235,9 +1256,13 @@ mod tests {
                     &mut self.token_b_account,
                     &mut token_a_account,
                     &mut token_b_account,
+                    &mut self.admin_fee_a_account,
+                    &mut self.admin_fee_b_account,
                     &mut Account::default(),
                 ],
-            )
+            )?;
+
+            Ok(())
         }
 
         pub fn withdraw_one(
@@ -2512,6 +2537,8 @@ mod tests {
                         &accounts.token_b_key,
                         &token_a_key,
                         &token_b_key,
+                        &accounts.admin_fee_a_key,
+                        &accounts.admin_fee_b_key,
                         withdraw_amount,
                         minimum_a_amount,
                         minimum_b_amount,
@@ -2526,6 +2553,8 @@ mod tests {
                         &mut accounts.token_b_account,
                         &mut token_a_account,
                         &mut token_b_account,
+                        &mut accounts.admin_fee_a_account,
+                        &mut accounts.admin_fee_b_account,
                         &mut Account::default(),
                     ],
                 )
@@ -2563,6 +2592,8 @@ mod tests {
                         &accounts.token_b_key,
                         &token_a_key,
                         &token_b_key,
+                        &accounts.admin_fee_a_key,
+                        &accounts.admin_fee_b_key,
                         withdraw_amount,
                         minimum_a_amount,
                         minimum_b_amount,
@@ -2577,6 +2608,8 @@ mod tests {
                         &mut accounts.token_b_account,
                         &mut token_a_account,
                         &mut token_b_account,
+                        &mut accounts.admin_fee_a_account,
+                        &mut accounts.admin_fee_b_account,
                         &mut Account::default(),
                     ],
                 )
@@ -2787,22 +2820,19 @@ mod tests {
                 supply: U256::from(pool_mint.supply),
                 token_a: U256::from(swap_token_a.amount),
                 token_b: U256::from(swap_token_b.amount),
+                fees: &DEFAULT_TEST_FEES,
             };
 
-            let withdrawn_a = pool_converter
+            let (withdrawn_a, admin_fee_a) = pool_converter
                 .token_a_rate(U256::from(withdraw_amount))
                 .unwrap();
-            assert_eq!(
-                swap_token_a.amount,
-                token_a_amount - U256::to_u64(withdrawn_a).unwrap()
-            );
-            let withdrawn_b = pool_converter
+            let withrawn_total_a = U256::to_u64(withdrawn_a + admin_fee_a).unwrap();
+            assert_eq!(swap_token_a.amount, token_a_amount - withrawn_total_a);
+            let (withdrawn_b, admin_fee_b) = pool_converter
                 .token_b_rate(U256::from(withdraw_amount))
                 .unwrap();
-            assert_eq!(
-                swap_token_b.amount,
-                token_b_amount - U256::to_u64(withdrawn_b).unwrap()
-            );
+            let withrawn_total_b = U256::to_u64(withdrawn_b + admin_fee_b).unwrap();
+            assert_eq!(swap_token_b.amount, token_b_amount - withrawn_total_b);
             let token_a = Processor::unpack_token_account(&token_a_account.data).unwrap();
             assert_eq!(
                 token_a.amount,
@@ -2815,6 +2845,18 @@ mod tests {
             );
             let pool_account = Processor::unpack_token_account(&pool_account.data).unwrap();
             assert_eq!(pool_account.amount, initial_pool - withdraw_amount);
+            let admin_fee_account_a =
+                Processor::unpack_token_account(&accounts.admin_fee_a_account.data).unwrap();
+            assert_eq!(
+                admin_fee_account_a.amount,
+                U256::to_u64(admin_fee_a).unwrap()
+            );
+            let admin_fee_account_b =
+                Processor::unpack_token_account(&accounts.admin_fee_b_account.data).unwrap();
+            assert_eq!(
+                admin_fee_account_b.amount,
+                U256::to_u64(admin_fee_b).unwrap()
+            );
         }
     }
 

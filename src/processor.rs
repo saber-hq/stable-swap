@@ -466,11 +466,11 @@ impl Processor {
         let token_b = Self::unpack_token_account(&token_b_info.data.borrow())?;
 
         let pool_token_amount_u256 = U256::from(pool_token_amount);
-        let converter = PoolTokenConverter::new(
-            U256::from(pool_mint.supply),
-            U256::from(token_a.amount),
-            U256::from(token_b.amount),
-        );
+        let converter = PoolTokenConverter {
+            supply: U256::from(pool_mint.supply),
+            token_a: U256::from(token_a.amount),
+            token_b: U256::from(token_b.amount),
+        };
         let a_amount = U256::to_u64(
             converter
                 .token_a_rate(pool_token_amount_u256)
@@ -2774,11 +2774,11 @@ mod tests {
             let swap_token_b =
                 Processor::unpack_token_account(&accounts.token_b_account.data).unwrap();
             let pool_mint = Processor::unpack_mint(&accounts.pool_mint_account.data).unwrap();
-            let pool_converter = PoolTokenConverter::new(
-                U256::from(pool_mint.supply),
-                U256::from(swap_token_a.amount),
-                U256::from(swap_token_b.amount),
-            );
+            let pool_converter = PoolTokenConverter {
+                supply: U256::from(pool_mint.supply),
+                token_a: U256::from(swap_token_a.amount),
+                token_b: U256::from(swap_token_b.amount),
+            };
 
             let withdrawn_a = pool_converter
                 .token_a_rate(U256::from(withdraw_amount))

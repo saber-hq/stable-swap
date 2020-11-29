@@ -245,15 +245,6 @@ pub struct PoolTokenConverter {
 }
 
 impl PoolTokenConverter {
-    /// Create a converter based on existing market information
-    pub fn new(supply: U256, token_a: U256, token_b: U256) -> Self {
-        Self {
-            supply,
-            token_a,
-            token_b,
-        }
-    }
-
     /// A tokens for pool tokens
     pub fn token_a_rate(&self, pool_tokens: U256) -> Option<U256> {
         pool_tokens
@@ -293,7 +284,11 @@ mod tests {
         supply: U256,
         expected: Option<U256>,
     ) {
-        let calculator = PoolTokenConverter::new(supply, token_a, token_b);
+        let calculator = PoolTokenConverter {
+            supply,
+            token_a,
+            token_b,
+        };
         assert_eq!(calculator.token_a_rate(deposit), expected);
         assert_eq!(calculator.supply, supply);
     }

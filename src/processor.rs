@@ -627,16 +627,16 @@ impl Processor {
             return Err(SwapError::ExceededSlippage.into());
         }
 
-        let admin_fee = token_swap
+        let admin_trade_fee = token_swap
             .fees
             .admin_trade_fee(dy_fee)
-            .ok_or(SwapError::CalculationFailure)?
-            .checked_add(
-                token_swap
-                    .fees
-                    .admin_withdraw_fee(withdraw_fee)
-                    .ok_or(SwapError::CalculationFailure)?,
-            )
+            .ok_or(SwapError::CalculationFailure)?;
+        let admin_withdraw_fee = token_swap
+            .fees
+            .admin_withdraw_fee(withdraw_fee)
+            .ok_or(SwapError::CalculationFailure)?;
+        let admin_fee = admin_trade_fee
+            .checked_add(admin_withdraw_fee)
             .ok_or(SwapError::CalculationFailure)?;
 
         Self::token_transfer(

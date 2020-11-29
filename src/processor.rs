@@ -3878,6 +3878,45 @@ mod tests {
             );
         }
 
+        // wrong admin account
+        {
+            let (
+                wrong_admin_key,
+                wrong_admin_account,
+                token_b_key,
+                mut token_b_account,
+                pool_key,
+                mut pool_account,
+            ) = accounts.setup_token_accounts(
+                &user_key,
+                &withdrawer_key,
+                initial_a,
+                initial_b,
+                withdraw_amount,
+            );
+
+            let old_admin_a_key = accounts.admin_fee_a_key;
+            let old_admin_a_account = accounts.admin_fee_a_account;
+            accounts.admin_fee_a_key = wrong_admin_key;
+            accounts.admin_fee_a_account = wrong_admin_account;
+
+            assert_eq!(
+                Err(SwapError::InvalidAdmin.into()),
+                accounts.withdraw_one(
+                    &withdrawer_key,
+                    &pool_key,
+                    &mut pool_account,
+                    &token_b_key,
+                    &mut token_b_account,
+                    withdraw_amount,
+                    minimum_amount,
+                )
+            );
+
+            accounts.admin_fee_a_key = old_admin_a_key;
+            accounts.admin_fee_a_account = old_admin_a_account;
+        }
+
         // slippage exceeeded
         {
             let (

@@ -2466,6 +2466,86 @@ mod tests {
             );
         }
 
+        // wrong admin a / b accounts
+        {
+            let (
+                token_a_key,
+                mut token_a_account,
+                token_b_key,
+                mut token_b_account,
+                pool_key,
+                mut pool_account,
+            ) = accounts.setup_token_accounts(
+                &user_key,
+                &withdrawer_key,
+                initial_a,
+                initial_b,
+                withdraw_amount,
+            );
+            let (
+                wrong_admin_a_key,
+                wrong_admin_a_account,
+                wrong_admin_b_key,
+                wrong_admin_b_account,
+                _pool_key,
+                mut _pool_account,
+            ) = accounts.setup_token_accounts(
+                &user_key,
+                &withdrawer_key,
+                initial_a,
+                initial_b,
+                withdraw_amount,
+            );
+
+            let old_admin_a_key = accounts.admin_fee_a_key;
+            let old_admin_a_account = accounts.admin_fee_a_account;
+            accounts.admin_fee_a_key = wrong_admin_a_key;
+            accounts.admin_fee_a_account = wrong_admin_a_account;
+
+            assert_eq!(
+                Err(SwapError::InvalidAdmin.into()),
+                accounts.withdraw(
+                    &withdrawer_key,
+                    &pool_key,
+                    &mut pool_account,
+                    &token_b_key,
+                    &mut token_b_account,
+                    &token_a_key,
+                    &mut token_a_account,
+                    withdraw_amount,
+                    minimum_a_amount,
+                    minimum_b_amount,
+                )
+            );
+
+            accounts.admin_fee_a_key = old_admin_a_key;
+            accounts.admin_fee_a_account = old_admin_a_account;
+
+            let old_admin_b_key = accounts.admin_fee_b_key;
+            let old_admin_b_account = accounts.admin_fee_b_account;
+            accounts.admin_fee_b_key = wrong_admin_b_key;
+            accounts.admin_fee_b_account = wrong_admin_b_account;
+
+            assert_eq!(
+                Err(SwapError::InvalidAdmin.into()),
+                accounts.withdraw(
+                    &withdrawer_key,
+                    &pool_key,
+                    &mut pool_account,
+                    &token_b_key,
+                    &mut token_b_account,
+                    &token_a_key,
+                    &mut token_a_account,
+                    withdraw_amount,
+                    minimum_a_amount,
+                    minimum_b_amount,
+                )
+            );
+
+            accounts.admin_fee_b_key = old_admin_b_key;
+            accounts.admin_fee_b_account = old_admin_b_account;
+        }
+
         // wrong pool token account
         {
             let (
@@ -2483,8 +2563,8 @@ mod tests {
                 withdraw_amount,
             );
             let (
-                wrong_token_a_key,
-                mut wrong_token_a_account,
+                wrong_pool_key,
+                mut wrong_pool_account,
                 _token_b_key,
                 _token_b_account,
                 _pool_key,
@@ -2500,8 +2580,8 @@ mod tests {
                 Err(TokenError::MintMismatch.into()),
                 accounts.withdraw(
                     &withdrawer_key,
-                    &wrong_token_a_key,
-                    &mut wrong_token_a_account,
+                    &wrong_pool_key,
+                    &mut wrong_pool_account,
                     &token_a_key,
                     &mut token_a_account,
                     &token_b_key,
@@ -3045,6 +3125,47 @@ mod tests {
                         &mut token_b_account.clone(),
                         &mut token_b_account,
                         &mut accounts.admin_fee_b_account,
+                        &mut Account::default(),
+                    ],
+                ),
+            );
+        }
+
+        // wrong admin account
+        {
+            let (
+                token_a_key,
+                mut token_a_account,
+                token_b_key,
+                mut token_b_account,
+                wrong_admin_key,
+                mut wrong_admin_account,
+            ) = accounts.setup_token_accounts(&user_key, &swapper_key, initial_a, initial_b, 0);
+            assert_eq!(
+                Err(SwapError::InvalidAdmin.into()),
+                do_process_instruction(
+                    swap(
+                        &SWAP_PROGRAM_ID,
+                        &TOKEN_PROGRAM_ID,
+                        &accounts.swap_key,
+                        &accounts.authority_key,
+                        &token_a_key,
+                        &accounts.token_a_key,
+                        &accounts.token_b_key,
+                        &token_b_key,
+                        &wrong_admin_key,
+                        initial_a,
+                        minimum_b_amount,
+                    )
+                    .unwrap(),
+                    vec![
+                        &mut accounts.swap_account,
+                        &mut Account::default(),
+                        &mut token_a_account,
+                        &mut accounts.token_a_account,
+                        &mut accounts.token_b_account,
+                        &mut token_b_account,
+                        &mut wrong_admin_account,
                         &mut Account::default(),
                     ],
                 ),

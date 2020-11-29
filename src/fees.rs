@@ -32,38 +32,30 @@ pub struct Fees {
 impl Fees {
     /// Apply admin trade fee
     pub fn admin_trade_fee(&self, fee_amount: U256) -> Option<U256> {
-        Some(
-            fee_amount
-                .checked_mul(self.admin_trade_fee_numerator.into())?
-                .checked_div(self.admin_trade_fee_denominator.into())?,
-        )
+        fee_amount
+            .checked_mul(self.admin_trade_fee_numerator.into())?
+            .checked_div(self.admin_trade_fee_denominator.into())
     }
 
     /// Apply admin withdraw fee
     pub fn admin_withdraw_fee(&self, fee_amount: U256) -> Option<U256> {
-        Some(
-            fee_amount
-                .checked_mul(self.admin_withdraw_fee_numerator.into())?
-                .checked_div(self.admin_withdraw_fee_denominator.into())?,
-        )
+        fee_amount
+            .checked_mul(self.admin_withdraw_fee_numerator.into())?
+            .checked_div(self.admin_withdraw_fee_denominator.into())
     }
 
     /// Compute trade fee from amount
     pub fn trade_fee(&self, trade_amount: U256) -> Option<U256> {
-        Some(
-            trade_amount
-                .checked_mul(self.trade_fee_numerator.into())?
-                .checked_div(self.trade_fee_denominator.into())?,
-        )
+        trade_amount
+            .checked_mul(self.trade_fee_numerator.into())?
+            .checked_div(self.trade_fee_denominator.into())
     }
 
     /// Compute withdraw fee from amount
     pub fn withdraw_fee(&self, withdraw_amount: U256) -> Option<U256> {
-        Some(
-            withdraw_amount
-                .checked_mul(self.withdraw_fee_numerator.into())?
-                .checked_div(self.withdraw_fee_denominator.into())?,
-        )
+        withdraw_amount
+            .checked_mul(self.withdraw_fee_numerator.into())?
+            .checked_div(self.withdraw_fee_denominator.into())
     }
 
     /// Compute normalized fee for symmetric/asymmetric deposits/withdraws
@@ -73,10 +65,10 @@ impl Fees {
             .trade_fee_numerator
             .checked_mul(n_coins)?
             .checked_div((n_coins.checked_sub(1)?).checked_mul(4)?)?; // XXX: Why divide by 4?
-        let fee = amount
+
+        amount
             .checked_mul(adjusted_trade_fee_numerator.into())?
-            .checked_div(self.trade_fee_denominator.into())?;
-        Some(fee)
+            .checked_div(self.trade_fee_denominator.into())
     }
 }
 

@@ -8,8 +8,8 @@ import { Fees } from "./fees";
 export const createInitSwapInstruction = (
   tokenSwapAccount: Account,
   authority: PublicKey,
-  adminFeeAcountA: PublicKey,
-  adminFeeAcountB: PublicKey,
+  adminFeeAccountA: PublicKey,
+  adminFeeAccountB: PublicKey,
   tokenAccountA: PublicKey,
   tokenAccountB: PublicKey,
   poolTokenMint: PublicKey,
@@ -28,8 +28,8 @@ export const createInitSwapInstruction = (
     { pubkey: poolTokenMint, isSigner: false, isWritable: true },
     { pubkey: poolTokenAccount, isSigner: false, isWritable: true },
     { pubkey: tokenProgramId, isSigner: false, isWritable: false },
-    { pubkey: adminFeeAcountA, isSigner: false, isWritable: false },
-    { pubkey: adminFeeAcountB, isSigner: false, isWritable: false },
+    { pubkey: adminFeeAccountA, isSigner: false, isWritable: false },
+    { pubkey: adminFeeAccountB, isSigner: false, isWritable: false },
   ];
   const dataLayout = BufferLayout.struct([
     BufferLayout.u8("instruction"),
@@ -188,6 +188,8 @@ export const withdrawInstruction = (
   fromB: PublicKey,
   userAccountA: PublicKey,
   userAccountB: PublicKey,
+  adminFeeAccountA: PublicKey,
+  adminFeeAccountB: PublicKey,
   swapProgramId: PublicKey,
   tokenProgramId: PublicKey,
   poolTokenAmount: number | NumberU64,
@@ -221,6 +223,8 @@ export const withdrawInstruction = (
     { pubkey: fromB, isSigner: false, isWritable: true },
     { pubkey: userAccountA, isSigner: false, isWritable: true },
     { pubkey: userAccountB, isSigner: false, isWritable: true },
+    { pubkey: adminFeeAccountA, isSigner: false, isWritable: true },
+    { pubkey: adminFeeAccountB, isSigner: false, isWritable: true },
     { pubkey: tokenProgramId, isSigner: false, isWritable: false },
   ];
   return new TransactionInstruction({

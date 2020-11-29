@@ -448,6 +448,8 @@ export class StableSwap {
         this.tokenAccountB,
         userAccountA,
         userAccountB,
+        this.adminFeeAccountA,
+        this.adminFeeAccountB,
         this.swapProgramId,
         this.tokenProgramId,
         poolTokenAmount,

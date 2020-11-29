@@ -10,7 +10,7 @@ use crate::{
     instruction::{
         DepositData, InitializeData, SwapData, SwapInstruction, WithdrawData, WithdrawOneData,
     },
-    pool_converter::Converter,
+    pool_converter::PoolTokenConverter,
     state::SwapInfo,
 };
 use num_traits::FromPrimitive;
@@ -474,7 +474,7 @@ impl Processor {
         let token_a = Self::unpack_token_account(&token_a_info.data.borrow())?;
         let token_b = Self::unpack_token_account(&token_b_info.data.borrow())?;
 
-        let converter = Converter {
+        let converter = PoolTokenConverter {
             supply: U256::from(pool_mint.supply),
             token_a: U256::from(token_a.amount),
             token_b: U256::from(token_b.amount),
@@ -484,16 +484,20 @@ impl Processor {
         let (a_amount_u256, a_admin_fee_u256) = converter
             .token_a_rate(pool_token_amount_u256)
             .ok_or(SwapError::CalculationFailure)?;
-        let a_admin_fee = U256::to_u64(a_admin_fee_u256)?;
-        let a_amount = U256::to_u64(a_amount_u256)?;
+        let (a_amount, a_admin_fee) = (
+            U256::to_u64(a_amount_u256)?,
+            U256::to_u64(a_admin_fee_u256)?,
+        );
         if a_amount < minimum_token_a_amount {
             return Err(SwapError::ExceededSlippage.into());
         }
         let (b_amount_u256, b_admin_fee_u256) = converter
             .token_b_rate(pool_token_amount_u256)
             .ok_or(SwapError::CalculationFailure)?;
-        let b_admin_fee = U256::to_u64(b_admin_fee_u256)?;
-        let b_amount = U256::to_u64(b_amount_u256)?;
+        let (b_amount, b_admin_fee) = (
+            U256::to_u64(b_amount_u256)?,
+            U256::to_u64(b_admin_fee_u256)?,
+        );
         if b_amount < minimum_token_b_amount {
             return Err(SwapError::ExceededSlippage.into());
         }
@@ -2937,7 +2941,7 @@ mod tests {
             let swap_token_b =
                 Processor::unpack_token_account(&accounts.token_b_account.data).unwrap();
             let pool_mint = Processor::unpack_mint(&accounts.pool_mint_account.data).unwrap();
-            let pool_converter = Converter {
+            let pool_converter = PoolTokenConverter {
                 supply: U256::from(pool_mint.supply),
                 token_a: U256::from(swap_token_a.amount),
                 token_b: U256::from(swap_token_b.amount),

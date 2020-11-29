@@ -3,7 +3,7 @@ use crate::{bn::U256, fees::Fees};
 
 /// Converter to determine how much to deposit / withdraw, along with
 /// proper initialization
-pub struct Converter<'a> {
+pub struct PoolTokenConverter<'a> {
     /// Total supply
     pub supply: U256,
     /// Token A amount
@@ -14,7 +14,7 @@ pub struct Converter<'a> {
     pub fees: &'a Fees,
 }
 
-impl Converter<'_> {
+impl PoolTokenConverter<'_> {
     /// A tokens for pool tokens
     pub fn token_a_rate(&self, pool_tokens: U256) -> Option<(U256, U256)> {
         let amount = pool_tokens
@@ -59,7 +59,7 @@ mod tests {
             withdraw_fee_numerator: 1,
             withdraw_fee_denominator: 2,
         };
-        let calculator = Converter {
+        let calculator = PoolTokenConverter {
             supply,
             token_a,
             token_b,

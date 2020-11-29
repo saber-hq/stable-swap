@@ -14,42 +14,27 @@ pub struct Converter<'a> {
     pub fees: &'a Fees,
 }
 
-/// Encodes results of pool token shares converted to token_a or token_b
-#[derive(Debug, PartialEq)]
-pub struct ConvertResult {
-    /// Token amount after conversion
-    pub amount: U256,
-    /// Admin fee for withdraw
-    pub admin_fee: U256,
-}
-
 impl Converter<'_> {
     /// A tokens for pool tokens
-    pub fn token_a_rate(&self, pool_tokens: U256) -> Option<ConvertResult> {
+    pub fn token_a_rate(&self, pool_tokens: U256) -> Option<(U256, U256)> {
         let amount = pool_tokens
             .checked_mul(self.token_a)?
             .checked_div(self.supply)?;
         let fee = self.fees.withdraw_fee(amount)?;
         let admin_fee = self.fees.admin_withdraw_fee(fee)?;
 
-        Some(ConvertResult {
-            amount: amount.checked_sub(fee)?,
-            admin_fee,
-        })
+        Some((amount.checked_sub(fee)?, admin_fee))
     }
 
     /// B tokens for pool tokens
-    pub fn token_b_rate(&self, pool_tokens: U256) -> Option<ConvertResult> {
+    pub fn token_b_rate(&self, pool_tokens: U256) -> Option<(U256, U256)> {
         let amount = pool_tokens
             .checked_mul(self.token_b)?
             .checked_div(self.supply)?;
         let fee = self.fees.withdraw_fee(amount)?;
         let admin_fee = self.fees.admin_withdraw_fee(fee)?;
 
-        Some(ConvertResult {
-            amount: amount.checked_sub(fee)?,
-            admin_fee,
-        })
+        Some((amount.checked_sub(fee)?, admin_fee))
     }
 }
 
@@ -80,14 +65,11 @@ mod tests {
             token_b,
             fees: &fees,
         };
-        let expected_result: Option<ConvertResult> = if expected_before_fees.is_some() {
+        let expected_result = if expected_before_fees.is_some() {
             let expected_fees = fees.withdraw_fee(expected_before_fees.unwrap()).unwrap();
             let expected_admin_fees = fees.admin_withdraw_fee(expected_fees).unwrap();
             let expected_amount = expected_before_fees.unwrap() - expected_fees;
-            Some(ConvertResult {
-                amount: expected_amount,
-                admin_fee: expected_admin_fees,
-            })
+            Some((expected_amount, expected_admin_fees))
         } else {
             None
         };

@@ -561,6 +561,7 @@ impl Processor {
         let base_token_info = next_account_info(account_info_iter)?;
         let quote_token_info = next_account_info(account_info_iter)?;
         let destination_info = next_account_info(account_info_iter)?;
+        let admin_destination_info = next_account_info(account_info_iter)?;
         let token_program_info = next_account_info(account_info_iter)?;
 
         if *base_token_info.key == *quote_token_info.key {
@@ -579,6 +580,16 @@ impl Processor {
         {
             return Err(SwapError::IncorrectSwapAccount.into());
         }
+        if *base_token_info.key == token_swap.token_a
+            && *admin_destination_info.key != token_swap.admin_fee_account_a
+        {
+            return Err(SwapError::InvalidAdmin.into());
+        }
+        if *base_token_info.key == token_swap.token_b
+            && *admin_destination_info.key != token_swap.admin_fee_account_b
+        {
+            return Err(SwapError::InvalidAdmin.into());
+        }
         if *pool_mint_info.key != token_swap.pool_mint {
             return Err(SwapError::IncorrectPoolMint.into());
         }
@@ -591,7 +602,7 @@ impl Processor {
         let quote_token = Self::unpack_token_account(&quote_token_info.data.borrow())?;
 
         let invariant = StableSwap::new(token_swap.amp_factor);
-        let (dy, _dy_fee) = invariant
+        let (dy, dy_fee) = invariant
             .compute_withdraw_one(
                 U256::from(pool_token_amount),
                 U256::from(pool_mint.supply),
@@ -600,10 +611,29 @@ impl Processor {
                 &token_swap.fees,
             )
             .ok_or(SwapError::CalculationFailure)?;
-        let token_amount = U256::to_u64(dy)?;
+        let withdraw_fee = token_swap
+            .fees
+            .withdraw_fee(dy)
+            .ok_or(SwapError::CalculationFailure)?;
+        let token_amount = U256::to_u64(
+            dy.checked_sub(withdraw_fee)
+                .ok_or(SwapError::CalculationFailure)?,
+        )?;
         if token_amount < minimum_token_amount {
             return Err(SwapError::ExceededSlippage.into());
         }
+
+        let admin_fee = token_swap
+            .fees
+            .admin_trade_fee(dy_fee)
+            .ok_or(SwapError::CalculationFailure)?
+            .checked_add(
+                token_swap
+                    .fees
+                    .admin_withdraw_fee(withdraw_fee)
+                    .ok_or(SwapError::CalculationFailure)?,
+            )
+            .ok_or(SwapError::CalculationFailure)?;
 
         Self::token_transfer(
             swap_info.key,
@@ -613,6 +643,15 @@ impl Processor {
             authority_info.clone(),
             token_swap.nonce,
             token_amount,
+        )?;
+        Self::token_transfer(
+            swap_info.key,
+            token_program_info.clone(),
+            base_token_info.clone(),
+            admin_destination_info.clone(),
+            authority_info.clone(),
+            token_swap.nonce,
+            U256::to_u64(admin_fee)?,
         )?;
         Self::token_burn(
             swap_info.key,
@@ -1306,6 +1345,7 @@ mod tests {
                     &self.token_a_key,
                     &self.token_b_key,
                     &dest_token_key,
+                    &self.admin_fee_a_key,
                     pool_amount,
                     minimum_amount,
                 )
@@ -1318,6 +1358,7 @@ mod tests {
                     &mut self.token_a_account,
                     &mut self.token_b_account,
                     &mut dest_token_account,
+                    &mut self.admin_fee_a_account,
                     &mut Account::default(),
                 ],
             )
@@ -3696,6 +3737,7 @@ mod tests {
                         &accounts.token_a_key,
                         &accounts.token_b_key,
                         &token_a_key,
+                        &accounts.admin_fee_a_key,
                         withdraw_amount,
                         minimum_amount,
                     )
@@ -3708,6 +3750,7 @@ mod tests {
                         &mut accounts.token_a_account,
                         &mut accounts.token_b_account,
                         &mut token_a_account,
+                        &mut accounts.admin_fee_a_account,
                         &mut Account::default(),
                     ],
                 )
@@ -3744,6 +3787,7 @@ mod tests {
                         &accounts.token_a_key,
                         &accounts.token_b_key,
                         &token_a_key,
+                        &accounts.admin_fee_a_key,
                         withdraw_amount,
                         minimum_amount,
                     )
@@ -3756,6 +3800,7 @@ mod tests {
                         &mut accounts.token_a_account,
                         &mut accounts.token_b_account,
                         &mut token_a_account,
+                        &mut accounts.admin_fee_a_account,
                         &mut Account::default(),
                     ],
                 )
@@ -3888,7 +3933,7 @@ mod tests {
         let old_pool_mint = Processor::unpack_mint(&accounts.pool_mint_account.data).unwrap();
 
         let invariant = StableSwap::new(amp_factor);
-        let (expected_withdraw_one_amount, _) = invariant
+        let (withdraw_one_amount_before_fees, withdraw_one_trade_fee) = invariant
             .compute_withdraw_one(
                 withdraw_amount.into(),
                 old_pool_mint.supply.into(),
@@ -3897,6 +3942,20 @@ mod tests {
                 &DEFAULT_TEST_FEES,
             )
             .unwrap();
+        let withdraw_one_withdraw_fee = DEFAULT_TEST_FEES
+            .withdraw_fee(withdraw_one_amount_before_fees)
+            .unwrap();
+        let expected_withdraw_one_amount =
+            withdraw_one_amount_before_fees - withdraw_one_withdraw_fee;
+        let expected_admin_fee = U256::to_u64(
+            DEFAULT_TEST_FEES
+                .admin_trade_fee(withdraw_one_trade_fee)
+                .unwrap()
+                + DEFAULT_TEST_FEES
+                    .admin_withdraw_fee(withdraw_one_withdraw_fee)
+                    .unwrap(),
+        )
+        .unwrap();
 
         accounts
             .withdraw_one(
@@ -3911,14 +3970,16 @@ mod tests {
             .unwrap();
 
         let swap_token_a = Processor::unpack_token_account(&accounts.token_a_account.data).unwrap();
-        let swap_token_b = Processor::unpack_token_account(&accounts.token_b_account.data).unwrap();
-        let pool_mint = Processor::unpack_mint(&accounts.pool_mint_account.data).unwrap();
-
         assert_eq!(
-            old_swap_token_a.amount - swap_token_a.amount,
+            old_swap_token_a.amount - swap_token_a.amount - expected_admin_fee,
             U256::to_u64(expected_withdraw_one_amount).unwrap()
         );
+        let admin_fee_account_a =
+            Processor::unpack_token_account(&accounts.admin_fee_a_account.data).unwrap();
+        assert_eq!(admin_fee_account_a.amount, expected_admin_fee);
+        let swap_token_b = Processor::unpack_token_account(&accounts.token_b_account.data).unwrap();
         assert_eq!(swap_token_b.amount, old_swap_token_b.amount);
+        let pool_mint = Processor::unpack_mint(&accounts.pool_mint_account.data).unwrap();
         assert_eq!(pool_mint.supply, old_pool_mint.supply - withdraw_amount);
     }
 }

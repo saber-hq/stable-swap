@@ -92,7 +92,7 @@ pub enum SwapInstruction {
     ///   3. `[writable]` token_(A|B) Base Account to swap INTO.  Must be the SOURCE token.
     ///   4. `[writable]` token_(A|B) Base Account to swap FROM.  Must be the DESTINATION token.
     ///   5. `[writable]` token_(A|B) DESTINATION Account assigned to USER as the owner.
-    ///   6. `[writable]` token_(A|B) admin fee Account. Shares same mint as DESTINATION token.
+    ///   6. `[writable]` token_(A|B) admin fee Account. Must have same mint as DESTINATION token.
     ///   7. '[]` Token program id
     Swap(SwapData),
 
@@ -131,10 +131,11 @@ pub enum SwapInstruction {
     ///   1. `[]` $authority
     ///   2. `[writable]` Pool mint account, $authority is the owner
     ///   3. `[writable]` SOURCE Pool account, amount is transferable by $authority.
-    ///   4. `[writable]` base token Swap Account to withdraw FROM.
-    ///   5. `[writable]` quote token Swap Account to exchange to base token.
-    ///   6. `[writable]` base token user Account to credit.
-    ///   7. '[]` Token program id
+    ///   4. `[writable]` token_(A|B) BASE token Swap Account to withdraw FROM.
+    ///   5. `[writable]` token_(A|B) QUOTE token Swap Account to exchange to base token.
+    ///   6. `[writable]` token_(A|B) BASE token user Account to credit.
+    ///   7. `[writable]` token_(A|B) admin fee Account. Must have same mint as BASE token.
+    ///   8. '[]` Token program id
     WithdrawOne(WithdrawOneData),
 }
 
@@ -440,9 +441,10 @@ pub fn withdraw_one(
     authority_pubkey: &Pubkey,
     pool_mint_pubkey: &Pubkey,
     source_pubkey: &Pubkey,
-    base_token_pubkey: &Pubkey,
-    quote_token_pubkey: &Pubkey,
-    destination_token_pubkey: &Pubkey,
+    swap_base_token_pubkey: &Pubkey,
+    swap_quote_token_pubkey: &Pubkey,
+    base_destination_pubkey: &Pubkey,
+    admin_fee_destination_pubkey: &Pubkey,
     pool_token_amount: u64,
     minimum_token_amount: u64,
 ) -> Result<Instruction, ProgramError> {
@@ -457,9 +459,10 @@ pub fn withdraw_one(
         AccountMeta::new(*authority_pubkey, false),
         AccountMeta::new(*pool_mint_pubkey, false),
         AccountMeta::new(*source_pubkey, false),
-        AccountMeta::new(*base_token_pubkey, false),
-        AccountMeta::new(*quote_token_pubkey, false),
-        AccountMeta::new(*destination_token_pubkey, false),
+        AccountMeta::new(*swap_base_token_pubkey, false),
+        AccountMeta::new(*swap_quote_token_pubkey, false),
+        AccountMeta::new(*base_destination_pubkey, false),
+        AccountMeta::new(*admin_fee_destination_pubkey, false),
         AccountMeta::new(*token_program_id, false),
     ];
 

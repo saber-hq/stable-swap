@@ -13,6 +13,8 @@ pub struct SwapResult {
     pub new_destination_amount: U256,
     /// Amount of destination token swapped
     pub amount_swapped: U256,
+    /// Admin fee for the swap
+    pub admin_fee: U256,
 }
 
 /// The StableSwap invariant calculator.
@@ -83,7 +85,7 @@ impl StableSwap {
         swap_amount_a: U256,
         swap_amount_b: U256,
         pool_token_supply: U256,
-        fees: Fees,
+        fees: &Fees,
     ) -> Option<U256> {
         // TODO: Add test
         // Initial invariant
@@ -106,9 +108,7 @@ impl StableSwap {
                 } else {
                     new_balances[i].checked_sub(ideal_balance)?
                 };
-                let fee = U256::from(fees.trade_fee_numerator)
-                    .checked_mul(difference)?
-                    .checked_div(U256::from(fees.trade_fee_denominator))?;
+                let fee = fees.normalized_trade_fee(N_COINS, difference)?;
                 new_balances[i] = new_balances[i].checked_sub(fee)?;
             }
 
@@ -170,8 +170,7 @@ impl StableSwap {
         pool_token_supply: U256,
         swap_base_amount: U256,  // Same denomination of token to be withdrawn
         swap_quote_amount: U256, // Counter denomination of token to be withdrawn
-        fee_numerator: U256,
-        fee_denominator: U256,
+        fees: &Fees,
     ) -> Option<(U256, U256)> {
         let d_0 = self.compute_d(swap_base_amount, swap_quote_amount)?;
         let d_1 = d_0.checked_sub(
@@ -181,11 +180,6 @@ impl StableSwap {
         )?;
         let new_y = self.compute_y(swap_quote_amount, d_1)?;
 
-        // Adjust fee so that it is the same as swap trade fee
-        // fee = fee_numerator * n_coins / (4 * (n_coins - 1));     // XXX: Why divide by 4?
-        let fee = fee_numerator
-            .checked_mul(N_COINS.into())?
-            .checked_div((4 * (N_COINS - 1)).into())?;
         // expected_base_amount = swap_base_amount * d_1 / d_0 - new_y;
         let expected_base_amount = swap_base_amount
             .checked_mul(d_1)?
@@ -195,17 +189,11 @@ impl StableSwap {
         let expected_quote_amount =
             swap_quote_amount.checked_sub(swap_quote_amount.checked_mul(d_1)?.checked_div(d_0)?)?;
         // new_base_amount = swap_base_amount - expected_base_amount * fee / fee_denominator;
-        let new_base_amount = swap_base_amount.checked_sub(
-            expected_base_amount
-                .checked_mul(fee)?
-                .checked_div(fee_denominator)?,
-        )?;
+        let new_base_amount = swap_base_amount
+            .checked_sub(fees.normalized_trade_fee(N_COINS, expected_base_amount)?)?;
         // new_quote_amount = swap_quote_amount - expected_quote_amount * fee / fee_denominator;
-        let new_quote_amount = swap_quote_amount.checked_sub(
-            expected_quote_amount
-                .checked_mul(fee)?
-                .checked_div(fee_denominator)?,
-        )?;
+        let new_quote_amount = swap_quote_amount
+            .checked_sub(fees.normalized_trade_fee(N_COINS, expected_quote_amount)?)?;
         let dy = new_base_amount
             .checked_sub(self.compute_y(new_quote_amount, d_1)?)?
             .checked_sub(1.into())?; // Withdraw less to account for rounding errors
@@ -220,63 +208,28 @@ impl StableSwap {
         source_amount: U256,
         swap_source_amount: U256,
         swap_destination_amount: U256,
-        fee_numerator: U256,
-        fee_denominator: U256,
+        fees: &Fees,
     ) -> Option<SwapResult> {
         let y = self.compute_y(
             swap_source_amount.checked_add(source_amount)?,
             self.compute_d(swap_source_amount, swap_destination_amount)?,
         )?;
         let dy = swap_destination_amount.checked_sub(y)?;
-        let dy_fee = dy
-            .checked_mul(fee_numerator)?
-            .checked_div(fee_denominator)?;
+        let dy_fee = fees.trade_fee(dy)?;
+        let admin_fee = fees.admin_trade_fee(dy_fee)?;
 
         let amount_swapped = dy.checked_sub(dy_fee)?;
-        let new_destination_amount = swap_destination_amount.checked_sub(amount_swapped)?;
+        let new_destination_amount = swap_destination_amount
+            .checked_sub(amount_swapped)?
+            .checked_sub(admin_fee)?;
         let new_source_amount = swap_source_amount.checked_add(source_amount)?;
 
         Some(SwapResult {
             new_source_amount,
             new_destination_amount,
             amount_swapped,
+            admin_fee,
         })
-    }
-}
-
-/// Conversions for pool tokens, how much to deposit / withdraw, along with
-/// proper initialization
-pub struct PoolTokenConverter {
-    /// Total supply
-    pub supply: U256,
-    /// Token A amount
-    pub token_a: U256,
-    /// Token B amount
-    pub token_b: U256,
-}
-
-impl PoolTokenConverter {
-    /// Create a converter based on existing market information
-    pub fn new(supply: U256, token_a: U256, token_b: U256) -> Self {
-        Self {
-            supply,
-            token_a,
-            token_b,
-        }
-    }
-
-    /// A tokens for pool tokens
-    pub fn token_a_rate(&self, pool_tokens: U256) -> Option<U256> {
-        pool_tokens
-            .checked_mul(self.token_a)?
-            .checked_div(self.supply)
-    }
-
-    /// B tokens for pool tokens
-    pub fn token_b_rate(&self, pool_tokens: U256) -> Option<U256> {
-        pool_tokens
-            .checked_mul(self.token_b)?
-            .checked_div(self.supply)
     }
 }
 
@@ -286,26 +239,16 @@ mod tests {
     use rand::Rng;
     use sim::{Model, MODEL_FEE_DENOMINATOR, MODEL_FEE_NUMERATOR};
 
-    fn check_pool_token_a_rate(
-        token_a: U256,
-        token_b: U256,
-        deposit: U256,
-        supply: U256,
-        expected: Option<U256>,
-    ) {
-        let calculator = PoolTokenConverter::new(supply, token_a, token_b);
-        assert_eq!(calculator.token_a_rate(deposit), expected);
-        assert_eq!(calculator.supply, supply);
-    }
-
-    #[test]
-    fn issued_tokens() {
-        check_pool_token_a_rate(2.into(), 50.into(), 5.into(), 10.into(), Some(1.into()));
-        check_pool_token_a_rate(10.into(), 10.into(), 5.into(), 10.into(), Some(5.into()));
-        check_pool_token_a_rate(5.into(), 100.into(), 5.into(), 10.into(), Some(2.into()));
-        check_pool_token_a_rate(5.into(), U256::MAX, 5.into(), 10.into(), Some(2.into()));
-        check_pool_token_a_rate(U256::MAX, U256::MAX, 5.into(), 10.into(), None);
-    }
+    const MODEL_FEES: Fees = Fees {
+        admin_trade_fee_numerator: 0,
+        admin_trade_fee_denominator: 1,
+        admin_withdraw_fee_numerator: 0,
+        admin_withdraw_fee_denominator: 1,
+        trade_fee_numerator: MODEL_FEE_NUMERATOR,
+        trade_fee_denominator: MODEL_FEE_DENOMINATOR,
+        withdraw_fee_numerator: 0,
+        withdraw_fee_denominator: 1,
+    };
 
     fn check_d(model: &Model, amount_a: u64, amount_b: u64) -> U256 {
         let swap = StableSwap {
@@ -409,8 +352,7 @@ mod tests {
                 source_amount.into(),
                 swap_source_amount.into(),
                 swap_destination_amount.into(),
-                MODEL_FEE_NUMERATOR.into(),
-                MODEL_FEE_DENOMINATOR.into(),
+                &MODEL_FEES,
             )
             .unwrap();
         let model = Model::new(
@@ -511,8 +453,7 @@ mod tests {
                 pool_token_supply.into(),
                 swap_base_amount.into(),
                 swap_quote_amount.into(),
-                MODEL_FEE_NUMERATOR.into(),
-                MODEL_FEE_DENOMINATOR.into(),
+                &MODEL_FEES,
             )
             .unwrap();
         let model = Model::new_with_pool_tokens(

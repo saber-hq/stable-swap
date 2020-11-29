@@ -8,6 +8,7 @@ pub mod entrypoint;
 pub mod error;
 pub mod fees;
 pub mod instruction;
+pub mod pool_converter;
 pub mod processor;
 pub mod state;
 

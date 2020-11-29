@@ -97,6 +97,8 @@ const run = async () => {
   console.log("Owner KP: ", owner.secretKey.toString());
   console.log("MintA: ", mintA.publicKey.toString());
   console.log("MintB: ", mintB.publicKey.toString());
+  console.log("FeeAccountA: ", newSwap.adminFeeAccountA.toString());
+  console.log("FeeAccountB: ", newSwap.adminFeeAccountB.toString());
   console.log("Address: ", newSwap.stableSwap.toString());
   console.log("ProgramID: ", newSwap.swapProgramId.toString());
 };

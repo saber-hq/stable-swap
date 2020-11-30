@@ -810,7 +810,10 @@ impl PrintProgramError for SwapError {
             SwapError::ExceededSlippage => {
                 info!("Error: Swap instruction exceeds desired slippage limit")
             }
-            SwapError::ConversionFailure => info!("Error: Conversion to or from u64 failed."),
+            SwapError::ConversionFailure => info!("Error: Conversion to or from u64 failed"),
+            SwapError::Unauthorized => {
+                info!("Error: Account is not authorized to execute this instruction")
+            }
         }
     }
 }

@@ -1,22 +1,21 @@
 //! Module for processing admin-only instructions.
 
-use crate::{error::SwapError, fees::Fees, state::SwapInfo};
+use crate::{fees::Fees, instruction::SwapInstruction, state::SwapInfo};
 use solana_sdk::{account_info::AccountInfo, entrypoint::ProgramResult, pubkey::Pubkey};
 
 /// Process admin instruction
-pub fn process_admin_instruction() -> ProgramResult {
-    unimplemented!("process_admin_instruction not implemented");
+pub fn process_admin_instruction(
+    _instruction: SwapInstruction,
+    _program_id: &Pubkey,
+    _accounts: &AccountInfo,
+    _input: &[u8],
+) -> ProgramResult {
+    unimplemented!("process_admin_instruction not implemened")
 }
 
 /// Access control for admin only instructions
-fn is_admin(expected_admin_key: &Pubkey, admin_account_info: &AccountInfo) -> ProgramResult {
-    if expected_admin_key != admin_account_info.key {
-        return Err(SwapError::Unauthorized.into());
-    }
-    if !admin_account_info.is_signer {
-        return Err(SwapError::Unauthorized.into());
-    }
-    Ok(())
+fn is_admin(_expected_admin_key: &Pubkey, _admin_account_info: &AccountInfo) -> ProgramResult {
+    unimplemented!("is_admin not implemented")
 }
 
 /// Ramp to future a

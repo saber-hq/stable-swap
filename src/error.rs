@@ -64,6 +64,9 @@ pub enum SwapError {
     /// ConversionFailure
     #[error("Conversion to u64 failed with an overflow or underflow")]
     ConversionFailure,
+    /// Unauthorized
+    #[error("Account is not authorized to execute this instruction")]
+    Unauthorized,
 }
 impl From<SwapError> for ProgramError {
     fn from(e: SwapError) -> Self {

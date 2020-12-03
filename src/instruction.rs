@@ -71,6 +71,110 @@ pub struct WithdrawOneData {
     pub minimum_token_amount: u64,
 }
 
+/// RampA instruction data
+#[repr(C)]
+#[derive(Clone, Debug, PartialEq)]
+pub struct RampAData {
+    /// Amp. Coefficient to ramp to
+    pub future_amp: u64,
+    /// Unix timestamp to stop ramp
+    pub stop_ramp_ts: i64,
+}
+
+/// Admin only instructions.
+#[repr(C)]
+#[derive(Debug, PartialEq)]
+pub enum AdminInstruction {
+    /// TODO: Docs
+    RampA(RampAData),
+    /// TODO: Docs
+    StopRampA,
+    /// TODO: Docs
+    Pause,
+    /// TODO: Docs
+    Unpause,
+    /// TODO: Docs
+    SetFeeAccountA,
+    /// TODO: Docs
+    SetFeeAccountB,
+    /// TODO: Docs
+    ApplyNewAdmin,
+    /// TODO: Docs
+    CommitNewAdmin,
+    /// TODO: Docs
+    RevertNewAdmin,
+    /// TODO: Docs
+    ApplyNewFees,
+    /// TODO: Docs
+    CommitNewFees(Fees),
+    /// TODO: Docs
+    RevertNewFees,
+}
+
+impl AdminInstruction {
+    /// Unpacks a byte buffer into a [AdminInstruction](enum.AdminInstruction.html).
+    pub fn unpack(input: &[u8]) -> Result<Option<Self>, ProgramError> {
+        let (&tag, rest) = input.split_first().ok_or(SwapError::InvalidInstruction)?;
+        Ok(match tag {
+            100 => {
+                let (future_amp, rest) = unpack_u64(rest)?;
+                let (stop_ramp_ts, _rest) = unpack_i64(rest)?;
+                Some(Self::RampA(RampAData {
+                    future_amp,
+                    stop_ramp_ts,
+                }))
+            }
+            101 => Some(Self::StopRampA),
+            102 => Some(Self::Pause),
+            103 => Some(Self::Unpause),
+            104 => Some(Self::SetFeeAccountA),
+            105 => Some(Self::SetFeeAccountB),
+            106 => Some(Self::ApplyNewAdmin),
+            107 => Some(Self::CommitNewAdmin),
+            108 => Some(Self::RevertNewAdmin),
+            109 => Some(Self::ApplyNewFees),
+            110 => {
+                let fees = Fees::unpack_unchecked(rest)?;
+                Some(Self::CommitNewFees(fees))
+            }
+            111 => Some(Self::RevertNewFees),
+            _ => None,
+        })
+    }
+
+    /// Packs a [AdminInstruction](enum.AdminInstruciton.html) into a byte buffer.
+    pub fn pack(&self) -> Vec<u8> {
+        let mut buf = Vec::with_capacity(size_of::<Self>());
+        match *self {
+            Self::RampA(RampAData {
+                future_amp,
+                stop_ramp_ts,
+            }) => {
+                buf.push(100);
+                buf.extend_from_slice(&future_amp.to_le_bytes());
+                buf.extend_from_slice(&stop_ramp_ts.to_le_bytes());
+            }
+            Self::StopRampA => buf.push(101),
+            Self::Pause => buf.push(102),
+            Self::Unpause => buf.push(103),
+            Self::SetFeeAccountA => buf.push(104),
+            Self::SetFeeAccountB => buf.push(105),
+            Self::ApplyNewAdmin => buf.push(106),
+            Self::CommitNewAdmin => buf.push(107),
+            Self::RevertNewAdmin => buf.push(108),
+            Self::ApplyNewFees => buf.push(109),
+            Self::CommitNewFees(fees) => {
+                buf.push(110);
+                let mut fees_slice = [0u8; Fees::LEN];
+                Pack::pack_into_slice(&fees, &mut fees_slice[..]);
+                buf.extend_from_slice(&fees_slice);
+            }
+            Self::RevertNewFees => buf.push(111),
+        }
+        buf
+    }
+}
+
 /// Instructions supported by the SwapInfo program.
 #[repr(C)]
 #[derive(Debug, PartialEq)]
@@ -146,7 +250,7 @@ impl SwapInstruction {
         Ok(match tag {
             0 => {
                 let (&nonce, rest) = rest.split_first().ok_or(SwapError::InvalidInstruction)?;
-                let (amp_factor, rest) = Self::unpack_u64(rest)?;
+                let (amp_factor, rest) = unpack_u64(rest)?;
                 let fees = Fees::unpack_unchecked(rest)?;
                 Self::Initialize(InitializeData {
                     nonce,
@@ -155,17 +259,17 @@ impl SwapInstruction {
                 })
             }
             1 => {
-                let (amount_in, rest) = Self::unpack_u64(rest)?;
-                let (minimum_amount_out, _rest) = Self::unpack_u64(rest)?;
+                let (amount_in, rest) = unpack_u64(rest)?;
+                let (minimum_amount_out, _rest) = unpack_u64(rest)?;
                 Self::Swap(SwapData {
                     amount_in,
                     minimum_amount_out,
                 })
             }
             2 => {
-                let (token_a_amount, rest) = Self::unpack_u64(rest)?;
-                let (token_b_amount, rest) = Self::unpack_u64(rest)?;
-                let (min_mint_amount, _rest) = Self::unpack_u64(rest)?;
+                let (token_a_amount, rest) = unpack_u64(rest)?;
+                let (token_b_amount, rest) = unpack_u64(rest)?;
+                let (min_mint_amount, _rest) = unpack_u64(rest)?;
                 Self::Deposit(DepositData {
                     token_a_amount,
                     token_b_amount,
@@ -173,9 +277,9 @@ impl SwapInstruction {
                 })
             }
             3 => {
-                let (pool_token_amount, rest) = Self::unpack_u64(rest)?;
-                let (minimum_token_a_amount, rest) = Self::unpack_u64(rest)?;
-                let (minimum_token_b_amount, _rest) = Self::unpack_u64(rest)?;
+                let (pool_token_amount, rest) = unpack_u64(rest)?;
+                let (minimum_token_a_amount, rest) = unpack_u64(rest)?;
+                let (minimum_token_b_amount, _rest) = unpack_u64(rest)?;
                 Self::Withdraw(WithdrawData {
                     pool_token_amount,
                     minimum_token_a_amount,
@@ -183,8 +287,8 @@ impl SwapInstruction {
                 })
             }
             4 => {
-                let (pool_token_amount, rest) = Self::unpack_u64(rest)?;
-                let (minimum_token_amount, _rest) = Self::unpack_u64(rest)?;
+                let (pool_token_amount, rest) = unpack_u64(rest)?;
+                let (minimum_token_amount, _rest) = unpack_u64(rest)?;
                 Self::WithdrawOne(WithdrawOneData {
                     pool_token_amount,
                     minimum_token_amount,
@@ -192,20 +296,6 @@ impl SwapInstruction {
             }
             _ => return Err(SwapError::InvalidInstruction.into()),
         })
-    }
-
-    fn unpack_u64(input: &[u8]) -> Result<(u64, &[u8]), ProgramError> {
-        if input.len() >= 8 {
-            let (amount, rest) = input.split_at(8);
-            let amount = amount
-                .get(..8)
-                .and_then(|slice| slice.try_into().ok())
-                .map(u64::from_le_bytes)
-                .ok_or(SwapError::InvalidInstruction)?;
-            Ok((amount, rest))
-        } else {
-            Err(SwapError::InvalidInstruction.into())
-        }
     }
 
     /// Packs a [SwapInstruction](enum.SwapInstruction.html) into a byte buffer.
@@ -473,6 +563,34 @@ pub fn withdraw_one(
     })
 }
 
+fn unpack_i64(input: &[u8]) -> Result<(i64, &[u8]), ProgramError> {
+    if input.len() >= 8 {
+        let (amount, rest) = input.split_at(8);
+        let amount = amount
+            .get(..8)
+            .and_then(|slice| slice.try_into().ok())
+            .map(i64::from_le_bytes)
+            .ok_or(SwapError::InvalidInstruction)?;
+        Ok((amount, rest))
+    } else {
+        Err(SwapError::InvalidInstruction.into())
+    }
+}
+
+fn unpack_u64(input: &[u8]) -> Result<(u64, &[u8]), ProgramError> {
+    if input.len() >= 8 {
+        let (amount, rest) = input.split_at(8);
+        let amount = amount
+            .get(..8)
+            .and_then(|slice| slice.try_into().ok())
+            .map(u64::from_le_bytes)
+            .ok_or(SwapError::InvalidInstruction)?;
+        Ok((amount, rest))
+    } else {
+        Err(SwapError::InvalidInstruction.into())
+    }
+}
+
 /// Unpacks a reference from a bytes buffer.
 /// TODO actually pack / unpack instead of relying on normal memory layout.
 pub fn unpack<T>(input: &[u8]) -> Result<&T, ProgramError> {
@@ -489,7 +607,126 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_instruction_packing() {
+    fn test_admin_instruction_packing() {
+        let future_amp = 100;
+        let stop_ramp_ts = i64::MAX;
+        let check = AdminInstruction::RampA(RampAData {
+            future_amp,
+            stop_ramp_ts,
+        });
+        let packed = check.pack();
+        let mut expect = vec![];
+        expect.push(100 as u8);
+        expect.extend_from_slice(&future_amp.to_le_bytes());
+        expect.extend_from_slice(&stop_ramp_ts.to_le_bytes());
+        assert_eq!(packed, expect);
+        let unpacked = AdminInstruction::unpack(&expect).unwrap();
+        assert_eq!(unpacked, Some(check));
+
+        let check = AdminInstruction::StopRampA;
+        let packed = check.pack();
+        let mut expect = vec![];
+        expect.push(101 as u8);
+        assert_eq!(packed, expect);
+        let unpacked = AdminInstruction::unpack(&expect).unwrap();
+        assert_eq!(unpacked, Some(check));
+
+        let check = AdminInstruction::Pause;
+        let packed = check.pack();
+        let mut expect = vec![];
+        expect.push(102 as u8);
+        assert_eq!(packed, expect);
+        let unpacked = AdminInstruction::unpack(&expect).unwrap();
+        assert_eq!(unpacked, Some(check));
+
+        let check = AdminInstruction::Unpause;
+        let packed = check.pack();
+        let mut expect = vec![];
+        expect.push(103 as u8);
+        assert_eq!(packed, expect);
+        let unpacked = AdminInstruction::unpack(&expect).unwrap();
+        assert_eq!(unpacked, Some(check));
+
+        let check = AdminInstruction::SetFeeAccountA;
+        let packed = check.pack();
+        let mut expect = vec![];
+        expect.push(104 as u8);
+        assert_eq!(packed, expect);
+        let unpacked = AdminInstruction::unpack(&expect).unwrap();
+        assert_eq!(unpacked, Some(check));
+
+        let check = AdminInstruction::SetFeeAccountB;
+        let packed = check.pack();
+        let mut expect = vec![];
+        expect.push(105 as u8);
+        assert_eq!(packed, expect);
+        let unpacked = AdminInstruction::unpack(&expect).unwrap();
+        assert_eq!(unpacked, Some(check));
+
+        let check = AdminInstruction::ApplyNewAdmin;
+        let packed = check.pack();
+        let mut expect = vec![];
+        expect.push(106 as u8);
+        assert_eq!(packed, expect);
+        let unpacked = AdminInstruction::unpack(&expect).unwrap();
+        assert_eq!(unpacked, Some(check));
+
+        let check = AdminInstruction::CommitNewAdmin;
+        let packed = check.pack();
+        let mut expect = vec![];
+        expect.push(107 as u8);
+        assert_eq!(packed, expect);
+        let unpacked = AdminInstruction::unpack(&expect).unwrap();
+        assert_eq!(unpacked, Some(check));
+
+        let check = AdminInstruction::RevertNewAdmin;
+        let packed = check.pack();
+        let mut expect = vec![];
+        expect.push(108 as u8);
+        assert_eq!(packed, expect);
+        let unpacked = AdminInstruction::unpack(&expect).unwrap();
+        assert_eq!(unpacked, Some(check));
+
+        let check = AdminInstruction::ApplyNewFees;
+        let packed = check.pack();
+        let mut expect = vec![];
+        expect.push(109 as u8);
+        assert_eq!(packed, expect);
+        let unpacked = AdminInstruction::unpack(&expect).unwrap();
+        assert_eq!(unpacked, Some(check));
+
+        let new_fees = Fees {
+            admin_trade_fee_numerator: 1,
+            admin_trade_fee_denominator: 2,
+            admin_withdraw_fee_numerator: 3,
+            admin_withdraw_fee_denominator: 4,
+            trade_fee_numerator: 5,
+            trade_fee_denominator: 6,
+            withdraw_fee_numerator: 7,
+            withdraw_fee_denominator: 8,
+        };
+        let check = AdminInstruction::CommitNewFees(new_fees);
+        let packed = check.pack();
+        let mut expect = vec![];
+        expect.push(110 as u8);
+        let mut new_fees_slice = [0u8; Fees::LEN];
+        new_fees.pack_into_slice(&mut new_fees_slice[..]);
+        expect.extend_from_slice(&new_fees_slice);
+        assert_eq!(packed, expect);
+        let unpacked = AdminInstruction::unpack(&expect).unwrap();
+        assert_eq!(unpacked, Some(check));
+
+        let check = AdminInstruction::RevertNewFees;
+        let packed = check.pack();
+        let mut expect = vec![];
+        expect.push(111 as u8);
+        assert_eq!(packed, expect);
+        let unpacked = AdminInstruction::unpack(&expect).unwrap();
+        assert_eq!(unpacked, Some(check));
+    }
+
+    #[test]
+    fn test_swap_instruction_packing() {
         let nonce: u8 = 255;
         let amp_factor: u64 = 0;
         let fees = Fees {
@@ -578,5 +815,7 @@ mod tests {
         expect.extend_from_slice(&pool_token_amount.to_le_bytes());
         expect.extend_from_slice(&minimum_token_amount.to_le_bytes());
         assert_eq!(packed, expect);
+        let unpacked = SwapInstruction::unpack(&expect).unwrap();
+        assert_eq!(unpacked, check);
     }
 }

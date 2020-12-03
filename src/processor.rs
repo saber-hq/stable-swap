@@ -3,12 +3,14 @@
 #![cfg(feature = "program")]
 
 use crate::{
+    admin::process_admin_instruction,
     bn::U256,
     curve::StableSwap,
     error::SwapError,
     fees::Fees,
     instruction::{
-        DepositData, InitializeData, SwapData, SwapInstruction, WithdrawData, WithdrawOneData,
+        AdminInstruction, DepositData, InitializeData, SwapData, SwapInstruction, WithdrawData,
+        WithdrawOneData,
     },
     pool_converter::PoolTokenConverter,
     state::SwapInfo,
@@ -671,6 +673,20 @@ impl Processor {
 
     /// Processes an [Instruction](enum.Instruction.html).
     pub fn process(program_id: &Pubkey, accounts: &[AccountInfo], input: &[u8]) -> ProgramResult {
+        let instruction = AdminInstruction::unpack(input)?;
+        match instruction {
+            None => Self::process_swap_instruction(program_id, accounts, input),
+            Some(admin_instruction) => {
+                process_admin_instruction(&admin_instruction, program_id, accounts)
+            }
+        }
+    }
+
+    fn process_swap_instruction(
+        program_id: &Pubkey,
+        accounts: &[AccountInfo],
+        input: &[u8],
+    ) -> ProgramResult {
         let instruction = SwapInstruction::unpack(input)?;
         match instruction {
             SwapInstruction::Initialize(InitializeData {
@@ -810,7 +826,10 @@ impl PrintProgramError for SwapError {
             SwapError::ExceededSlippage => {
                 info!("Error: Swap instruction exceeds desired slippage limit")
             }
-            SwapError::ConversionFailure => info!("Error: Conversion to or from u64 failed."),
+            SwapError::ConversionFailure => info!("Error: Conversion to or from u64 failed"),
+            SwapError::Unauthorized => {
+                info!("Error: Account is not authorized to execute this instruction")
+            }
         }
     }
 }

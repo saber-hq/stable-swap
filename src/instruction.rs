@@ -71,6 +71,24 @@ pub struct WithdrawOneData {
     pub minimum_token_amount: u64,
 }
 
+/// RampA instruction data
+#[repr(C)]
+#[derive(Clone, Debug, PartialEq)]
+pub struct RampAData {
+    /// Amp. Coefficient to ramp to
+    pub future_amp: u64,
+    /// Timestamp to stop ramp
+    pub future_time: u64,
+}
+
+/// Commit new fees instruction data
+#[repr(C)]
+#[derive(Clone, Debug, PartialEq)]
+pub struct CommitNewFeesData {
+    /// New fees to commit
+    pub fees: Fees,
+}
+
 /// Instructions supported by the SwapInfo program.
 #[repr(C)]
 #[derive(Debug, PartialEq)]
@@ -137,6 +155,32 @@ pub enum SwapInstruction {
     ///   7. `[writable]` token_(A|B) admin fee Account. Must have same mint as BASE token.
     ///   8. '[]` Token program id
     WithdrawOne(WithdrawOneData),
+
+    /* Admin Only Instructions */
+    /// TODO: Docs
+    RampA(RampAData),
+    /// TODO: Docs
+    StopRampA(),
+    /// TODO: Docs
+    Pause(),
+    /// TODO: Docs
+    Unpause(),
+    /// TODO: Docs
+    SetFeeAccountA(),
+    /// TODO: Docs
+    SetFeeAccountB(),
+    /// TODO: Docs
+    ApplyNewAdmin(),
+    /// TODO: Docs
+    CommitNewAdmin(),
+    /// TODO: Docs
+    RevertNewAdmin(),
+    /// TODO: Docs
+    ApplyNewFees(),
+    /// TODO: Docs
+    CommitNewFees(CommitNewFeesData),
+    /// TODO: Docs
+    RevertNewFees(),
 }
 
 impl SwapInstruction {
@@ -190,6 +234,27 @@ impl SwapInstruction {
                     minimum_token_amount,
                 })
             }
+            5 => {
+                let (future_amp, rest) = Self::unpack_u64(rest)?;
+                let (future_time, _rest) = Self::unpack_u64(rest)?;
+                Self::RampA(RampAData {
+                    future_amp,
+                    future_time,
+                })
+            }
+            6 => Self::StopRampA(),
+            7 => Self::Pause(),
+            8 => Self::SetFeeAccountA(),
+            9 => Self::SetFeeAccountB(),
+            10 => Self::ApplyNewAdmin(),
+            11 => Self::CommitNewAdmin(),
+            12 => Self::RevertNewAdmin(),
+            13 => Self::ApplyNewFees(),
+            14 => {
+                let fees = Fees::unpack_unchecked(rest)?;
+                Self::CommitNewFees(CommitNewFeesData { fees })
+            }
+            15 => Self::RevertNewFees(),
             _ => return Err(SwapError::InvalidInstruction.into()),
         })
     }
@@ -260,6 +325,30 @@ impl SwapInstruction {
                 buf.extend_from_slice(&pool_token_amount.to_le_bytes());
                 buf.extend_from_slice(&minimum_token_amount.to_le_bytes());
             }
+            Self::RampA(RampAData {
+                future_amp,
+                future_time,
+            }) => {
+                buf.push(5);
+                buf.extend_from_slice(&future_amp.to_le_bytes());
+                buf.extend_from_slice(&future_time.to_le_bytes());
+            }
+            Self::StopRampA() => buf.push(6),
+            Self::Pause() => buf.push(7),
+            Self::Unpause() => buf.push(8),
+            Self::SetFeeAccountA() => buf.push(9),
+            Self::SetFeeAccountB() => buf.push(10),
+            Self::ApplyNewAdmin() => buf.push(11),
+            Self::CommitNewAdmin() => buf.push(12),
+            Self::RevertNewAdmin() => buf.push(13),
+            Self::ApplyNewFees() => buf.push(14),
+            Self::CommitNewFees(CommitNewFeesData { fees }) => {
+                buf.push(15);
+                let mut fees_slice = [0u8; Fees::LEN];
+                Pack::pack_into_slice(&fees, &mut fees_slice[..]);
+                buf.extend_from_slice(&fees_slice);
+            }
+            Self::RevertNewFees() => buf.push(16),
         }
         buf
     }

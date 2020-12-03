@@ -7,7 +7,7 @@ use solana_sdk::{account_info::AccountInfo, entrypoint::ProgramResult, pubkey::P
 pub fn process_admin_instruction(
     _instruction: SwapInstruction,
     _program_id: &Pubkey,
-    _accounts: &AccountInfo,
+    _accounts: &[AccountInfo],
     _input: &[u8],
 ) -> ProgramResult {
     unimplemented!("process_admin_instruction not implemened")
@@ -64,7 +64,7 @@ fn revert_new_admin(_swap_state: &SwapInfo, _new_admin: &Pubkey) -> ProgramResul
 }
 
 /// Apply new fees
-fn apply_new_fees(_swap_state: &SwapInfo, _new_fees: Fees) -> ProgramResult {
+fn apply_new_fees(_swap_state: &SwapInfo) -> ProgramResult {
     unimplemented!("apply_new_fees not implemented");
 }
 
@@ -74,6 +74,6 @@ fn commit_new_fees(_swap_state: &SwapInfo, _new_fees: Fees) -> ProgramResult {
 }
 
 /// Revert new fees
-fn revert_new_fees(_swap_state: &SwapInfo, _new_fees: Fees) -> ProgramResult {
+fn revert_new_fees(_swap_state: &SwapInfo) -> ProgramResult {
     unimplemented!("set_new_fees not implemented");
 }

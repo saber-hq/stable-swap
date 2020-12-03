@@ -3,6 +3,7 @@
 #![cfg(feature = "program")]
 
 use crate::{
+    admin::process_admin_instruction,
     bn::U256,
     curve::StableSwap,
     error::SwapError,
@@ -728,6 +729,7 @@ impl Processor {
                     accounts,
                 )
             }
+            _ => process_admin_instruction(instruction, program_id, accounts, input),
         }
     }
 }

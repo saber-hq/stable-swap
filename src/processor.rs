@@ -9,7 +9,8 @@ use crate::{
     error::SwapError,
     fees::Fees,
     instruction::{
-        DepositData, InitializeData, SwapData, SwapInstruction, WithdrawData, WithdrawOneData,
+        AdminInstruction, DepositData, InitializeData, SwapData, SwapInstruction, WithdrawData,
+        WithdrawOneData,
     },
     pool_converter::PoolTokenConverter,
     state::SwapInfo,
@@ -672,6 +673,20 @@ impl Processor {
 
     /// Processes an [Instruction](enum.Instruction.html).
     pub fn process(program_id: &Pubkey, accounts: &[AccountInfo], input: &[u8]) -> ProgramResult {
+        let instruction = AdminInstruction::unpack(input)?;
+        match instruction {
+            None => Self::process_swap_instruction(program_id, accounts, input),
+            Some(admin_instruction) => {
+                process_admin_instruction(&admin_instruction, program_id, accounts)
+            }
+        }
+    }
+
+    fn process_swap_instruction(
+        program_id: &Pubkey,
+        accounts: &[AccountInfo],
+        input: &[u8],
+    ) -> ProgramResult {
         let instruction = SwapInstruction::unpack(input)?;
         match instruction {
             SwapInstruction::Initialize(InitializeData {
@@ -729,7 +744,6 @@ impl Processor {
                     accounts,
                 )
             }
-            _ => process_admin_instruction(instruction, program_id, accounts, input),
         }
     }
 }

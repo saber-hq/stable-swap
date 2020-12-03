@@ -81,12 +81,98 @@ pub struct RampAData {
     pub future_time: u64,
 }
 
-/// Commit new fees instruction data
+/// Admin only instructions.
 #[repr(C)]
-#[derive(Clone, Debug, PartialEq)]
-pub struct CommitNewFeesData {
-    /// New fees to commit
-    pub fees: Fees,
+#[derive(Debug, PartialEq)]
+pub enum AdminInstruction {
+    /// TODO: Docs
+    RampA(RampAData),
+    /// TODO: Docs
+    StopRampA,
+    /// TODO: Docs
+    Pause,
+    /// TODO: Docs
+    Unpause,
+    /// TODO: Docs
+    SetFeeAccountA,
+    /// TODO: Docs
+    SetFeeAccountB,
+    /// TODO: Docs
+    ApplyNewAdmin,
+    /// TODO: Docs
+    CommitNewAdmin,
+    /// TODO: Docs
+    RevertNewAdmin,
+    /// TODO: Docs
+    ApplyNewFees,
+    /// TODO: Docs
+    CommitNewFees(Fees),
+    /// TODO: Docs
+    RevertNewFees,
+}
+
+impl AdminInstruction {
+    /// Unpacks a byte buffer into a [AdminInstruction](enum.AdminInstruction.html).
+    pub fn unpack(input: &[u8]) -> Result<Option<Self>, ProgramError> {
+        let (&tag, rest) = input.split_first().ok_or(SwapError::InvalidInstruction)?;
+        Ok(match tag {
+            100 => {
+                let (future_amp, rest) = unpack_u64(rest)?;
+                let (future_time, _rest) = unpack_u64(rest)?;
+                Some(Self::RampA(RampAData {
+                    future_amp,
+                    future_time,
+                }))
+            }
+            101 => Some(Self::StopRampA),
+            102 => Some(Self::Pause),
+            103 => Some(Self::Unpause),
+            104 => Some(Self::SetFeeAccountA),
+            105 => Some(Self::SetFeeAccountB),
+            106 => Some(Self::ApplyNewAdmin),
+            107 => Some(Self::CommitNewAdmin),
+            108 => Some(Self::RevertNewAdmin),
+            109 => Some(Self::ApplyNewFees),
+            110 => {
+                let fees = Fees::unpack_unchecked(rest)?;
+                Some(Self::CommitNewFees(fees))
+            }
+            111 => Some(Self::RevertNewFees),
+            _ => None,
+        })
+    }
+
+    /// Packs a [AdminInstruction](enum.AdminInstruciton.html) into a byte buffer.
+    pub fn pack(&self) -> Vec<u8> {
+        let mut buf = Vec::with_capacity(size_of::<Self>());
+        match *self {
+            Self::RampA(RampAData {
+                future_amp,
+                future_time,
+            }) => {
+                buf.push(100);
+                buf.extend_from_slice(&future_amp.to_le_bytes());
+                buf.extend_from_slice(&future_time.to_le_bytes());
+            }
+            Self::StopRampA => buf.push(101),
+            Self::Pause => buf.push(102),
+            Self::Unpause => buf.push(103),
+            Self::SetFeeAccountA => buf.push(104),
+            Self::SetFeeAccountB => buf.push(105),
+            Self::ApplyNewAdmin => buf.push(106),
+            Self::CommitNewAdmin => buf.push(107),
+            Self::RevertNewAdmin => buf.push(108),
+            Self::ApplyNewFees => buf.push(109),
+            Self::CommitNewFees(fees) => {
+                buf.push(110);
+                let mut fees_slice = [0u8; Fees::LEN];
+                Pack::pack_into_slice(&fees, &mut fees_slice[..]);
+                buf.extend_from_slice(&fees_slice);
+            }
+            Self::RevertNewFees => buf.push(111),
+        }
+        buf
+    }
 }
 
 /// Instructions supported by the SwapInfo program.
@@ -155,32 +241,6 @@ pub enum SwapInstruction {
     ///   7. `[writable]` token_(A|B) admin fee Account. Must have same mint as BASE token.
     ///   8. '[]` Token program id
     WithdrawOne(WithdrawOneData),
-
-    /* Admin Only Instructions */
-    /// TODO: Docs
-    RampA(RampAData),
-    /// TODO: Docs
-    StopRampA(),
-    /// TODO: Docs
-    Pause(),
-    /// TODO: Docs
-    Unpause(),
-    /// TODO: Docs
-    SetFeeAccountA(),
-    /// TODO: Docs
-    SetFeeAccountB(),
-    /// TODO: Docs
-    ApplyNewAdmin(),
-    /// TODO: Docs
-    CommitNewAdmin(),
-    /// TODO: Docs
-    RevertNewAdmin(),
-    /// TODO: Docs
-    ApplyNewFees(),
-    /// TODO: Docs
-    CommitNewFees(CommitNewFeesData),
-    /// TODO: Docs
-    RevertNewFees(),
 }
 
 impl SwapInstruction {
@@ -190,7 +250,7 @@ impl SwapInstruction {
         Ok(match tag {
             0 => {
                 let (&nonce, rest) = rest.split_first().ok_or(SwapError::InvalidInstruction)?;
-                let (amp_factor, rest) = Self::unpack_u64(rest)?;
+                let (amp_factor, rest) = unpack_u64(rest)?;
                 let fees = Fees::unpack_unchecked(rest)?;
                 Self::Initialize(InitializeData {
                     nonce,
@@ -199,17 +259,17 @@ impl SwapInstruction {
                 })
             }
             1 => {
-                let (amount_in, rest) = Self::unpack_u64(rest)?;
-                let (minimum_amount_out, _rest) = Self::unpack_u64(rest)?;
+                let (amount_in, rest) = unpack_u64(rest)?;
+                let (minimum_amount_out, _rest) = unpack_u64(rest)?;
                 Self::Swap(SwapData {
                     amount_in,
                     minimum_amount_out,
                 })
             }
             2 => {
-                let (token_a_amount, rest) = Self::unpack_u64(rest)?;
-                let (token_b_amount, rest) = Self::unpack_u64(rest)?;
-                let (min_mint_amount, _rest) = Self::unpack_u64(rest)?;
+                let (token_a_amount, rest) = unpack_u64(rest)?;
+                let (token_b_amount, rest) = unpack_u64(rest)?;
+                let (min_mint_amount, _rest) = unpack_u64(rest)?;
                 Self::Deposit(DepositData {
                     token_a_amount,
                     token_b_amount,
@@ -217,9 +277,9 @@ impl SwapInstruction {
                 })
             }
             3 => {
-                let (pool_token_amount, rest) = Self::unpack_u64(rest)?;
-                let (minimum_token_a_amount, rest) = Self::unpack_u64(rest)?;
-                let (minimum_token_b_amount, _rest) = Self::unpack_u64(rest)?;
+                let (pool_token_amount, rest) = unpack_u64(rest)?;
+                let (minimum_token_a_amount, rest) = unpack_u64(rest)?;
+                let (minimum_token_b_amount, _rest) = unpack_u64(rest)?;
                 Self::Withdraw(WithdrawData {
                     pool_token_amount,
                     minimum_token_a_amount,
@@ -227,50 +287,15 @@ impl SwapInstruction {
                 })
             }
             4 => {
-                let (pool_token_amount, rest) = Self::unpack_u64(rest)?;
-                let (minimum_token_amount, _rest) = Self::unpack_u64(rest)?;
+                let (pool_token_amount, rest) = unpack_u64(rest)?;
+                let (minimum_token_amount, _rest) = unpack_u64(rest)?;
                 Self::WithdrawOne(WithdrawOneData {
                     pool_token_amount,
                     minimum_token_amount,
                 })
             }
-            5 => {
-                let (future_amp, rest) = Self::unpack_u64(rest)?;
-                let (future_time, _rest) = Self::unpack_u64(rest)?;
-                Self::RampA(RampAData {
-                    future_amp,
-                    future_time,
-                })
-            }
-            6 => Self::StopRampA(),
-            7 => Self::Pause(),
-            8 => Self::SetFeeAccountA(),
-            9 => Self::SetFeeAccountB(),
-            10 => Self::ApplyNewAdmin(),
-            11 => Self::CommitNewAdmin(),
-            12 => Self::RevertNewAdmin(),
-            13 => Self::ApplyNewFees(),
-            14 => {
-                let fees = Fees::unpack_unchecked(rest)?;
-                Self::CommitNewFees(CommitNewFeesData { fees })
-            }
-            15 => Self::RevertNewFees(),
             _ => return Err(SwapError::InvalidInstruction.into()),
         })
-    }
-
-    fn unpack_u64(input: &[u8]) -> Result<(u64, &[u8]), ProgramError> {
-        if input.len() >= 8 {
-            let (amount, rest) = input.split_at(8);
-            let amount = amount
-                .get(..8)
-                .and_then(|slice| slice.try_into().ok())
-                .map(u64::from_le_bytes)
-                .ok_or(SwapError::InvalidInstruction)?;
-            Ok((amount, rest))
-        } else {
-            Err(SwapError::InvalidInstruction.into())
-        }
     }
 
     /// Packs a [SwapInstruction](enum.SwapInstruction.html) into a byte buffer.
@@ -325,30 +350,6 @@ impl SwapInstruction {
                 buf.extend_from_slice(&pool_token_amount.to_le_bytes());
                 buf.extend_from_slice(&minimum_token_amount.to_le_bytes());
             }
-            Self::RampA(RampAData {
-                future_amp,
-                future_time,
-            }) => {
-                buf.push(5);
-                buf.extend_from_slice(&future_amp.to_le_bytes());
-                buf.extend_from_slice(&future_time.to_le_bytes());
-            }
-            Self::StopRampA() => buf.push(6),
-            Self::Pause() => buf.push(7),
-            Self::Unpause() => buf.push(8),
-            Self::SetFeeAccountA() => buf.push(9),
-            Self::SetFeeAccountB() => buf.push(10),
-            Self::ApplyNewAdmin() => buf.push(11),
-            Self::CommitNewAdmin() => buf.push(12),
-            Self::RevertNewAdmin() => buf.push(13),
-            Self::ApplyNewFees() => buf.push(14),
-            Self::CommitNewFees(CommitNewFeesData { fees }) => {
-                buf.push(15);
-                let mut fees_slice = [0u8; Fees::LEN];
-                Pack::pack_into_slice(&fees, &mut fees_slice[..]);
-                buf.extend_from_slice(&fees_slice);
-            }
-            Self::RevertNewFees() => buf.push(16),
         }
         buf
     }
@@ -562,6 +563,20 @@ pub fn withdraw_one(
     })
 }
 
+fn unpack_u64(input: &[u8]) -> Result<(u64, &[u8]), ProgramError> {
+    if input.len() >= 8 {
+        let (amount, rest) = input.split_at(8);
+        let amount = amount
+            .get(..8)
+            .and_then(|slice| slice.try_into().ok())
+            .map(u64::from_le_bytes)
+            .ok_or(SwapError::InvalidInstruction)?;
+        Ok((amount, rest))
+    } else {
+        Err(SwapError::InvalidInstruction.into())
+    }
+}
+
 /// Unpacks a reference from a bytes buffer.
 /// TODO actually pack / unpack instead of relying on normal memory layout.
 pub fn unpack<T>(input: &[u8]) -> Result<&T, ProgramError> {
@@ -667,5 +682,7 @@ mod tests {
         expect.extend_from_slice(&pool_token_amount.to_le_bytes());
         expect.extend_from_slice(&minimum_token_amount.to_le_bytes());
         assert_eq!(packed, expect);
+        let unpacked = SwapInstruction::unpack(&expect).unwrap();
+        assert_eq!(unpacked, check);
     }
 }

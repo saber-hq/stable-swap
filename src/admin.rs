@@ -20,10 +20,10 @@ pub fn process_admin_instruction(
     match *instruction {
         AdminInstruction::RampA(RampAData {
             future_amp,
-            future_time,
+            stop_ramp_ts,
         }) => {
             info!("Instruction : RampA");
-            ramp_a(program_id, future_amp, future_time, accounts)
+            ramp_a(program_id, future_amp, stop_ramp_ts, accounts)
         }
         AdminInstruction::StopRampA => {
             info!("Instruction: StopRampA");
@@ -81,7 +81,7 @@ fn _is_admin(_expected_admin_key: &Pubkey, _admin_account_info: &AccountInfo) ->
 fn ramp_a(
     _program_id: &Pubkey,
     _future_a: u64,
-    _future_time: u64,
+    _stop_ramp_ts: i64,
     _account: &[AccountInfo],
 ) -> ProgramResult {
     unimplemented!("ramp_a not implemented");

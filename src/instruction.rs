@@ -77,8 +77,8 @@ pub struct WithdrawOneData {
 pub struct RampAData {
     /// Amp. Coefficient to ramp to
     pub future_amp: u64,
-    /// Timestamp to stop ramp
-    pub future_time: u64,
+    /// Unix timestamp to stop ramp
+    pub stop_ramp_ts: i64,
 }
 
 /// Admin only instructions.
@@ -118,10 +118,10 @@ impl AdminInstruction {
         Ok(match tag {
             100 => {
                 let (future_amp, rest) = unpack_u64(rest)?;
-                let (future_time, _rest) = unpack_u64(rest)?;
+                let (stop_ramp_ts, _rest) = unpack_i64(rest)?;
                 Some(Self::RampA(RampAData {
                     future_amp,
-                    future_time,
+                    stop_ramp_ts,
                 }))
             }
             101 => Some(Self::StopRampA),
@@ -148,11 +148,11 @@ impl AdminInstruction {
         match *self {
             Self::RampA(RampAData {
                 future_amp,
-                future_time,
+                stop_ramp_ts,
             }) => {
                 buf.push(100);
                 buf.extend_from_slice(&future_amp.to_le_bytes());
-                buf.extend_from_slice(&future_time.to_le_bytes());
+                buf.extend_from_slice(&stop_ramp_ts.to_le_bytes());
             }
             Self::StopRampA => buf.push(101),
             Self::Pause => buf.push(102),
@@ -563,6 +563,20 @@ pub fn withdraw_one(
     })
 }
 
+fn unpack_i64(input: &[u8]) -> Result<(i64, &[u8]), ProgramError> {
+    if input.len() >= 8 {
+        let (amount, rest) = input.split_at(8);
+        let amount = amount
+            .get(..8)
+            .and_then(|slice| slice.try_into().ok())
+            .map(i64::from_le_bytes)
+            .ok_or(SwapError::InvalidInstruction)?;
+        Ok((amount, rest))
+    } else {
+        Err(SwapError::InvalidInstruction.into())
+    }
+}
+
 fn unpack_u64(input: &[u8]) -> Result<(u64, &[u8]), ProgramError> {
     if input.len() >= 8 {
         let (amount, rest) = input.split_at(8);
@@ -593,7 +607,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_instruction_packing() {
+    fn test_swap_instruction_packing() {
         let nonce: u8 = 255;
         let amp_factor: u64 = 0;
         let fees = Fees {

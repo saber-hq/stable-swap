@@ -6,8 +6,9 @@ use crate::{
     fees::Fees,
     instruction::{AdminInstruction, RampAData},
 };
+#[cfg(not(target_arch = "bpf"))]
+use solana_sdk::{account_info::AccountInfo, entrypoint::ProgramResult, info, pubkey::Pubkey};
 #[cfg(target_arch = "bpf")]
-use solana_sdk::info;
 use solana_sdk::{account_info::AccountInfo, entrypoint::ProgramResult, info, pubkey::Pubkey};
 
 /// Process admin instruction

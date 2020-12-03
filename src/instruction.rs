@@ -607,6 +607,125 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_admin_instruction_packing() {
+        let future_amp = 100;
+        let stop_ramp_ts = i64::MAX;
+        let check = AdminInstruction::RampA(RampAData {
+            future_amp,
+            stop_ramp_ts,
+        });
+        let packed = check.pack();
+        let mut expect = vec![];
+        expect.push(100 as u8);
+        expect.extend_from_slice(&future_amp.to_le_bytes());
+        expect.extend_from_slice(&stop_ramp_ts.to_le_bytes());
+        assert_eq!(packed, expect);
+        let unpacked = AdminInstruction::unpack(&expect).unwrap();
+        assert_eq!(unpacked, Some(check));
+
+        let check = AdminInstruction::StopRampA;
+        let packed = check.pack();
+        let mut expect = vec![];
+        expect.push(101 as u8);
+        assert_eq!(packed, expect);
+        let unpacked = AdminInstruction::unpack(&expect).unwrap();
+        assert_eq!(unpacked, Some(check));
+
+        let check = AdminInstruction::Pause;
+        let packed = check.pack();
+        let mut expect = vec![];
+        expect.push(102 as u8);
+        assert_eq!(packed, expect);
+        let unpacked = AdminInstruction::unpack(&expect).unwrap();
+        assert_eq!(unpacked, Some(check));
+
+        let check = AdminInstruction::Unpause;
+        let packed = check.pack();
+        let mut expect = vec![];
+        expect.push(103 as u8);
+        assert_eq!(packed, expect);
+        let unpacked = AdminInstruction::unpack(&expect).unwrap();
+        assert_eq!(unpacked, Some(check));
+
+        let check = AdminInstruction::SetFeeAccountA;
+        let packed = check.pack();
+        let mut expect = vec![];
+        expect.push(104 as u8);
+        assert_eq!(packed, expect);
+        let unpacked = AdminInstruction::unpack(&expect).unwrap();
+        assert_eq!(unpacked, Some(check));
+
+        let check = AdminInstruction::SetFeeAccountB;
+        let packed = check.pack();
+        let mut expect = vec![];
+        expect.push(105 as u8);
+        assert_eq!(packed, expect);
+        let unpacked = AdminInstruction::unpack(&expect).unwrap();
+        assert_eq!(unpacked, Some(check));
+
+        let check = AdminInstruction::ApplyNewAdmin;
+        let packed = check.pack();
+        let mut expect = vec![];
+        expect.push(106 as u8);
+        assert_eq!(packed, expect);
+        let unpacked = AdminInstruction::unpack(&expect).unwrap();
+        assert_eq!(unpacked, Some(check));
+
+        let check = AdminInstruction::CommitNewAdmin;
+        let packed = check.pack();
+        let mut expect = vec![];
+        expect.push(107 as u8);
+        assert_eq!(packed, expect);
+        let unpacked = AdminInstruction::unpack(&expect).unwrap();
+        assert_eq!(unpacked, Some(check));
+
+        let check = AdminInstruction::RevertNewAdmin;
+        let packed = check.pack();
+        let mut expect = vec![];
+        expect.push(108 as u8);
+        assert_eq!(packed, expect);
+        let unpacked = AdminInstruction::unpack(&expect).unwrap();
+        assert_eq!(unpacked, Some(check));
+
+        let check = AdminInstruction::ApplyNewFees;
+        let packed = check.pack();
+        let mut expect = vec![];
+        expect.push(109 as u8);
+        assert_eq!(packed, expect);
+        let unpacked = AdminInstruction::unpack(&expect).unwrap();
+        assert_eq!(unpacked, Some(check));
+
+        let new_fees = Fees {
+            admin_trade_fee_numerator: 1,
+            admin_trade_fee_denominator: 2,
+            admin_withdraw_fee_numerator: 3,
+            admin_withdraw_fee_denominator: 4,
+            trade_fee_numerator: 5,
+            trade_fee_denominator: 6,
+            withdraw_fee_numerator: 7,
+            withdraw_fee_denominator: 8,
+        };
+        let check = AdminInstruction::CommitNewFees(new_fees);
+        let packed = check.pack();
+        let mut expect = vec![];
+        expect.push(110 as u8);
+        let mut new_fees_slice = [0u8; Fees::LEN];
+        new_fees.pack_into_slice(&mut new_fees_slice[..]);
+        expect.extend_from_slice(&new_fees_slice);
+        assert_eq!(packed, expect);
+        let unpacked = AdminInstruction::unpack(&expect).unwrap();
+        assert_eq!(unpacked, Some(check));
+
+        let check = AdminInstruction::RevertNewFees;
+        let packed = check.pack();
+        let mut expect = vec![];
+        expect.push(111 as u8);
+        assert_eq!(packed, expect);
+        let unpacked = AdminInstruction::unpack(&expect).unwrap();
+        assert_eq!(unpacked, Some(check));
+    }
+
+    #[test]
     fn test_swap_instruction_packing() {
         let nonce: u8 = 255;
         let amp_factor: u64 = 0;

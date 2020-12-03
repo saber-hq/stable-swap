@@ -16,8 +16,10 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: borales/actions-yarn@v2.0.0
-      - name: Clippy
-        run: cargo clippy
+      - name: Run fmt
+        run: cargo fmt -- --check
+      - name: Run clippy
+        run: cargo clippy -- --deny=warnings
       - name: Run unit tests
         run: ./do.sh test -- --nocapture
       - name: Build

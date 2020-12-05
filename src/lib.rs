@@ -12,6 +12,7 @@ pub mod instruction;
 pub mod pool_converter;
 pub mod processor;
 pub mod state;
+pub mod utils;
 
 // Export current solana-sdk types for downstream users who may also be building with a different
 // solana-sdk version

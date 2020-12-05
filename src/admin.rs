@@ -81,11 +81,9 @@ pub fn process_admin_instruction(
 
 /// Access control for admin only instructions
 fn _is_admin(expected_admin_key: &Pubkey, admin_account_info: &AccountInfo) -> ProgramResult {
-    println!("hello??");
     if expected_admin_key != admin_account_info.key {
         return Err(SwapError::Unauthorized.into());
     }
-    println!("is_signer: {}", admin_account_info.is_signer);
     if !admin_account_info.is_signer {
         return Err(ProgramError::MissingRequiredSignature);
     }

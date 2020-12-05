@@ -81,9 +81,11 @@ pub fn process_admin_instruction(
 
 /// Access control for admin only instructions
 fn _is_admin(expected_admin_key: &Pubkey, admin_account_info: &AccountInfo) -> ProgramResult {
+    println!("hello??");
     if expected_admin_key != admin_account_info.key {
         return Err(SwapError::Unauthorized.into());
     }
+    println!("is_signer: {}", admin_account_info.is_signer);
     if !admin_account_info.is_signer {
         return Err(ProgramError::MissingRequiredSignature);
     }
@@ -161,25 +163,44 @@ fn revert_new_fees(_program_id: &Pubkey, _accounts: &[AccountInfo]) -> ProgramRe
 
 #[cfg(test)]
 mod tests {
-    // use super::*;
-    // use crate::test_util::test_util::pubkey_rand;
-    // use solana_sdk::clock::Epoch;
+    use super::*;
+    use crate::utils::test_utils::pubkey_rand;
+    use solana_sdk::clock::Epoch;
 
-    // #[test]
-    // fn test_is_admin() {
-    //    let admin_key = pubkey_rand();
-    //    let admin_owner = pubkey_rand();
-    //    let admin_account_info = AccountInfo::new(
-    //        &admin_key,
-    //        true,
-    //        false,
-    //        &mut 0,
-    //        &mut vec![],
-    //        &admin_owner,
-    //        false,
-    //        Epoch::default(),
-    //    );
+    #[test]
+    fn test_is_admin() {
+        let admin_key = pubkey_rand();
+        let admin_owner = pubkey_rand();
+        let mut lamports = 0;
+        let mut admin_account_data = vec![];
+        let mut admin_account_info = AccountInfo::new(
+            &admin_key,
+            true,
+            false,
+            &mut lamports,
+            &mut admin_account_data,
+            &admin_owner,
+            false,
+            Epoch::default(),
+        );
 
-    //    _is_admin(&admin_key, &admin_account_info);
-    //}
+        // Correct admin
+        assert_eq!(Ok(()), _is_admin(&admin_key, &admin_account_info));
+
+        // Unauthorized account
+        let fake_admin_key = pubkey_rand();
+        let mut fake_admin_account = admin_account_info.clone();
+        fake_admin_account.key = &fake_admin_key;
+        assert_eq!(
+            Err(SwapError::Unauthorized.into()),
+            _is_admin(&admin_key, &fake_admin_account)
+        );
+
+        // Admin did not sign
+        admin_account_info.is_signer = false;
+        assert_eq!(
+            Err(ProgramError::MissingRequiredSignature),
+            _is_admin(&admin_key, &admin_account_info)
+        );
+    }
 }

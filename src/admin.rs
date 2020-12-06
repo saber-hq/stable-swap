@@ -3,13 +3,20 @@
 #![cfg(feature = "program")]
 
 use crate::{
+    error::SwapError,
     fees::Fees,
     instruction::{AdminInstruction, RampAData},
 };
 #[cfg(not(target_arch = "bpf"))]
-use solana_sdk::{account_info::AccountInfo, entrypoint::ProgramResult, info, pubkey::Pubkey};
+use solana_sdk::{
+    account_info::AccountInfo, entrypoint::ProgramResult, info, program_error::ProgramError,
+    pubkey::Pubkey,
+};
 #[cfg(target_arch = "bpf")]
-use solana_sdk::{account_info::AccountInfo, entrypoint::ProgramResult, info, pubkey::Pubkey};
+use solana_sdk::{
+    account_info::AccountInfo, entrypoint::ProgramResult, info, program_error::ProgramError,
+    pubkey::Pubkey,
+};
 
 /// Process admin instruction
 pub fn process_admin_instruction(
@@ -73,8 +80,14 @@ pub fn process_admin_instruction(
 }
 
 /// Access control for admin only instructions
-fn _is_admin(_expected_admin_key: &Pubkey, _admin_account_info: &AccountInfo) -> ProgramResult {
-    unimplemented!("is_admin not implemented")
+fn _is_admin(expected_admin_key: &Pubkey, admin_account_info: &AccountInfo) -> ProgramResult {
+    if expected_admin_key != admin_account_info.key {
+        return Err(SwapError::Unauthorized.into());
+    }
+    if !admin_account_info.is_signer {
+        return Err(ProgramError::MissingRequiredSignature);
+    }
+    Ok(())
 }
 
 /// Ramp to future a
@@ -144,4 +157,48 @@ fn commit_new_fees(
 /// Revert new fees
 fn revert_new_fees(_program_id: &Pubkey, _accounts: &[AccountInfo]) -> ProgramResult {
     unimplemented!("set_new_fees not implemented");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::utils::test_utils::pubkey_rand;
+    use solana_sdk::clock::Epoch;
+
+    #[test]
+    fn test_is_admin() {
+        let admin_key = pubkey_rand();
+        let admin_owner = pubkey_rand();
+        let mut lamports = 0;
+        let mut admin_account_data = vec![];
+        let mut admin_account_info = AccountInfo::new(
+            &admin_key,
+            true,
+            false,
+            &mut lamports,
+            &mut admin_account_data,
+            &admin_owner,
+            false,
+            Epoch::default(),
+        );
+
+        // Correct admin
+        assert_eq!(Ok(()), _is_admin(&admin_key, &admin_account_info));
+
+        // Unauthorized account
+        let fake_admin_key = pubkey_rand();
+        let mut fake_admin_account = admin_account_info.clone();
+        fake_admin_account.key = &fake_admin_key;
+        assert_eq!(
+            Err(SwapError::Unauthorized.into()),
+            _is_admin(&admin_key, &fake_admin_account)
+        );
+
+        // Admin did not sign
+        admin_account_info.is_signer = false;
+        assert_eq!(
+            Err(ProgramError::MissingRequiredSignature),
+            _is_admin(&admin_key, &admin_account_info)
+        );
+    }
 }

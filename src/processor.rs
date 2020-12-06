@@ -843,6 +843,7 @@ mod tests {
     use super::*;
     use crate::fees::Fees;
     use crate::instruction::{deposit, initialize, swap, withdraw, withdraw_one};
+    use crate::utils::test_utils::pubkey_rand;
     use solana_sdk::{
         account::Account, account_info::create_is_signer_account_infos, instruction::Instruction,
         rent::Rent, sysvar::rent,
@@ -1394,10 +1395,6 @@ mod tests {
 
     fn account_minimum_balance() -> u64 {
         Rent::default().minimum_balance(SplAccount::get_packed_len())
-    }
-
-    fn pubkey_rand() -> Pubkey {
-        Pubkey::new(&rand::random::<[u8; 32]>())
     }
 
     fn do_process_instruction(

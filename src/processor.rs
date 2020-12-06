@@ -151,7 +151,7 @@ impl Processor {
     pub fn process_initialize(
         program_id: &Pubkey,
         nonce: u8,
-        amp_factor: u64,
+        initial_amp_factor: u64,
         fees: Fees,
         accounts: &[AccountInfo],
     ) -> ProgramResult {
@@ -221,7 +221,7 @@ impl Processor {
         }
 
         // LP tokens for bootstrapper
-        let invariant = StableSwap::new(amp_factor);
+        let invariant = StableSwap::new(initial_amp_factor);
         let mint_amount = invariant
             .compute_d(U256::from(token_a.amount), U256::from(token_b.amount))
             .ok_or(SwapError::CalculationFailure)?;
@@ -238,7 +238,7 @@ impl Processor {
         let obj = SwapInfo {
             is_initialized: true,
             nonce,
-            amp_factor,
+            initial_amp_factor,
             token_a: *token_a_info.key,
             token_b: *token_b_info.key,
             pool_mint: *pool_mint_info.key,
@@ -301,7 +301,7 @@ impl Processor {
         let swap_destination_account =
             Self::unpack_token_account(&swap_destination_info.data.borrow())?;
 
-        let invariant = StableSwap::new(token_swap.amp_factor);
+        let invariant = StableSwap::new(token_swap.initial_amp_factor);
         let result = invariant
             .swap_to(
                 U256::from(amount_in),
@@ -382,7 +382,7 @@ impl Processor {
         let token_b = Self::unpack_token_account(&token_b_info.data.borrow())?;
         let pool_mint = Self::unpack_mint(&pool_mint_info.data.borrow())?;
 
-        let invariant = StableSwap::new(token_swap.amp_factor);
+        let invariant = StableSwap::new(token_swap.initial_amp_factor);
         let mint_amount_u256 = invariant
             .compute_mint_amount_for_deposit(
                 U256::from(token_a_amount),
@@ -607,7 +607,7 @@ impl Processor {
         let base_token = Self::unpack_token_account(&base_token_info.data.borrow())?;
         let quote_token = Self::unpack_token_account(&quote_token_info.data.borrow())?;
 
-        let invariant = StableSwap::new(token_swap.amp_factor);
+        let invariant = StableSwap::new(token_swap.initial_amp_factor);
         let (dy, dy_fee) = invariant
             .compute_withdraw_one(
                 U256::from(pool_token_amount),
@@ -875,7 +875,7 @@ mod tests {
     struct SwapAccountInfo {
         nonce: u8,
         authority_key: Pubkey,
-        amp_factor: u64,
+        initial_amp_factor: u64,
         swap_key: Pubkey,
         swap_account: Account,
         pool_mint_key: Pubkey,
@@ -900,7 +900,7 @@ mod tests {
     impl SwapAccountInfo {
         pub fn new(
             user_key: &Pubkey,
-            amp_factor: u64,
+            initial_amp_factor: u64,
             token_a_amount: u64,
             token_b_amount: u64,
             fees: Fees,
@@ -960,7 +960,7 @@ mod tests {
             SwapAccountInfo {
                 nonce,
                 authority_key,
-                amp_factor,
+                initial_amp_factor,
                 swap_key,
                 swap_account,
                 pool_mint_key,
@@ -997,7 +997,7 @@ mod tests {
                     &self.pool_mint_key,
                     &self.pool_token_key,
                     self.nonce,
-                    self.amp_factor,
+                    self.initial_amp_factor,
                     self.fees,
                 )
                 .unwrap(),
@@ -1539,14 +1539,14 @@ mod tests {
     #[test]
     fn test_initialize() {
         let user_key = pubkey_rand();
-        let amp_factor = 1;
+        let initial_amp_factor = 1;
         let token_a_amount = 1000;
         let token_b_amount = 2000;
         let pool_token_amount = 10;
 
         let mut accounts = SwapAccountInfo::new(
             &user_key,
-            amp_factor,
+            initial_amp_factor,
             token_a_amount,
             token_b_amount,
             DEFAULT_TEST_FEES,
@@ -1904,12 +1904,12 @@ mod tests {
     fn test_deposit() {
         let user_key = pubkey_rand();
         let depositor_key = pubkey_rand();
-        let amp_factor = 1;
+        let initial_amp_factor = 1;
         let token_a_amount = 1000;
         let token_b_amount = 9000;
         let mut accounts = SwapAccountInfo::new(
             &user_key,
-            amp_factor,
+            initial_amp_factor,
             token_a_amount,
             token_b_amount,
             DEFAULT_TEST_FEES,
@@ -2380,12 +2380,12 @@ mod tests {
     #[test]
     fn test_withdraw() {
         let user_key = pubkey_rand();
-        let amp_factor = 1;
+        let initial_amp_factor = 1;
         let token_a_amount = 1000;
         let token_b_amount = 2000;
         let mut accounts = SwapAccountInfo::new(
             &user_key,
-            amp_factor,
+            initial_amp_factor,
             token_a_amount,
             token_b_amount,
             DEFAULT_TEST_FEES,
@@ -3005,12 +3005,12 @@ mod tests {
     fn test_swap() {
         let user_key = pubkey_rand();
         let swapper_key = pubkey_rand();
-        let amp_factor = 85;
+        let initial_amp_factor = 85;
         let token_a_amount = 5000;
         let token_b_amount = 5000;
         let mut accounts = SwapAccountInfo::new(
             &user_key,
-            amp_factor,
+            initial_amp_factor,
             token_a_amount,
             token_b_amount,
             DEFAULT_TEST_FEES,
@@ -3379,7 +3379,7 @@ mod tests {
                 )
                 .unwrap();
 
-            let invariant = StableSwap::new(amp_factor);
+            let invariant = StableSwap::new(initial_amp_factor);
             let result = invariant
                 .swap_to(
                     U256::from(a_to_b_amount),
@@ -3440,7 +3440,7 @@ mod tests {
                 )
                 .unwrap();
 
-            let invariant = StableSwap::new(amp_factor);
+            let invariant = StableSwap::new(initial_amp_factor);
             let result = invariant
                 .swap_to(
                     U256::from(b_to_a_amount),
@@ -3489,12 +3489,12 @@ mod tests {
     #[test]
     fn test_withdraw_one() {
         let user_key = pubkey_rand();
-        let amp_factor = 1;
+        let initial_amp_factor = 1;
         let token_a_amount = 1000;
         let token_b_amount = 1000;
         let mut accounts = SwapAccountInfo::new(
             &user_key,
-            amp_factor,
+            initial_amp_factor,
             token_a_amount,
             token_b_amount,
             DEFAULT_TEST_FEES,
@@ -3991,7 +3991,7 @@ mod tests {
             Processor::unpack_token_account(&accounts.token_b_account.data).unwrap();
         let old_pool_mint = Processor::unpack_mint(&accounts.pool_mint_account.data).unwrap();
 
-        let invariant = StableSwap::new(amp_factor);
+        let invariant = StableSwap::new(initial_amp_factor);
         let (withdraw_one_amount_before_fees, withdraw_one_trade_fee) = invariant
             .compute_withdraw_one(
                 withdraw_amount.into(),

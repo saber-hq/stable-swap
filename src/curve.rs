@@ -20,19 +20,19 @@ pub struct SwapResult {
 /// The StableSwap invariant calculator.
 pub struct StableSwap {
     /// Amplification coefficient (A)
-    pub amp_factor: U256,
+    pub initial_amp_factor: U256,
 }
 
 impl StableSwap {
     /// New StableSwap calculator
-    pub fn new(amp_factor_u64: u64) -> Self {
+    pub fn new(initial_amp_factor_u64: u64) -> Self {
         Self {
-            amp_factor: U256::from(amp_factor_u64),
+            initial_amp_factor: U256::from(initial_amp_factor_u64),
         }
     }
 
     fn compute_next_d(&self, d_init: U256, d_prod: U256, sum_x: U256) -> Option<U256> {
-        let ann = self.amp_factor.checked_mul(N_COINS.into())?;
+        let ann = self.initial_amp_factor.checked_mul(N_COINS.into())?;
         let leverage = ann.checked_mul(sum_x)?;
         // d = (ann * sum_x + d_prod * n_coins) * d / ((ann - 1) * d + (n_coins + 1) * d_prod)
         let numerator =
@@ -126,7 +126,7 @@ impl StableSwap {
     /// y**2 + b*y = c
     #[allow(clippy::many_single_char_names)]
     pub fn compute_y(&self, x: U256, d: U256) -> Option<U256> {
-        let ann: U256 = self.amp_factor.checked_mul(N_COINS.into())?; // A * n ** n
+        let ann: U256 = self.initial_amp_factor.checked_mul(N_COINS.into())?; // A * n ** n
 
         // sum' = prod' = x
         // c =  D ** (n + 1) / (n ** (2 * n) * prod' * A)
@@ -252,7 +252,7 @@ mod tests {
 
     fn check_d(model: &Model, amount_a: u64, amount_b: u64) -> U256 {
         let swap = StableSwap {
-            amp_factor: U256::from(model.amp_factor),
+            initial_amp_factor: U256::from(model.amp_factor),
         };
         let d = swap
             .compute_d(U256::from(amount_a), U256::from(amount_b))
@@ -263,7 +263,7 @@ mod tests {
 
     fn check_y(model: &Model, x: u64, d: U256) {
         let swap = StableSwap {
-            amp_factor: U256::from(model.amp_factor),
+            initial_amp_factor: U256::from(model.amp_factor),
         };
         assert_eq!(
             swap.compute_y(x.into(), d).unwrap(),
@@ -316,17 +316,17 @@ mod tests {
         for _ in 0..100 {
             let mut rng = rand::thread_rng();
 
-            let amp_factor: u64 = rng.gen_range(1, 10_000);
+            let initial_amp_factor: u64 = rng.gen_range(1, 10_000);
             let amount_a: u64 = rng.gen_range(1, u64::MAX);
             let amount_b: u64 = rng.gen_range(1, u64::MAX);
             println!("testing curve_math_with_random_inputs:");
             println!(
-                "amount_a: {}, amount_b: {}, amp_factor: {}",
-                amount_a, amount_b, amp_factor
+                "amount_a: {}, amount_b: {}, initial_amp_factor: {}",
+                amount_a, amount_b, initial_amp_factor
             );
 
             let model = Model::new(
-                amp_factor.into(),
+                initial_amp_factor.into(),
                 vec![amount_a.into(), amount_b.into()],
                 N_COINS.into(),
             );
@@ -339,13 +339,13 @@ mod tests {
     }
 
     fn check_swap(
-        amp_factor: u64,
+        initial_amp_factor: u64,
         source_amount: u64,
         swap_source_amount: u64,
         swap_destination_amount: u64,
     ) {
         let swap = StableSwap {
-            amp_factor: amp_factor.into(),
+            initial_amp_factor: initial_amp_factor.into(),
         };
         let result = swap
             .swap_to(
@@ -356,7 +356,7 @@ mod tests {
             )
             .unwrap();
         let model = Model::new(
-            amp_factor.into(),
+            initial_amp_factor.into(),
             vec![swap_source_amount.into(), swap_destination_amount.into()],
             N_COINS.into(),
         );
@@ -418,18 +418,18 @@ mod tests {
         for _ in 0..100 {
             let mut rng = rand::thread_rng();
 
-            let amp_factor: u64 = rng.gen_range(1, 10_000);
+            let initial_amp_factor: u64 = rng.gen_range(1, 10_000);
             let source_amount: u64 = rng.gen_range(1, u64::MAX);
             let swap_source_amount: u64 = rng.gen_range(1, u64::MAX);
             let swap_destination_amount: u64 = rng.gen_range(1, u64::MAX);
             println!("testing swap_calculation_with_random_inputs:");
             println!(
-                "amp_factor: {}, source_amount: {}, swap_source_amount: {}, swap_destination_amount: {}",
-                amp_factor, source_amount, swap_source_amount, swap_destination_amount
+                "initial_amp_factor: {}, source_amount: {}, swap_source_amount: {}, swap_destination_amount: {}",
+                initial_amp_factor, source_amount, swap_source_amount, swap_destination_amount
             );
 
             check_swap(
-                amp_factor,
+                initial_amp_factor,
                 source_amount,
                 swap_source_amount,
                 swap_destination_amount,
@@ -438,14 +438,14 @@ mod tests {
     }
 
     fn check_withdraw_one(
-        amp_factor: u64,
+        initial_amp_factor: u64,
         pool_token_amount: u64,
         pool_token_supply: u64,
         swap_base_amount: u64,
         swap_quote_amount: u64,
     ) {
         let swap = StableSwap {
-            amp_factor: amp_factor.into(),
+            initial_amp_factor: initial_amp_factor.into(),
         };
         let result = swap
             .compute_withdraw_one(
@@ -457,7 +457,7 @@ mod tests {
             )
             .unwrap();
         let model = Model::new_with_pool_tokens(
-            amp_factor.into(),
+            initial_amp_factor.into(),
             vec![swap_base_amount.into(), swap_quote_amount.into()],
             N_COINS.into(),
             pool_token_supply.into(),
@@ -527,19 +527,19 @@ mod tests {
         for _ in 0..100 {
             let mut rng = rand::thread_rng();
 
-            let amp_factor: u64 = rng.gen_range(1, 10_000);
+            let initial_amp_factor: u64 = rng.gen_range(1, 10_000);
             let swap_base_amount: u64 = rng.gen_range(1, u64::MAX / 2);
             let swap_quote_amount: u64 = rng.gen_range(1, u64::MAX / 2);
             let pool_token_supply = swap_base_amount + swap_quote_amount;
             let pool_token_amount: u64 = rng.gen_range(1, pool_token_supply);
             println!("testing compute_withdraw_one_with_random_inputs:");
             println!(
-                "amp_factor: {}, swap_base_amount: {}, swap_quote_amount: {}, pool_token_amount: {}, pool_token_supply: {}",
-                amp_factor, swap_base_amount, swap_quote_amount, pool_token_amount, pool_token_supply
+                "initial_amp_factor: {}, swap_base_amount: {}, swap_quote_amount: {}, pool_token_amount: {}, pool_token_supply: {}",
+                initial_amp_factor, swap_base_amount, swap_quote_amount, pool_token_amount, pool_token_supply
             );
 
             check_withdraw_one(
-                amp_factor,
+                initial_amp_factor,
                 pool_token_amount,
                 pool_token_supply,
                 swap_base_amount,

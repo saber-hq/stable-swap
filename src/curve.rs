@@ -321,17 +321,17 @@ mod tests {
         for _ in 0..100 {
             let mut rng = rand::thread_rng();
 
-            let initial_amp_factor: u64 = rng.gen_range(1, 10_000);
+            let amp_factor: u64 = rng.gen_range(1, 10_000);
             let amount_a: u64 = rng.gen_range(1, u64::MAX);
             let amount_b: u64 = rng.gen_range(1, u64::MAX);
             println!("testing curve_math_with_random_inputs:");
             println!(
-                "amount_a: {}, amount_b: {}, initial_amp_factor: {}",
-                amount_a, amount_b, initial_amp_factor
+                "amount_a: {}, amount_b: {}, amp_factor: {}",
+                amount_a, amount_b, amp_factor
             );
 
             let model = Model::new(
-                initial_amp_factor.into(),
+                amp_factor.into(),
                 vec![amount_a.into(), amount_b.into()],
                 N_COINS.into(),
             );

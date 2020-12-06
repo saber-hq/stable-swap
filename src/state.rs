@@ -23,6 +23,8 @@ pub struct SwapInfo {
 
     /// Initial amplification coefficient (A)
     pub initial_amp_factor: u64,
+    /// Target amplification coefficient (A)
+    pub target_amp_factor: u64,
 
     /// Token A
     pub token_a: Pubkey,
@@ -53,16 +55,17 @@ impl IsInitialized for SwapInfo {
 }
 
 impl Pack for SwapInfo {
-    const LEN: usize = 298;
+    const LEN: usize = 306;
 
     /// Unpacks a byte buffer into a [SwapInfo](struct.SwapInfo.html).
     fn unpack_from_slice(input: &[u8]) -> Result<Self, ProgramError> {
-        let input = array_ref![input, 0, 298];
+        let input = array_ref![input, 0, 306];
         #[allow(clippy::ptr_offset_with_cast)]
         let (
             is_initialized,
             nonce,
             initial_amp_factor,
+            target_amp_factor,
             token_a,
             token_b,
             pool_mint,
@@ -71,7 +74,7 @@ impl Pack for SwapInfo {
             admin_fee_account_a,
             admin_fee_account_b,
             fees,
-        ) = array_refs![input, 1, 1, 8, 32, 32, 32, 32, 32, 32, 32, 64];
+        ) = array_refs![input, 1, 1, 8, 8, 32, 32, 32, 32, 32, 32, 32, 64];
         Ok(Self {
             is_initialized: match is_initialized {
                 [0] => false,
@@ -80,6 +83,7 @@ impl Pack for SwapInfo {
             },
             nonce: nonce[0],
             initial_amp_factor: u64::from_le_bytes(*initial_amp_factor),
+            target_amp_factor: u64::from_le_bytes(*target_amp_factor),
             token_a: Pubkey::new_from_array(*token_a),
             token_b: Pubkey::new_from_array(*token_b),
             pool_mint: Pubkey::new_from_array(*pool_mint),
@@ -92,11 +96,12 @@ impl Pack for SwapInfo {
     }
 
     fn pack_into_slice(&self, output: &mut [u8]) {
-        let output = array_mut_ref![output, 0, 298];
+        let output = array_mut_ref![output, 0, 306];
         let (
             is_initialized,
             nonce,
             initial_amp_factor,
+            target_amp_factor,
             token_a,
             token_b,
             pool_mint,
@@ -105,10 +110,11 @@ impl Pack for SwapInfo {
             admin_fee_account_a,
             admin_fee_account_b,
             fees,
-        ) = mut_array_refs![output, 1, 1, 8, 32, 32, 32, 32, 32, 32, 32, 64];
+        ) = mut_array_refs![output, 1, 1, 8, 8, 32, 32, 32, 32, 32, 32, 32, 64];
         is_initialized[0] = self.is_initialized as u8;
         nonce[0] = self.nonce;
         *initial_amp_factor = self.initial_amp_factor.to_le_bytes();
+        *target_amp_factor = self.target_amp_factor.to_le_bytes();
         token_a.copy_from_slice(self.token_a.as_ref());
         token_b.copy_from_slice(self.token_b.as_ref());
         pool_mint.copy_from_slice(self.pool_mint.as_ref());
@@ -128,6 +134,7 @@ mod tests {
     fn test_swap_info_packing() {
         let nonce = 255;
         let initial_amp_factor: u64 = 1;
+        let target_amp_factor: u64 = 1;
         let token_a_raw = [1u8; 32];
         let token_b_raw = [2u8; 32];
         let pool_mint_raw = [3u8; 32];
@@ -166,6 +173,7 @@ mod tests {
             is_initialized,
             nonce,
             initial_amp_factor,
+            target_amp_factor,
             token_a,
             token_b,
             pool_mint,
@@ -185,6 +193,7 @@ mod tests {
         packed.push(1 as u8);
         packed.push(nonce);
         packed.extend_from_slice(&initial_amp_factor.to_le_bytes());
+        packed.extend_from_slice(&target_amp_factor.to_le_bytes());
         packed.extend_from_slice(&token_a_raw);
         packed.extend_from_slice(&token_b_raw);
         packed.extend_from_slice(&pool_mint_raw);

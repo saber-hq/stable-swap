@@ -19,15 +19,18 @@ pub struct SwapResult {
 
 /// The StableSwap invariant calculator.
 pub struct StableSwap {
-    /// Amplification coefficient (A)
+    /// Initial amplification coefficient (A)
     pub initial_amp_factor: U256,
+    /// Target amplificaiton coeffiecient (A)
+    pub target_amp_factor: U256,
 }
 
 impl StableSwap {
     /// New StableSwap calculator
-    pub fn new(initial_amp_factor_u64: u64) -> Self {
+    pub fn new(initial_amp_factor_u64: u64, target_amp_factor_u64: u64) -> Self {
         Self {
             initial_amp_factor: U256::from(initial_amp_factor_u64),
+            target_amp_factor: U256::from(target_amp_factor_u64),
         }
     }
 
@@ -253,6 +256,7 @@ mod tests {
     fn check_d(model: &Model, amount_a: u64, amount_b: u64) -> U256 {
         let swap = StableSwap {
             initial_amp_factor: U256::from(model.amp_factor),
+            target_amp_factor: U256::from(model.amp_factor),
         };
         let d = swap
             .compute_d(U256::from(amount_a), U256::from(amount_b))
@@ -264,6 +268,7 @@ mod tests {
     fn check_y(model: &Model, x: u64, d: U256) {
         let swap = StableSwap {
             initial_amp_factor: U256::from(model.amp_factor),
+            target_amp_factor: U256::from(model.amp_factor),
         };
         assert_eq!(
             swap.compute_y(x.into(), d).unwrap(),
@@ -339,13 +344,14 @@ mod tests {
     }
 
     fn check_swap(
-        initial_amp_factor: u64,
+        amp_factor: u64,
         source_amount: u64,
         swap_source_amount: u64,
         swap_destination_amount: u64,
     ) {
         let swap = StableSwap {
-            initial_amp_factor: initial_amp_factor.into(),
+            initial_amp_factor: amp_factor.into(),
+            target_amp_factor: amp_factor.into(),
         };
         let result = swap
             .swap_to(
@@ -356,7 +362,7 @@ mod tests {
             )
             .unwrap();
         let model = Model::new(
-            initial_amp_factor.into(),
+            amp_factor.into(),
             vec![swap_source_amount.into(), swap_destination_amount.into()],
             N_COINS.into(),
         );
@@ -418,18 +424,18 @@ mod tests {
         for _ in 0..100 {
             let mut rng = rand::thread_rng();
 
-            let initial_amp_factor: u64 = rng.gen_range(1, 10_000);
+            let amp_factor: u64 = rng.gen_range(1, 10_000);
             let source_amount: u64 = rng.gen_range(1, u64::MAX);
             let swap_source_amount: u64 = rng.gen_range(1, u64::MAX);
             let swap_destination_amount: u64 = rng.gen_range(1, u64::MAX);
             println!("testing swap_calculation_with_random_inputs:");
             println!(
-                "initial_amp_factor: {}, source_amount: {}, swap_source_amount: {}, swap_destination_amount: {}",
-                initial_amp_factor, source_amount, swap_source_amount, swap_destination_amount
+                "amp_factor: {}, source_amount: {}, swap_source_amount: {}, swap_destination_amount: {}",
+                amp_factor, source_amount, swap_source_amount, swap_destination_amount
             );
 
             check_swap(
-                initial_amp_factor,
+                amp_factor,
                 source_amount,
                 swap_source_amount,
                 swap_destination_amount,
@@ -438,14 +444,15 @@ mod tests {
     }
 
     fn check_withdraw_one(
-        initial_amp_factor: u64,
+        amp_factor: u64,
         pool_token_amount: u64,
         pool_token_supply: u64,
         swap_base_amount: u64,
         swap_quote_amount: u64,
     ) {
         let swap = StableSwap {
-            initial_amp_factor: initial_amp_factor.into(),
+            initial_amp_factor: amp_factor.into(),
+            target_amp_factor: amp_factor.into(),
         };
         let result = swap
             .compute_withdraw_one(
@@ -457,7 +464,7 @@ mod tests {
             )
             .unwrap();
         let model = Model::new_with_pool_tokens(
-            initial_amp_factor.into(),
+            amp_factor.into(),
             vec![swap_base_amount.into(), swap_quote_amount.into()],
             N_COINS.into(),
             pool_token_supply.into(),
@@ -527,19 +534,19 @@ mod tests {
         for _ in 0..100 {
             let mut rng = rand::thread_rng();
 
-            let initial_amp_factor: u64 = rng.gen_range(1, 10_000);
+            let amp_factor: u64 = rng.gen_range(1, 10_000);
             let swap_base_amount: u64 = rng.gen_range(1, u64::MAX / 2);
             let swap_quote_amount: u64 = rng.gen_range(1, u64::MAX / 2);
             let pool_token_supply = swap_base_amount + swap_quote_amount;
             let pool_token_amount: u64 = rng.gen_range(1, pool_token_supply);
             println!("testing compute_withdraw_one_with_random_inputs:");
             println!(
-                "initial_amp_factor: {}, swap_base_amount: {}, swap_quote_amount: {}, pool_token_amount: {}, pool_token_supply: {}",
-                initial_amp_factor, swap_base_amount, swap_quote_amount, pool_token_amount, pool_token_supply
+                "amp_factor: {}, swap_base_amount: {}, swap_quote_amount: {}, pool_token_amount: {}, pool_token_supply: {}",
+                amp_factor, swap_base_amount, swap_quote_amount, pool_token_amount, pool_token_supply
             );
 
             check_withdraw_one(
-                initial_amp_factor,
+                amp_factor,
                 pool_token_amount,
                 pool_token_supply,
                 swap_base_amount,

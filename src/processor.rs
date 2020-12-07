@@ -30,6 +30,7 @@ use solana_sdk::{
     // program_option::COption,
     program_pack::Pack,
     pubkey::Pubkey,
+    sysvar::{clock::Clock, Sysvar},
 };
 use spl_token::{pack::Pack as TokenPack, state::Account, state::Mint};
 
@@ -219,8 +220,9 @@ impl Processor {
             // TODO: Add test
             return Err(SwapError::InvalidAdmin.into());
         }
+
         // amp_factor == target_amp_factor on init
-        let invariant = StableSwap::new(amp_factor, amp_factor);
+        let invariant = StableSwap::new(amp_factor, amp_factor, 0, 0, 0);
         // Compute amount of LP tokens to mint for bootstrapper
         let mint_amount = invariant
             .compute_d(U256::from(token_a.amount), U256::from(token_b.amount))
@@ -240,6 +242,8 @@ impl Processor {
             nonce,
             initial_amp_factor: amp_factor,
             target_amp_factor: amp_factor,
+            start_ramp_ts: 0,
+            stop_ramp_ts: 0,
             token_a: *token_a_info.key,
             token_b: *token_b_info.key,
             pool_mint: *pool_mint_info.key,
@@ -269,6 +273,7 @@ impl Processor {
         let destination_info = next_account_info(account_info_iter)?;
         let admin_destination_info = next_account_info(account_info_iter)?;
         let token_program_info = next_account_info(account_info_iter)?;
+        let clock_sysvar_info = next_account_info(account_info_iter)?;
 
         let token_swap = SwapInfo::unpack(&swap_info.data.borrow())?;
         if *authority_info.key != Self::authority_id(program_id, swap_info.key, token_swap.nonce)? {
@@ -298,12 +303,18 @@ impl Processor {
             return Err(SwapError::InvalidInput.into());
         }
 
+        let clock = Clock::from_account_info(clock_sysvar_info)?;
         let swap_source_account = Self::unpack_token_account(&swap_source_info.data.borrow())?;
         let swap_destination_account =
             Self::unpack_token_account(&swap_destination_info.data.borrow())?;
 
-        let invariant =
-            StableSwap::new(token_swap.initial_amp_factor, token_swap.target_amp_factor);
+        let invariant = StableSwap::new(
+            token_swap.initial_amp_factor,
+            token_swap.target_amp_factor,
+            clock.unix_timestamp,
+            token_swap.start_ramp_ts,
+            token_swap.stop_ramp_ts,
+        );
         let result = invariant
             .swap_to(
                 U256::from(amount_in),
@@ -365,6 +376,7 @@ impl Processor {
         let pool_mint_info = next_account_info(account_info_iter)?;
         let dest_info = next_account_info(account_info_iter)?;
         let token_program_info = next_account_info(account_info_iter)?;
+        let clock_sysvar_info = next_account_info(account_info_iter)?;
 
         let token_swap = SwapInfo::unpack(&swap_info.data.borrow())?;
         if *authority_info.key != Self::authority_id(program_id, swap_info.key, token_swap.nonce)? {
@@ -380,12 +392,18 @@ impl Processor {
             return Err(SwapError::IncorrectPoolMint.into());
         }
 
+        let clock = Clock::from_account_info(clock_sysvar_info)?;
         let token_a = Self::unpack_token_account(&token_a_info.data.borrow())?;
         let token_b = Self::unpack_token_account(&token_b_info.data.borrow())?;
         let pool_mint = Self::unpack_mint(&pool_mint_info.data.borrow())?;
 
-        let invariant =
-            StableSwap::new(token_swap.initial_amp_factor, token_swap.target_amp_factor);
+        let invariant = StableSwap::new(
+            token_swap.initial_amp_factor,
+            token_swap.target_amp_factor,
+            clock.unix_timestamp,
+            token_swap.start_ramp_ts,
+            token_swap.stop_ramp_ts,
+        );
         let mint_amount_u256 = invariant
             .compute_mint_amount_for_deposit(
                 U256::from(token_a_amount),
@@ -572,6 +590,7 @@ impl Processor {
         let destination_info = next_account_info(account_info_iter)?;
         let admin_destination_info = next_account_info(account_info_iter)?;
         let token_program_info = next_account_info(account_info_iter)?;
+        let clock_sysvar_info = next_account_info(account_info_iter)?;
 
         if *base_token_info.key == *quote_token_info.key {
             return Err(SwapError::InvalidInput.into());
@@ -607,11 +626,17 @@ impl Processor {
             return Err(SwapError::InvalidInput.into());
         }
 
+        let clock = Clock::from_account_info(clock_sysvar_info)?;
         let base_token = Self::unpack_token_account(&base_token_info.data.borrow())?;
         let quote_token = Self::unpack_token_account(&quote_token_info.data.borrow())?;
 
-        let invariant =
-            StableSwap::new(token_swap.initial_amp_factor, token_swap.target_amp_factor);
+        let invariant = StableSwap::new(
+            token_swap.initial_amp_factor,
+            token_swap.target_amp_factor,
+            clock.unix_timestamp,
+            token_swap.start_ramp_ts,
+            token_swap.stop_ramp_ts,
+        );
         let (dy, dy_fee) = invariant
             .compute_withdraw_one(
                 U256::from(pool_token_amount),

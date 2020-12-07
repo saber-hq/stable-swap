@@ -158,13 +158,13 @@ impl Processor {
         let account_info_iter = &mut accounts.iter();
         let swap_info = next_account_info(account_info_iter)?;
         let authority_info = next_account_info(account_info_iter)?;
+        let admin_fee_a_info = next_account_info(account_info_iter)?;
+        let admin_fee_b_info = next_account_info(account_info_iter)?;
         let token_a_info = next_account_info(account_info_iter)?;
         let token_b_info = next_account_info(account_info_iter)?;
         let pool_mint_info = next_account_info(account_info_iter)?;
         let destination_info = next_account_info(account_info_iter)?; // Destination account to mint LP tokens to
         let token_program_info = next_account_info(account_info_iter)?;
-        let admin_fee_a_info = next_account_info(account_info_iter)?;
-        let admin_fee_b_info = next_account_info(account_info_iter)?;
 
         let token_swap = SwapInfo::unpack_unchecked(&swap_info.data.borrow())?;
         if token_swap.is_initialized {
@@ -990,12 +990,12 @@ mod tests {
                     &TOKEN_PROGRAM_ID,
                     &self.swap_key,
                     &self.authority_key,
+                    &self.admin_fee_a_key,
+                    &self.admin_fee_b_key,
                     &self.token_a_key,
                     &self.token_b_key,
                     &self.pool_mint_key,
                     &self.pool_token_key,
-                    &self.admin_fee_a_key,
-                    &self.admin_fee_b_key,
                     self.nonce,
                     self.amp_factor,
                     self.fees,
@@ -1004,13 +1004,13 @@ mod tests {
                 vec![
                     &mut self.swap_account,
                     &mut Account::default(),
+                    &mut self.admin_fee_a_account,
+                    &mut self.admin_fee_b_account,
                     &mut self.token_a_account,
                     &mut self.token_b_account,
                     &mut self.pool_mint_account,
                     &mut self.pool_token_account,
                     &mut Account::default(),
-                    &mut self.admin_fee_a_account,
-                    &mut self.admin_fee_b_account,
                 ],
             )
         }

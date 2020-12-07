@@ -23,13 +23,13 @@ export const createInitSwapInstruction = (
   const keys = [
     { pubkey: tokenSwapAccount.publicKey, isSigner: false, isWritable: true },
     { pubkey: authority, isSigner: false, isWritable: false },
+    { pubkey: adminFeeAccountA, isSigner: false, isWritable: false },
+    { pubkey: adminFeeAccountB, isSigner: false, isWritable: false },
     { pubkey: tokenAccountA, isSigner: false, isWritable: false },
     { pubkey: tokenAccountB, isSigner: false, isWritable: false },
     { pubkey: poolTokenMint, isSigner: false, isWritable: true },
     { pubkey: poolTokenAccount, isSigner: false, isWritable: true },
     { pubkey: tokenProgramId, isSigner: false, isWritable: false },
-    { pubkey: adminFeeAccountA, isSigner: false, isWritable: false },
-    { pubkey: adminFeeAccountB, isSigner: false, isWritable: false },
   ];
   const dataLayout = BufferLayout.struct([
     BufferLayout.u8("instruction"),

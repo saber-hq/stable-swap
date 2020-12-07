@@ -361,12 +361,12 @@ pub fn initialize(
     pool_token_program_id: &Pubkey, // Token program used for the pool token
     swap_pubkey: &Pubkey,
     authority_pubkey: &Pubkey,
+    admin_fee_a_pubkey: &Pubkey,
+    admin_fee_b_pubkey: &Pubkey,
     token_a_pubkey: &Pubkey,
     token_b_pubkey: &Pubkey,
     pool_token_pubkey: &Pubkey,
     destination_pubkey: &Pubkey, // Desintation to mint pool tokens for bootstrapper
-    admin_fee_a_pubkey: &Pubkey,
-    admin_fee_b_pubkey: &Pubkey,
     nonce: u8,
     amp_factor: u64,
     fees: Fees,
@@ -381,13 +381,13 @@ pub fn initialize(
     let accounts = vec![
         AccountMeta::new(*swap_pubkey, true),
         AccountMeta::new(*authority_pubkey, false),
+        AccountMeta::new(*admin_fee_a_pubkey, false),
+        AccountMeta::new(*admin_fee_b_pubkey, false),
         AccountMeta::new(*token_a_pubkey, false),
         AccountMeta::new(*token_b_pubkey, false),
         AccountMeta::new(*pool_token_pubkey, false),
         AccountMeta::new(*destination_pubkey, false),
         AccountMeta::new(*pool_token_program_id, false),
-        AccountMeta::new(*admin_fee_a_pubkey, false),
-        AccountMeta::new(*admin_fee_b_pubkey, false),
     ];
 
     Ok(Instruction {

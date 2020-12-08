@@ -9,6 +9,7 @@ use solana_sdk::{
     program_error::ProgramError,
     program_pack::Pack,
     pubkey::Pubkey,
+    sysvar::clock,
 };
 use std::convert::TryInto;
 use std::mem::size_of;
@@ -197,7 +198,8 @@ pub enum SwapInstruction {
     ///   4. `[writable]` token_(A|B) Base Account to swap FROM.  Must be the DESTINATION token.
     ///   5. `[writable]` token_(A|B) DESTINATION Account assigned to USER as the owner.
     ///   6. `[writable]` token_(A|B) admin fee Account. Must have same mint as DESTINATION token.
-    ///   7. '[]` Token program id
+    ///   7. `[]` Token program id
+    ///   8. `[]` Clock sysvar
     Swap(SwapData),
 
     ///   Deposit some tokens into the pool.  The output is a "pool" token representing ownership
@@ -211,7 +213,8 @@ pub enum SwapInstruction {
     ///   5. `[writable]` token_b Base Account to deposit into.
     ///   6. `[writable]` Pool MINT account, $authority is the owner.
     ///   7. `[writable]` Pool Account to deposit the generated tokens, user is the owner.
-    ///   8. '[]` Token program id
+    ///   8. `[]` Token program id
+    ///   9. `[]` Clock sysvar
     Deposit(DepositData),
 
     ///   Withdraw tokens from the pool at the current ratio.
@@ -226,7 +229,7 @@ pub enum SwapInstruction {
     ///   7. `[writable]` token_b user Account to credit.
     ///   8. `[wrtaible]` admin_fee_a admin fee Account for token_a.
     ///   9. `[wrtaible]` admin_fee_b admin fee Account for token_b.
-    ///   10. '[]` Token program id
+    ///   10. `[]` Token program id
     Withdraw(WithdrawData),
 
     ///   Withdraw one token from the pool at the current ratio.
@@ -239,7 +242,8 @@ pub enum SwapInstruction {
     ///   5. `[writable]` token_(A|B) QUOTE token Swap Account to exchange to base token.
     ///   6. `[writable]` token_(A|B) BASE token user Account to credit.
     ///   7. `[writable]` token_(A|B) admin fee Account. Must have same mint as BASE token.
-    ///   8. '[]` Token program id
+    ///   8. `[]` Token program id
+    ///   9. `[]` Clock sysvar
     WithdrawOne(WithdrawOneData),
 }
 
@@ -430,6 +434,7 @@ pub fn deposit(
         AccountMeta::new(*pool_mint_pubkey, false),
         AccountMeta::new(*destination_pubkey, false),
         AccountMeta::new(*token_program_id, false),
+        AccountMeta::new(clock::id(), false),
     ];
 
     Ok(Instruction {
@@ -514,6 +519,7 @@ pub fn swap(
         AccountMeta::new(*destination_pubkey, false),
         AccountMeta::new(*admin_fee_destination_pubkey, false),
         AccountMeta::new(*token_program_id, false),
+        AccountMeta::new(clock::id(), false),
     ];
 
     Ok(Instruction {
@@ -554,6 +560,7 @@ pub fn withdraw_one(
         AccountMeta::new(*base_destination_pubkey, false),
         AccountMeta::new(*admin_fee_destination_pubkey, false),
         AccountMeta::new(*token_program_id, false),
+        AccountMeta::new(clock::id(), false),
     ];
 
     Ok(Instruction {

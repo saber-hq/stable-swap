@@ -1199,6 +1199,7 @@ mod tests {
                     &mut user_destination_account,
                     &mut admin_destination_account,
                     &mut Account::default(),
+                    &mut Account::default(),
                 ],
             )?;
 
@@ -1284,6 +1285,7 @@ mod tests {
                     &mut self.token_b_account,
                     &mut self.pool_mint_account,
                     &mut depositor_pool_account,
+                    &mut Account::default(),
                     &mut Account::default(),
                 ],
             )
@@ -1414,6 +1416,7 @@ mod tests {
                     &mut self.token_b_account,
                     &mut dest_token_account,
                     &mut self.admin_fee_a_account,
+                    &mut Account::default(),
                     &mut Account::default(),
                 ],
             )
@@ -3151,6 +3154,7 @@ mod tests {
                         &mut token_b_account,
                         &mut accounts.admin_fee_b_account,
                         &mut Account::default(),
+                        &mut Account::default(),
                     ],
                 ),
             );
@@ -3410,7 +3414,7 @@ mod tests {
                 )
                 .unwrap();
 
-            let invariant = StableSwap::new(amp_factor, amp_factor);
+            let invariant = StableSwap::new(amp_factor, amp_factor, 0, 0, 0);
             let result = invariant
                 .swap_to(
                     U256::from(a_to_b_amount),
@@ -3471,7 +3475,7 @@ mod tests {
                 )
                 .unwrap();
 
-            let invariant = StableSwap::new(amp_factor, amp_factor);
+            let invariant = StableSwap::new(amp_factor, amp_factor, 0, 0, 0);
             let result = invariant
                 .swap_to(
                     U256::from(b_to_a_amount),
@@ -4022,7 +4026,7 @@ mod tests {
             Processor::unpack_token_account(&accounts.token_b_account.data).unwrap();
         let old_pool_mint = Processor::unpack_mint(&accounts.pool_mint_account.data).unwrap();
 
-        let invariant = StableSwap::new(amp_factor, amp_factor);
+        let invariant = StableSwap::new(amp_factor, amp_factor, 0, 0, 0);
         let (withdraw_one_amount_before_fees, withdraw_one_trade_fee) = invariant
             .compute_withdraw_one(
                 withdraw_amount.into(),

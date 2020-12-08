@@ -5,7 +5,7 @@
 use crate::{
     admin::process_admin_instruction,
     bn::U256,
-    curve::StableSwap,
+    curve::{StableSwap, ZERO_TS},
     error::SwapError,
     fees::Fees,
     instruction::{
@@ -222,7 +222,7 @@ impl Processor {
         }
 
         // amp_factor == target_amp_factor on init
-        let invariant = StableSwap::new(amp_factor, amp_factor, 0, 0, 0);
+        let invariant = StableSwap::new(amp_factor, amp_factor, ZERO_TS, ZERO_TS, ZERO_TS);
         // Compute amount of LP tokens to mint for bootstrapper
         let mint_amount = invariant
             .compute_d(U256::from(token_a.amount), U256::from(token_b.amount))
@@ -3419,7 +3419,7 @@ mod tests {
                 )
                 .unwrap();
 
-            let invariant = StableSwap::new(amp_factor, amp_factor, 0, 0, 0);
+            let invariant = StableSwap::new(amp_factor, amp_factor, ZERO_TS, ZERO_TS, ZERO_TS);
             let result = invariant
                 .swap_to(
                     U256::from(a_to_b_amount),
@@ -3480,7 +3480,7 @@ mod tests {
                 )
                 .unwrap();
 
-            let invariant = StableSwap::new(amp_factor, amp_factor, 0, 0, 0);
+            let invariant = StableSwap::new(amp_factor, amp_factor, ZERO_TS, ZERO_TS, ZERO_TS);
             let result = invariant
                 .swap_to(
                     U256::from(b_to_a_amount),
@@ -4033,7 +4033,7 @@ mod tests {
             Processor::unpack_token_account(&accounts.token_b_account.data).unwrap();
         let old_pool_mint = Processor::unpack_mint(&accounts.pool_mint_account.data).unwrap();
 
-        let invariant = StableSwap::new(amp_factor, amp_factor, 0, 0, 0);
+        let invariant = StableSwap::new(amp_factor, amp_factor, ZERO_TS, ZERO_TS, ZERO_TS);
         let (withdraw_one_amount_before_fees, withdraw_one_trade_fee) = invariant
             .compute_withdraw_one(
                 withdraw_amount.into(),

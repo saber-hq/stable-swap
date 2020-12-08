@@ -4,6 +4,8 @@ use crate::{bn::U256, fees::Fees};
 
 /// Number of coins
 const N_COINS: u64 = 2;
+/// Timestamp at 0
+pub const ZERO_TS: i64 = 0;
 
 /// Encodes all results of swapping from a source token to a destination token
 pub struct SwapResult {
@@ -313,11 +315,18 @@ mod tests {
 
     #[test]
     fn test_curve_math() {
-        let current_ts = i64::MAX;
-        let start_ramp_ts = i64::MAX;
-        let stop_ramp_ts = i64::MAX;
+        let current_ts = ZERO_TS;
+        let start_ramp_ts = ZERO_TS;
+        let stop_ramp_ts = ZERO_TS;
         let model_no_balance = Model::new(1, vec![0, 0], N_COINS.into());
-        check_d(&model_no_balance, 0, 0, 0, start_ramp_ts, stop_ramp_ts);
+        check_d(
+            &model_no_balance,
+            0,
+            0,
+            current_ts,
+            start_ramp_ts,
+            stop_ramp_ts,
+        );
 
         let amount_a = u64::MAX;
         let amount_b = u64::MAX;
@@ -446,7 +455,7 @@ mod tests {
             let amp_factor: u64 = rng.gen_range(1, 10_000);
             let amount_a: u64 = rng.gen_range(1, u64::MAX);
             let amount_b: u64 = rng.gen_range(1, u64::MAX);
-            let start_ramp_ts: i64 = rng.gen_range(0, i64::MAX);
+            let start_ramp_ts: i64 = rng.gen_range(ZERO_TS, i64::MAX);
             let stop_ramp_ts: i64 = rng.gen_range(start_ramp_ts, i64::MAX);
             let current_ts: i64 = rng.gen_range(start_ramp_ts, stop_ramp_ts);
             println!("testing curve_math_with_random_inputs:");
@@ -525,9 +534,9 @@ mod tests {
 
     #[test]
     fn test_swap_calculation() {
-        let current_ts: i64 = i64::MAX;
-        let start_ramp_ts: i64 = i64::MAX;
-        let stop_ramp_ts: i64 = i64::MAX;
+        let current_ts: i64 = ZERO_TS;
+        let start_ramp_ts: i64 = ZERO_TS;
+        let stop_ramp_ts: i64 = ZERO_TS;
         let source_amount: u64 = u64::MAX;
         let swap_source_amount: u64 = u64::MAX;
         let swap_destination_amount: u64 = u64::MAX;
@@ -585,7 +594,7 @@ mod tests {
             let mut rng = rand::thread_rng();
 
             let amp_factor: u64 = rng.gen_range(1, 10_000);
-            let start_ramp_ts: i64 = rng.gen_range(0, i64::MAX);
+            let start_ramp_ts: i64 = rng.gen_range(ZERO_TS, i64::MAX);
             let stop_ramp_ts: i64 = rng.gen_range(start_ramp_ts, i64::MAX);
             let current_ts: i64 = rng.gen_range(start_ramp_ts, stop_ramp_ts);
             let source_amount: u64 = rng.gen_range(1, u64::MAX);
@@ -663,9 +672,9 @@ mod tests {
 
     #[test]
     fn test_compute_withdraw_one() {
-        let current_ts = i64::MAX;
-        let start_ramp_ts = i64::MAX;
-        let stop_ramp_ts = i64::MAX;
+        let current_ts = ZERO_TS;
+        let start_ramp_ts = ZERO_TS;
+        let stop_ramp_ts = ZERO_TS;
         let pool_token_supply = u64::MAX;
         let pool_token_amount = pool_token_supply / 2;
         let swap_base_amount = pool_token_supply / 2;
@@ -729,7 +738,7 @@ mod tests {
             let mut rng = rand::thread_rng();
 
             let amp_factor: u64 = rng.gen_range(1, 10_000);
-            let start_ramp_ts: i64 = rng.gen_range(0, i64::MAX);
+            let start_ramp_ts: i64 = rng.gen_range(ZERO_TS, i64::MAX);
             let stop_ramp_ts: i64 = rng.gen_range(start_ramp_ts, i64::MAX);
             let current_ts: i64 = rng.gen_range(start_ramp_ts, stop_ramp_ts);
             let swap_base_amount: u64 = rng.gen_range(1, u64::MAX / 2);

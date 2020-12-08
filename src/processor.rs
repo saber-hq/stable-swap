@@ -872,7 +872,7 @@ mod tests {
     use super::*;
     use crate::fees::Fees;
     use crate::instruction::{deposit, initialize, swap, withdraw, withdraw_one};
-    use crate::utils::test_utils::pubkey_rand;
+    use crate::utils::test_utils::*;
     use solana_sdk::{
         account::Account, account_info::create_is_signer_account_infos, instruction::Instruction,
         rent::Rent, sysvar::rent,
@@ -905,7 +905,7 @@ mod tests {
         nonce: u8,
         authority_key: Pubkey,
         initial_amp_factor: u64,
-        target_amp_factor: u64,
+        _target_amp_factor: u64,
         swap_key: Pubkey,
         swap_account: Account,
         pool_mint_key: Pubkey,
@@ -991,7 +991,7 @@ mod tests {
                 nonce,
                 authority_key,
                 initial_amp_factor: amp_factor,
-                target_amp_factor: amp_factor,
+                _target_amp_factor: amp_factor,
                 swap_key,
                 swap_account,
                 pool_mint_key,
@@ -1199,7 +1199,7 @@ mod tests {
                     &mut user_destination_account,
                     &mut admin_destination_account,
                     &mut Account::default(),
-                    &mut Account::default(),
+                    &mut default_clock_account(),
                 ],
             )?;
 
@@ -1286,7 +1286,7 @@ mod tests {
                     &mut self.pool_mint_account,
                     &mut depositor_pool_account,
                     &mut Account::default(),
-                    &mut Account::default(),
+                    &mut default_clock_account(),
                 ],
             )
         }
@@ -1417,7 +1417,7 @@ mod tests {
                     &mut dest_token_account,
                     &mut self.admin_fee_a_account,
                     &mut Account::default(),
-                    &mut Account::default(),
+                    &mut default_clock_account(),
                 ],
             )
         }
@@ -2183,6 +2183,7 @@ mod tests {
                         &mut accounts.pool_mint_account,
                         &mut pool_account,
                         &mut Account::default(),
+                        &mut default_clock_account(),
                     ],
                 )
             );
@@ -2228,6 +2229,7 @@ mod tests {
                         &mut accounts.pool_mint_account,
                         &mut pool_account,
                         &mut Account::default(),
+                        &mut default_clock_account(),
                     ],
                 )
             );
@@ -3154,7 +3156,7 @@ mod tests {
                         &mut token_b_account,
                         &mut accounts.admin_fee_b_account,
                         &mut Account::default(),
-                        &mut Account::default(),
+                        &mut default_clock_account(),
                     ],
                 ),
             );
@@ -3222,6 +3224,7 @@ mod tests {
                         &mut token_b_account,
                         &mut accounts.admin_fee_b_account,
                         &mut Account::default(),
+                        &mut default_clock_account(),
                     ],
                 ),
             );
@@ -3263,6 +3266,7 @@ mod tests {
                         &mut token_b_account,
                         &mut wrong_admin_account,
                         &mut Account::default(),
+                        &mut default_clock_account(),
                     ],
                 ),
             );
@@ -3356,6 +3360,7 @@ mod tests {
                         &mut accounts.admin_fee_b_account,
                         &mut token_b_account,
                         &mut Account::default(),
+                        &mut default_clock_account(),
                     ],
                 ),
             );
@@ -3807,6 +3812,7 @@ mod tests {
                         &mut token_a_account,
                         &mut accounts.admin_fee_a_account,
                         &mut Account::default(),
+                        &mut default_clock_account(),
                     ],
                 )
             );
@@ -3857,6 +3863,7 @@ mod tests {
                         &mut token_a_account,
                         &mut accounts.admin_fee_a_account,
                         &mut Account::default(),
+                        &mut default_clock_account(),
                     ],
                 )
             );

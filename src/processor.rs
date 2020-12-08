@@ -905,7 +905,7 @@ mod tests {
         nonce: u8,
         authority_key: Pubkey,
         initial_amp_factor: u64,
-        _target_amp_factor: u64,
+        target_amp_factor: u64,
         swap_key: Pubkey,
         swap_account: Account,
         pool_mint_key: Pubkey,
@@ -991,7 +991,7 @@ mod tests {
                 nonce,
                 authority_key,
                 initial_amp_factor: amp_factor,
-                _target_amp_factor: amp_factor,
+                target_amp_factor: amp_factor,
                 swap_key,
                 swap_account,
                 pool_mint_key,
@@ -3419,7 +3419,13 @@ mod tests {
                 )
                 .unwrap();
 
-            let invariant = StableSwap::new(amp_factor, amp_factor, ZERO_TS, ZERO_TS, ZERO_TS);
+            let invariant = StableSwap::new(
+                accounts.initial_amp_factor,
+                accounts.target_amp_factor,
+                ZERO_TS,
+                ZERO_TS,
+                ZERO_TS,
+            );
             let result = invariant
                 .swap_to(
                     U256::from(a_to_b_amount),
@@ -3480,7 +3486,13 @@ mod tests {
                 )
                 .unwrap();
 
-            let invariant = StableSwap::new(amp_factor, amp_factor, ZERO_TS, ZERO_TS, ZERO_TS);
+            let invariant = StableSwap::new(
+                accounts.initial_amp_factor,
+                accounts.target_amp_factor,
+                ZERO_TS,
+                ZERO_TS,
+                ZERO_TS,
+            );
             let result = invariant
                 .swap_to(
                     U256::from(b_to_a_amount),
@@ -4033,7 +4045,13 @@ mod tests {
             Processor::unpack_token_account(&accounts.token_b_account.data).unwrap();
         let old_pool_mint = Processor::unpack_mint(&accounts.pool_mint_account.data).unwrap();
 
-        let invariant = StableSwap::new(amp_factor, amp_factor, ZERO_TS, ZERO_TS, ZERO_TS);
+        let invariant = StableSwap::new(
+            accounts.initial_amp_factor,
+            accounts.target_amp_factor,
+            ZERO_TS,
+            ZERO_TS,
+            ZERO_TS,
+        );
         let (withdraw_one_amount_before_fees, withdraw_one_trade_fee) = invariant
             .compute_withdraw_one(
                 withdraw_amount.into(),

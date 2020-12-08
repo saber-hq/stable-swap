@@ -5,7 +5,7 @@
 use crate::{
     admin::process_admin_instruction,
     bn::U256,
-    curve::StableSwap,
+    curve::{StableSwap, ZERO_TS},
     error::SwapError,
     fees::Fees,
     instruction::{
@@ -30,6 +30,7 @@ use solana_sdk::{
     // program_option::COption,
     program_pack::Pack,
     pubkey::Pubkey,
+    sysvar::{clock::Clock, Sysvar},
 };
 use spl_token::{pack::Pack as TokenPack, state::Account, state::Mint};
 
@@ -77,7 +78,6 @@ impl Processor {
         let swap_bytes = swap.to_bytes();
         let authority_signature_seeds = [&swap_bytes[..32], &[nonce]];
         let signers = &[&authority_signature_seeds[..]];
-
         let ix = spl_token::instruction::burn(
             token_program.key,
             burn_account.key,
@@ -140,6 +140,7 @@ impl Processor {
             &[],
             amount,
         )?;
+
         invoke_signed(
             &ix,
             &[source, destination, authority, token_program],
@@ -220,8 +221,9 @@ impl Processor {
             return Err(SwapError::InvalidAdmin.into());
         }
 
-        // LP tokens for bootstrapper
-        let invariant = StableSwap::new(amp_factor);
+        // amp_factor == intial_amp_factor == target_amp_factor on init
+        let invariant = StableSwap::new(amp_factor, amp_factor, ZERO_TS, ZERO_TS, ZERO_TS);
+        // Compute amount of LP tokens to mint for bootstrapper
         let mint_amount = invariant
             .compute_d(U256::from(token_a.amount), U256::from(token_b.amount))
             .ok_or(SwapError::CalculationFailure)?;
@@ -238,7 +240,10 @@ impl Processor {
         let obj = SwapInfo {
             is_initialized: true,
             nonce,
-            amp_factor,
+            initial_amp_factor: amp_factor,
+            target_amp_factor: amp_factor,
+            start_ramp_ts: ZERO_TS,
+            stop_ramp_ts: ZERO_TS,
             token_a: *token_a_info.key,
             token_b: *token_b_info.key,
             pool_mint: *pool_mint_info.key,
@@ -268,6 +273,7 @@ impl Processor {
         let destination_info = next_account_info(account_info_iter)?;
         let admin_destination_info = next_account_info(account_info_iter)?;
         let token_program_info = next_account_info(account_info_iter)?;
+        let clock_sysvar_info = next_account_info(account_info_iter)?;
 
         let token_swap = SwapInfo::unpack(&swap_info.data.borrow())?;
         if *authority_info.key != Self::authority_id(program_id, swap_info.key, token_swap.nonce)? {
@@ -297,11 +303,18 @@ impl Processor {
             return Err(SwapError::InvalidInput.into());
         }
 
+        let clock = Clock::from_account_info(clock_sysvar_info)?;
         let swap_source_account = Self::unpack_token_account(&swap_source_info.data.borrow())?;
         let swap_destination_account =
             Self::unpack_token_account(&swap_destination_info.data.borrow())?;
 
-        let invariant = StableSwap::new(token_swap.amp_factor);
+        let invariant = StableSwap::new(
+            token_swap.initial_amp_factor,
+            token_swap.target_amp_factor,
+            clock.unix_timestamp,
+            token_swap.start_ramp_ts,
+            token_swap.stop_ramp_ts,
+        );
         let result = invariant
             .swap_to(
                 U256::from(amount_in),
@@ -363,6 +376,7 @@ impl Processor {
         let pool_mint_info = next_account_info(account_info_iter)?;
         let dest_info = next_account_info(account_info_iter)?;
         let token_program_info = next_account_info(account_info_iter)?;
+        let clock_sysvar_info = next_account_info(account_info_iter)?;
 
         let token_swap = SwapInfo::unpack(&swap_info.data.borrow())?;
         if *authority_info.key != Self::authority_id(program_id, swap_info.key, token_swap.nonce)? {
@@ -378,11 +392,18 @@ impl Processor {
             return Err(SwapError::IncorrectPoolMint.into());
         }
 
+        let clock = Clock::from_account_info(clock_sysvar_info)?;
         let token_a = Self::unpack_token_account(&token_a_info.data.borrow())?;
         let token_b = Self::unpack_token_account(&token_b_info.data.borrow())?;
         let pool_mint = Self::unpack_mint(&pool_mint_info.data.borrow())?;
 
-        let invariant = StableSwap::new(token_swap.amp_factor);
+        let invariant = StableSwap::new(
+            token_swap.initial_amp_factor,
+            token_swap.target_amp_factor,
+            clock.unix_timestamp,
+            token_swap.start_ramp_ts,
+            token_swap.stop_ramp_ts,
+        );
         let mint_amount_u256 = invariant
             .compute_mint_amount_for_deposit(
                 U256::from(token_a_amount),
@@ -569,6 +590,7 @@ impl Processor {
         let destination_info = next_account_info(account_info_iter)?;
         let admin_destination_info = next_account_info(account_info_iter)?;
         let token_program_info = next_account_info(account_info_iter)?;
+        let clock_sysvar_info = next_account_info(account_info_iter)?;
 
         if *base_token_info.key == *quote_token_info.key {
             return Err(SwapError::InvalidInput.into());
@@ -604,10 +626,17 @@ impl Processor {
             return Err(SwapError::InvalidInput.into());
         }
 
+        let clock = Clock::from_account_info(clock_sysvar_info)?;
         let base_token = Self::unpack_token_account(&base_token_info.data.borrow())?;
         let quote_token = Self::unpack_token_account(&quote_token_info.data.borrow())?;
 
-        let invariant = StableSwap::new(token_swap.amp_factor);
+        let invariant = StableSwap::new(
+            token_swap.initial_amp_factor,
+            token_swap.target_amp_factor,
+            clock.unix_timestamp,
+            token_swap.start_ramp_ts,
+            token_swap.stop_ramp_ts,
+        );
         let (dy, dy_fee) = invariant
             .compute_withdraw_one(
                 U256::from(pool_token_amount),
@@ -843,7 +872,7 @@ mod tests {
     use super::*;
     use crate::fees::Fees;
     use crate::instruction::{deposit, initialize, swap, withdraw, withdraw_one};
-    use crate::utils::test_utils::pubkey_rand;
+    use crate::utils::test_utils::*;
     use solana_sdk::{
         account::Account, account_info::create_is_signer_account_infos, instruction::Instruction,
         rent::Rent, sysvar::rent,
@@ -875,7 +904,8 @@ mod tests {
     struct SwapAccountInfo {
         nonce: u8,
         authority_key: Pubkey,
-        amp_factor: u64,
+        initial_amp_factor: u64,
+        target_amp_factor: u64,
         swap_key: Pubkey,
         swap_account: Account,
         pool_mint_key: Pubkey,
@@ -960,7 +990,8 @@ mod tests {
             SwapAccountInfo {
                 nonce,
                 authority_key,
-                amp_factor,
+                initial_amp_factor: amp_factor,
+                target_amp_factor: amp_factor,
                 swap_key,
                 swap_account,
                 pool_mint_key,
@@ -997,7 +1028,7 @@ mod tests {
                     &self.pool_mint_key,
                     &self.pool_token_key,
                     self.nonce,
-                    self.amp_factor,
+                    self.initial_amp_factor,
                     self.fees,
                 )
                 .unwrap(),
@@ -1168,6 +1199,7 @@ mod tests {
                     &mut user_destination_account,
                     &mut admin_destination_account,
                     &mut Account::default(),
+                    &mut default_clock_account(),
                 ],
             )?;
 
@@ -1254,6 +1286,7 @@ mod tests {
                     &mut self.pool_mint_account,
                     &mut depositor_pool_account,
                     &mut Account::default(),
+                    &mut default_clock_account(),
                 ],
             )
         }
@@ -1384,6 +1417,7 @@ mod tests {
                     &mut dest_token_account,
                     &mut self.admin_fee_a_account,
                     &mut Account::default(),
+                    &mut default_clock_account(),
                 ],
             )
         }
@@ -2149,6 +2183,7 @@ mod tests {
                         &mut accounts.pool_mint_account,
                         &mut pool_account,
                         &mut Account::default(),
+                        &mut default_clock_account(),
                     ],
                 )
             );
@@ -2194,6 +2229,7 @@ mod tests {
                         &mut accounts.pool_mint_account,
                         &mut pool_account,
                         &mut Account::default(),
+                        &mut default_clock_account(),
                     ],
                 )
             );
@@ -3120,6 +3156,7 @@ mod tests {
                         &mut token_b_account,
                         &mut accounts.admin_fee_b_account,
                         &mut Account::default(),
+                        &mut default_clock_account(),
                     ],
                 ),
             );
@@ -3187,6 +3224,7 @@ mod tests {
                         &mut token_b_account,
                         &mut accounts.admin_fee_b_account,
                         &mut Account::default(),
+                        &mut default_clock_account(),
                     ],
                 ),
             );
@@ -3228,6 +3266,7 @@ mod tests {
                         &mut token_b_account,
                         &mut wrong_admin_account,
                         &mut Account::default(),
+                        &mut default_clock_account(),
                     ],
                 ),
             );
@@ -3321,6 +3360,7 @@ mod tests {
                         &mut accounts.admin_fee_b_account,
                         &mut token_b_account,
                         &mut Account::default(),
+                        &mut default_clock_account(),
                     ],
                 ),
             );
@@ -3379,7 +3419,13 @@ mod tests {
                 )
                 .unwrap();
 
-            let invariant = StableSwap::new(amp_factor);
+            let invariant = StableSwap::new(
+                accounts.initial_amp_factor,
+                accounts.target_amp_factor,
+                ZERO_TS,
+                ZERO_TS,
+                ZERO_TS,
+            );
             let result = invariant
                 .swap_to(
                     U256::from(a_to_b_amount),
@@ -3440,7 +3486,13 @@ mod tests {
                 )
                 .unwrap();
 
-            let invariant = StableSwap::new(amp_factor);
+            let invariant = StableSwap::new(
+                accounts.initial_amp_factor,
+                accounts.target_amp_factor,
+                ZERO_TS,
+                ZERO_TS,
+                ZERO_TS,
+            );
             let result = invariant
                 .swap_to(
                     U256::from(b_to_a_amount),
@@ -3772,6 +3824,7 @@ mod tests {
                         &mut token_a_account,
                         &mut accounts.admin_fee_a_account,
                         &mut Account::default(),
+                        &mut default_clock_account(),
                     ],
                 )
             );
@@ -3822,6 +3875,7 @@ mod tests {
                         &mut token_a_account,
                         &mut accounts.admin_fee_a_account,
                         &mut Account::default(),
+                        &mut default_clock_account(),
                     ],
                 )
             );
@@ -3991,7 +4045,13 @@ mod tests {
             Processor::unpack_token_account(&accounts.token_b_account.data).unwrap();
         let old_pool_mint = Processor::unpack_mint(&accounts.pool_mint_account.data).unwrap();
 
-        let invariant = StableSwap::new(amp_factor);
+        let invariant = StableSwap::new(
+            accounts.initial_amp_factor,
+            accounts.target_amp_factor,
+            ZERO_TS,
+            ZERO_TS,
+            ZERO_TS,
+        );
         let (withdraw_one_amount_before_fees, withdraw_one_trade_fee) = invariant
             .compute_withdraw_one(
                 withdraw_amount.into(),

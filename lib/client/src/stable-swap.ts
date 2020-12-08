@@ -8,7 +8,7 @@ import {
 } from "@solana/web3.js";
 import { AccountLayout, MintLayout } from "@solana/spl-token";
 
-import { TOKEN_PROGRAM_ID } from "./constants";
+import { TOKEN_PROGRAM_ID, ZERO_TS } from "./constants";
 import { DEFAULT_FEES, Fees } from "./fees";
 import * as instructions from "./instructions";
 import * as layout from "./layout";
@@ -82,9 +82,24 @@ export class StableSwap {
   mintB: PublicKey;
 
   /**
-   * Amplification coefficient (A)
+   * Initial amplification coefficient (A)
    */
-  ampFactor: number;
+  initialAmpFactor: number;
+
+  /**
+   * Target amplification coefficient (A)
+   */
+  targetAmpFactor: number;
+
+  /**
+   * Ramp A start timestamp
+   */
+  startRampTimestamp: number;
+
+  /**
+   * Ramp A start timestamp
+   */
+  stopRampTimestamp: number;
 
   /**
    * Fees
@@ -92,19 +107,23 @@ export class StableSwap {
   fees: Fees;
 
   /**
-   * Create a new StableSwap client object
+   * Constructor for new StableSwap client object
    * @param connection
    * @param stableSwap
    * @param swapProgramId
    * @param tokenProgramId
    * @param poolToken
    * @param authority
+   * @param adminFeeAccountA
+   * @param adminFeeAccountB
    * @param tokenAccountA
    * @param tokenAccountB
    * @param mintA
    * @param mintB
-   * @param ampFactor
-   * @param payer
+   * @param initialAmpFactor
+   * @param targetAmpFactor
+   * @param startRampTimestamp
+   * @param stopRampTimeStamp
    * @param fees
    */
   constructor(
@@ -120,7 +139,10 @@ export class StableSwap {
     tokenAccountB: PublicKey,
     mintA: PublicKey,
     mintB: PublicKey,
-    ampFactor: number,
+    initialAmpFactor: number,
+    targetAmpFactor: number,
+    startRampTimestamp: number,
+    stopRampTimeStamp: number,
     fees: Fees = DEFAULT_FEES
   ) {
     this.connection = connection;
@@ -135,7 +157,10 @@ export class StableSwap {
     this.tokenAccountB = tokenAccountB;
     this.mintA = mintA;
     this.mintB = mintB;
-    this.ampFactor = ampFactor;
+    this.initialAmpFactor = initialAmpFactor;
+    this.targetAmpFactor = targetAmpFactor;
+    this.startRampTimestamp = startRampTimestamp;
+    this.stopRampTimestamp = stopRampTimeStamp;
     this.fees = fees;
   }
 
@@ -182,7 +207,10 @@ export class StableSwap {
     const mintA = new PublicKey(stableSwapData.mintA);
     const mintB = new PublicKey(stableSwapData.mintB);
     const tokenProgramId = TOKEN_PROGRAM_ID;
-    const ampFactor = stableSwapData.ampFactor;
+    const initialAmpFactor = stableSwapData.initialAmpFactor;
+    const targetAmpFactor = stableSwapData.targetAmpFactor;
+    const startRampTimestamp = stableSwapData.startRampTs;
+    const stopRampTimeStamp = stableSwapData.stopRampTs;
     const fees = {
       adminTradeFeeNumerator: stableSwapData.adminTradeFeeNumerator as number,
       adminTradeFeeDenominator: stableSwapData.adminTradeFeeDenominator as number,
@@ -207,7 +235,10 @@ export class StableSwap {
       tokenAccountB,
       mintA,
       mintB,
-      ampFactor,
+      initialAmpFactor,
+      targetAmpFactor,
+      startRampTimestamp,
+      stopRampTimeStamp,
       fees
     );
   }
@@ -304,6 +335,9 @@ export class StableSwap {
       mintA,
       mintB,
       ampFactor,
+      ampFactor,
+      ZERO_TS,
+      ZERO_TS,
       fees
     );
   }
@@ -339,7 +373,7 @@ export class StableSwap {
     const tokenB = AccountLayout.decode(tokenBData);
     const amountA = NumberU64.fromBuffer(tokenA.amount);
     const amountB = NumberU64.fromBuffer(tokenB.amount);
-    const D = computeD(new BN(this.ampFactor), amountA, amountB);
+    const D = computeD(new BN(this.initialAmpFactor), amountA, amountB);
 
     const poolMint = MintLayout.decode(poolMintData);
     const poolSupply = NumberU64.fromBuffer(poolMint.supply);

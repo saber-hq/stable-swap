@@ -1,5 +1,10 @@
 import * as BufferLayout from "buffer-layout";
-import { Account, PublicKey, TransactionInstruction } from "@solana/web3.js";
+import {
+  Account,
+  PublicKey,
+  TransactionInstruction,
+  SYSVAR_CLOCK_PUBKEY,
+} from "@solana/web3.js";
 
 import { NumberU64 } from "./util/u64";
 import { Uint64Layout } from "./layout";
@@ -121,6 +126,7 @@ export const swapInstruction = (
     { pubkey: userDestination, isSigner: false, isWritable: true },
     { pubkey: adminDestination, isSigner: false, isWritable: true },
     { pubkey: tokenProgramId, isSigner: false, isWritable: false },
+    { pubkey: SYSVAR_CLOCK_PUBKEY, isSigner: false, isWritable: false },
   ];
   return new TransactionInstruction({
     keys,
@@ -171,6 +177,7 @@ export const depositInstruction = (
     { pubkey: poolToken, isSigner: false, isWritable: true },
     { pubkey: poolTokenAccount, isSigner: false, isWritable: true },
     { pubkey: tokenProgramId, isSigner: false, isWritable: false },
+    { pubkey: SYSVAR_CLOCK_PUBKEY, isSigner: false, isWritable: false },
   ];
   return new TransactionInstruction({
     keys,

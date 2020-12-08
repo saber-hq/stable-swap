@@ -21,8 +21,14 @@ pub struct SwapInfo {
     /// token mint.
     pub nonce: u8,
 
-    /// Amplification coefficient (A)
-    pub amp_factor: u64,
+    /// Initial amplification coefficient (A)
+    pub initial_amp_factor: u64,
+    /// Target amplification coefficient (A)
+    pub target_amp_factor: u64,
+    /// Ramp A start timestamp
+    pub start_ramp_ts: i64,
+    /// Ramp A stop timestamp
+    pub stop_ramp_ts: i64,
 
     /// Token A
     pub token_a: Pubkey,
@@ -53,16 +59,19 @@ impl IsInitialized for SwapInfo {
 }
 
 impl Pack for SwapInfo {
-    const LEN: usize = 298;
+    const LEN: usize = 322;
 
     /// Unpacks a byte buffer into a [SwapInfo](struct.SwapInfo.html).
     fn unpack_from_slice(input: &[u8]) -> Result<Self, ProgramError> {
-        let input = array_ref![input, 0, 298];
+        let input = array_ref![input, 0, 322];
         #[allow(clippy::ptr_offset_with_cast)]
         let (
             is_initialized,
             nonce,
-            amp_factor,
+            initial_amp_factor,
+            target_amp_factor,
+            start_ramp_ts,
+            stop_ramp_ts,
             token_a,
             token_b,
             pool_mint,
@@ -71,7 +80,7 @@ impl Pack for SwapInfo {
             admin_fee_account_a,
             admin_fee_account_b,
             fees,
-        ) = array_refs![input, 1, 1, 8, 32, 32, 32, 32, 32, 32, 32, 64];
+        ) = array_refs![input, 1, 1, 8, 8, 8, 8, 32, 32, 32, 32, 32, 32, 32, 64];
         Ok(Self {
             is_initialized: match is_initialized {
                 [0] => false,
@@ -79,7 +88,10 @@ impl Pack for SwapInfo {
                 _ => return Err(ProgramError::InvalidAccountData),
             },
             nonce: nonce[0],
-            amp_factor: u64::from_le_bytes(*amp_factor),
+            initial_amp_factor: u64::from_le_bytes(*initial_amp_factor),
+            target_amp_factor: u64::from_le_bytes(*target_amp_factor),
+            start_ramp_ts: i64::from_le_bytes(*start_ramp_ts),
+            stop_ramp_ts: i64::from_le_bytes(*stop_ramp_ts),
             token_a: Pubkey::new_from_array(*token_a),
             token_b: Pubkey::new_from_array(*token_b),
             pool_mint: Pubkey::new_from_array(*pool_mint),
@@ -92,11 +104,14 @@ impl Pack for SwapInfo {
     }
 
     fn pack_into_slice(&self, output: &mut [u8]) {
-        let output = array_mut_ref![output, 0, 298];
+        let output = array_mut_ref![output, 0, 322];
         let (
             is_initialized,
             nonce,
-            amp_factor,
+            initial_amp_factor,
+            target_amp_factor,
+            start_ramp_ts,
+            stop_ramp_ts,
             token_a,
             token_b,
             pool_mint,
@@ -105,10 +120,13 @@ impl Pack for SwapInfo {
             admin_fee_account_a,
             admin_fee_account_b,
             fees,
-        ) = mut_array_refs![output, 1, 1, 8, 32, 32, 32, 32, 32, 32, 32, 64];
+        ) = mut_array_refs![output, 1, 1, 8, 8, 8, 8, 32, 32, 32, 32, 32, 32, 32, 64];
         is_initialized[0] = self.is_initialized as u8;
         nonce[0] = self.nonce;
-        *amp_factor = self.amp_factor.to_le_bytes();
+        *initial_amp_factor = self.initial_amp_factor.to_le_bytes();
+        *target_amp_factor = self.target_amp_factor.to_le_bytes();
+        *start_ramp_ts = self.start_ramp_ts.to_le_bytes();
+        *stop_ramp_ts = self.stop_ramp_ts.to_le_bytes();
         token_a.copy_from_slice(self.token_a.as_ref());
         token_b.copy_from_slice(self.token_b.as_ref());
         pool_mint.copy_from_slice(self.pool_mint.as_ref());
@@ -127,7 +145,10 @@ mod tests {
     #[test]
     fn test_swap_info_packing() {
         let nonce = 255;
-        let amp_factor: u64 = 1;
+        let initial_amp_factor: u64 = 1;
+        let target_amp_factor: u64 = 1;
+        let start_ramp_ts: i64 = i64::MAX;
+        let stop_ramp_ts: i64 = i64::MAX;
         let token_a_raw = [1u8; 32];
         let token_b_raw = [2u8; 32];
         let pool_mint_raw = [3u8; 32];
@@ -165,7 +186,10 @@ mod tests {
         let swap_info = SwapInfo {
             is_initialized,
             nonce,
-            amp_factor,
+            initial_amp_factor,
+            target_amp_factor,
+            start_ramp_ts,
+            stop_ramp_ts,
             token_a,
             token_b,
             pool_mint,
@@ -184,7 +208,10 @@ mod tests {
         let mut packed = vec![];
         packed.push(1 as u8);
         packed.push(nonce);
-        packed.extend_from_slice(&amp_factor.to_le_bytes());
+        packed.extend_from_slice(&initial_amp_factor.to_le_bytes());
+        packed.extend_from_slice(&target_amp_factor.to_le_bytes());
+        packed.extend_from_slice(&start_ramp_ts.to_le_bytes());
+        packed.extend_from_slice(&stop_ramp_ts.to_le_bytes());
         packed.extend_from_slice(&token_a_raw);
         packed.extend_from_slice(&token_b_raw);
         packed.extend_from_slice(&pool_mint_raw);

@@ -199,7 +199,7 @@ describe("e2e test", () => {
     expect(fetchedStableSwap.mintA).toEqual(mintA.publicKey);
     expect(fetchedStableSwap.mintB).toEqual(mintB.publicKey);
     expect(fetchedStableSwap.poolToken).toEqual(tokenPool.publicKey);
-    expect(fetchedStableSwap.ampFactor).toEqual(AMP_FACTOR);
+    expect(fetchedStableSwap.initialAmpFactor).toEqual(AMP_FACTOR);
     expect(fetchedStableSwap.fees).toEqual(FEES);
   });
 

@@ -78,7 +78,6 @@ impl Processor {
         let swap_bytes = swap.to_bytes();
         let authority_signature_seeds = [&swap_bytes[..32], &[nonce]];
         let signers = &[&authority_signature_seeds[..]];
-
         let ix = spl_token::instruction::burn(
             token_program.key,
             burn_account.key,
@@ -141,6 +140,7 @@ impl Processor {
             &[],
             amount,
         )?;
+
         invoke_signed(
             &ix,
             &[source, destination, authority, token_program],
@@ -221,7 +221,7 @@ impl Processor {
             return Err(SwapError::InvalidAdmin.into());
         }
 
-        // amp_factor == target_amp_factor on init
+        // amp_factor == intial_amp_factor == target_amp_factor on init
         let invariant = StableSwap::new(amp_factor, amp_factor, ZERO_TS, ZERO_TS, ZERO_TS);
         // Compute amount of LP tokens to mint for bootstrapper
         let mint_amount = invariant
@@ -242,8 +242,8 @@ impl Processor {
             nonce,
             initial_amp_factor: amp_factor,
             target_amp_factor: amp_factor,
-            start_ramp_ts: 0,
-            stop_ramp_ts: 0,
+            start_ramp_ts: ZERO_TS,
+            stop_ramp_ts: ZERO_TS,
             token_a: *token_a_info.key,
             token_b: *token_b_info.key,
             pool_mint: *pool_mint_info.key,

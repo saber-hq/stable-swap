@@ -22,9 +22,9 @@ pub struct SwapResult {
 /// The StableSwap invariant calculator.
 pub struct StableSwap {
     /// Initial amplification coefficient (A)
-    pub initial_amp_factor: U256,
+    initial_amp_factor: U256,
     /// Target amplificaiton coeffiecient (A)
-    pub target_amp_factor: U256,
+    target_amp_factor: U256,
     /// Current unix timestamp
     current_ts: i64,
     /// Ramp A start timestamp

@@ -588,7 +588,8 @@ mod tests {
     }
 
     fn check_swap(
-        amp_factor: u64,
+        initial_amp_factor: u64,
+        target_amp_factor: u64,
         current_ts: i64,
         start_ramp_ts: i64,
         stop_ramp_ts: i64,
@@ -597,8 +598,8 @@ mod tests {
         swap_destination_amount: u64,
     ) {
         let swap = StableSwap::new(
-            amp_factor,
-            amp_factor,
+            initial_amp_factor,
+            target_amp_factor,
             current_ts,
             start_ramp_ts,
             stop_ramp_ts,
@@ -612,7 +613,7 @@ mod tests {
             )
             .unwrap();
         let model = Model::new(
-            amp_factor.into(),
+            U256::to_u128(swap.compute_amp_factor().unwrap()).unwrap(),
             vec![swap_source_amount.into(), swap_destination_amount.into()],
             N_COINS.into(),
         );
@@ -640,8 +641,10 @@ mod tests {
         let swap_source_amount: u64 = u64::MAX;
         let swap_destination_amount: u64 = u64::MAX;
 
+        let amp_factor = 1;
         check_swap(
-            1,
+            amp_factor,
+            amp_factor,
             current_ts,
             start_ramp_ts,
             stop_ramp_ts,
@@ -649,8 +652,10 @@ mod tests {
             swap_source_amount,
             swap_destination_amount,
         );
+        let amp_factor = 10;
         check_swap(
-            10,
+            amp_factor,
+            amp_factor,
             current_ts,
             start_ramp_ts,
             stop_ramp_ts,
@@ -658,8 +663,10 @@ mod tests {
             swap_source_amount,
             swap_destination_amount,
         );
+        let amp_factor = 100;
         check_swap(
-            100,
+            amp_factor,
+            amp_factor,
             current_ts,
             start_ramp_ts,
             stop_ramp_ts,
@@ -667,8 +674,10 @@ mod tests {
             swap_source_amount,
             swap_destination_amount,
         );
+        let amp_factor = 1000;
         check_swap(
-            1000,
+            amp_factor,
+            amp_factor,
             current_ts,
             start_ramp_ts,
             stop_ramp_ts,
@@ -676,8 +685,10 @@ mod tests {
             swap_source_amount,
             swap_destination_amount,
         );
+        let amp_factor = 10_000;
         check_swap(
-            10000,
+            amp_factor,
+            amp_factor,
             current_ts,
             start_ramp_ts,
             stop_ramp_ts,
@@ -692,7 +703,8 @@ mod tests {
         for _ in 0..100 {
             let mut rng = rand::thread_rng();
 
-            let amp_factor: u64 = rng.gen_range(1, 10_000);
+            let initial_amp_factor: u64 = rng.gen_range(1, 10_000);
+            let target_amp_factor: u64 = rng.gen_range(1, 10_000);
             let start_ramp_ts: i64 = rng.gen_range(ZERO_TS, i64::MAX);
             let stop_ramp_ts: i64 = rng.gen_range(start_ramp_ts, i64::MAX);
             let current_ts: i64 = rng.gen_range(start_ramp_ts, stop_ramp_ts);
@@ -705,12 +717,13 @@ mod tests {
                 current_ts, start_ramp_ts, stop_ramp_ts
             );
             println!(
-                "amp_factor: {}, source_amount: {}, swap_source_amount: {}, swap_destination_amount: {}",
-                amp_factor, source_amount, swap_source_amount, swap_destination_amount
+                "initial_amp_factor: {}, target_amp_factor: {}, source_amount: {}, swap_source_amount: {}, swap_destination_amount: {}",
+                initial_amp_factor, target_amp_factor, source_amount, swap_source_amount, swap_destination_amount
             );
 
             check_swap(
-                amp_factor,
+                initial_amp_factor,
+                target_amp_factor,
                 current_ts,
                 start_ramp_ts,
                 stop_ramp_ts,
@@ -722,7 +735,8 @@ mod tests {
     }
 
     fn check_withdraw_one(
-        amp_factor: u64,
+        initial_amp_factor: u64,
+        target_amp_factor: u64,
         current_ts: i64,
         start_ramp_ts: i64,
         stop_ramp_ts: i64,
@@ -732,8 +746,8 @@ mod tests {
         swap_quote_amount: u64,
     ) {
         let swap = StableSwap::new(
-            amp_factor,
-            amp_factor,
+            initial_amp_factor,
+            target_amp_factor,
             current_ts,
             start_ramp_ts,
             stop_ramp_ts,
@@ -748,7 +762,7 @@ mod tests {
             )
             .unwrap();
         let model = Model::new_with_pool_tokens(
-            amp_factor.into(),
+            U256::to_u128(swap.compute_amp_factor().unwrap()).unwrap(),
             vec![swap_base_amount.into(), swap_quote_amount.into()],
             N_COINS.into(),
             pool_token_supply.into(),
@@ -779,8 +793,10 @@ mod tests {
         let swap_base_amount = pool_token_supply / 2;
         let swap_quote_amount = pool_token_supply / 2;
 
+        let amp_factor = 1;
         check_withdraw_one(
-            1,
+            amp_factor,
+            amp_factor,
             current_ts,
             start_ramp_ts,
             stop_ramp_ts,
@@ -789,8 +805,10 @@ mod tests {
             swap_base_amount,
             swap_quote_amount,
         );
+        let amp_factor = 10;
         check_withdraw_one(
-            10,
+            amp_factor,
+            amp_factor,
             current_ts,
             start_ramp_ts,
             stop_ramp_ts,
@@ -799,8 +817,10 @@ mod tests {
             swap_base_amount,
             swap_quote_amount,
         );
+        let amp_factor = 100;
         check_withdraw_one(
-            100,
+            amp_factor,
+            amp_factor,
             current_ts,
             start_ramp_ts,
             stop_ramp_ts,
@@ -809,8 +829,10 @@ mod tests {
             swap_base_amount,
             swap_quote_amount,
         );
+        let amp_factor = 1000;
         check_withdraw_one(
-            1000,
+            amp_factor,
+            amp_factor,
             current_ts,
             start_ramp_ts,
             stop_ramp_ts,
@@ -819,8 +841,10 @@ mod tests {
             swap_base_amount,
             swap_quote_amount,
         );
+        let amp_factor = 10_000;
         check_withdraw_one(
-            10000,
+            amp_factor,
+            amp_factor,
             current_ts,
             start_ramp_ts,
             stop_ramp_ts,
@@ -836,7 +860,8 @@ mod tests {
         for _ in 0..100 {
             let mut rng = rand::thread_rng();
 
-            let amp_factor: u64 = rng.gen_range(1, 10_000);
+            let initial_amp_factor: u64 = rng.gen_range(1, 10_000);
+            let target_amp_factor: u64 = rng.gen_range(1, 10_000);
             let start_ramp_ts: i64 = rng.gen_range(ZERO_TS, i64::MAX);
             let stop_ramp_ts: i64 = rng.gen_range(start_ramp_ts, i64::MAX);
             let current_ts: i64 = rng.gen_range(start_ramp_ts, stop_ramp_ts);
@@ -850,12 +875,13 @@ mod tests {
                 current_ts, start_ramp_ts, stop_ramp_ts
             );
             println!(
-                "amp_factor: {}, swap_base_amount: {}, swap_quote_amount: {}, pool_token_amount: {}, pool_token_supply: {}",
-                amp_factor, swap_base_amount, swap_quote_amount, pool_token_amount, pool_token_supply
+                "initial_amp_factor: {}, target_amp_factor: {}, swap_base_amount: {}, swap_quote_amount: {}, pool_token_amount: {}, pool_token_supply: {}",
+                initial_amp_factor, target_amp_factor,  swap_base_amount, swap_quote_amount, pool_token_amount, pool_token_supply
             );
 
             check_withdraw_one(
-                amp_factor,
+                initial_amp_factor,
+                target_amp_factor,
                 current_ts,
                 start_ramp_ts,
                 stop_ramp_ts,

@@ -17,4 +17,8 @@ impl U256 {
     pub fn to_u64(val: U256) -> Result<u64, SwapError> {
         val.try_into().map_err(|_| SwapError::ConversionFailure)
     }
+    /// Convert u256 to u128
+    pub fn to_u128(val: U256) -> Result<u128, SwapError> {
+        val.try_into().map_err(|_| SwapError::ConversionFailure)
+    }
 }

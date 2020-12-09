@@ -184,9 +184,12 @@ pub enum SwapInstruction {
     ///
     ///   0. `[writable, signer]` New Token-swap to create.
     ///   1. `[]` $authority derived from `create_program_address(&[Token-swap account])`
-    ///   2. `[]` token_a Account. Must be non zero, owned by $authority.
-    ///   3. `[]` token_b Account. Must be non zero, owned by $authority.
-    ///   4. `[writable]` Pool Token Mint. Must be empty, owned by $authority.
+    ///   2. `[]` admin Account.
+    ///   3. `[]` admin_fee_a admin fee Account for token_a.
+    ///   4. `[]` admin_fee_b admin fee Account for token_b.
+    ///   5. `[]` token_a Account. Must be non zero, owned by $authority.
+    ///   6. `[]` token_b Account. Must be non zero, owned by $authority.
+    ///   7. `[writable]` Pool Token Mint. Must be empty, owned by $authority.
     Initialize(InitializeData),
 
     ///   Swap the tokens in the pool.
@@ -227,8 +230,8 @@ pub enum SwapInstruction {
     ///   5. `[writable]` token_b Swap Account to withdraw FROM.
     ///   6. `[writable]` token_a user Account to credit.
     ///   7. `[writable]` token_b user Account to credit.
-    ///   8. `[wrtaible]` admin_fee_a admin fee Account for token_a.
-    ///   9. `[wrtaible]` admin_fee_b admin fee Account for token_b.
+    ///   8. `[writable]` admin_fee_a admin fee Account for token_a.
+    ///   9. `[writable]` admin_fee_b admin fee Account for token_b.
     ///   10. `[]` Token program id
     Withdraw(WithdrawData),
 
@@ -365,6 +368,7 @@ pub fn initialize(
     pool_token_program_id: &Pubkey, // Token program used for the pool token
     swap_pubkey: &Pubkey,
     authority_pubkey: &Pubkey,
+    admin_pubkey: &Pubkey,
     admin_fee_a_pubkey: &Pubkey,
     admin_fee_b_pubkey: &Pubkey,
     token_a_pubkey: &Pubkey,
@@ -385,6 +389,7 @@ pub fn initialize(
     let accounts = vec![
         AccountMeta::new(*swap_pubkey, true),
         AccountMeta::new(*authority_pubkey, false),
+        AccountMeta::new(*admin_pubkey, false),
         AccountMeta::new(*admin_fee_a_pubkey, false),
         AccountMeta::new(*admin_fee_b_pubkey, false),
         AccountMeta::new(*token_a_pubkey, false),

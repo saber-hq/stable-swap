@@ -159,6 +159,7 @@ impl Processor {
         let account_info_iter = &mut accounts.iter();
         let swap_info = next_account_info(account_info_iter)?;
         let authority_info = next_account_info(account_info_iter)?;
+        let admin_key_info = next_account_info(account_info_iter)?;
         let admin_fee_a_info = next_account_info(account_info_iter)?;
         let admin_fee_b_info = next_account_info(account_info_iter)?;
         let token_a_info = next_account_info(account_info_iter)?;
@@ -249,6 +250,7 @@ impl Processor {
             pool_mint: *pool_mint_info.key,
             token_a_mint: token_a.mint,
             token_b_mint: token_b.mint,
+            admin_key: *admin_key_info.key,
             admin_fee_account_a: *admin_fee_a_info.key,
             admin_fee_account_b: *admin_fee_b_info.key,
             fees,
@@ -920,6 +922,8 @@ mod tests {
         token_b_account: Account,
         token_b_mint_key: Pubkey,
         token_b_mint_account: Account,
+        admin_key: Pubkey,
+        admin_account: Account,
         admin_fee_a_key: Pubkey,
         admin_fee_a_account: Account,
         admin_fee_b_key: Pubkey,
@@ -987,6 +991,8 @@ mod tests {
                 0,
             );
 
+            let admin_account = Account::default();
+
             SwapAccountInfo {
                 nonce,
                 authority_key,
@@ -1006,6 +1012,8 @@ mod tests {
                 token_b_account,
                 token_b_mint_key,
                 token_b_mint_account,
+                admin_key: admin_account.owner,
+                admin_account,
                 admin_fee_a_key,
                 admin_fee_a_account,
                 admin_fee_b_key,
@@ -1021,6 +1029,7 @@ mod tests {
                     &TOKEN_PROGRAM_ID,
                     &self.swap_key,
                     &self.authority_key,
+                    &self.admin_key,
                     &self.admin_fee_a_key,
                     &self.admin_fee_b_key,
                     &self.token_a_key,
@@ -1035,6 +1044,7 @@ mod tests {
                 vec![
                     &mut self.swap_account,
                     &mut Account::default(),
+                    &mut self.admin_account,
                     &mut self.admin_fee_a_account,
                     &mut self.admin_fee_b_account,
                     &mut self.token_a_account,
@@ -1577,7 +1587,6 @@ mod tests {
         let token_a_amount = 1000;
         let token_b_amount = 2000;
         let pool_token_amount = 10;
-
         let mut accounts = SwapAccountInfo::new(
             &user_key,
             amp_factor,

@@ -26,11 +26,11 @@ pub struct StableSwap {
     /// Target amplificaiton coeffiecient (A)
     pub target_amp_factor: U256,
     /// Current unix timestamp
-    pub current_ts: i64,
+    current_ts: i64,
     /// Ramp A start timestamp
-    pub start_ramp_ts: i64,
+    start_ramp_ts: i64,
     /// Ramp A stop timestamp
-    pub stop_ramp_ts: i64,
+    stop_ramp_ts: i64,
 }
 
 impl StableSwap {
@@ -51,8 +51,41 @@ impl StableSwap {
         }
     }
 
-    fn compute_next_d(&self, d_init: U256, d_prod: U256, sum_x: U256) -> Option<U256> {
-        let ann = self.initial_amp_factor.checked_mul(N_COINS.into())?;
+    fn compute_amp_factor(&self) -> Option<U256> {
+        if self.current_ts < self.stop_ramp_ts {
+            let time_range = U256::from(self.stop_ramp_ts.checked_sub(self.start_ramp_ts)?);
+            let time_delta = U256::from(self.current_ts.checked_sub(self.start_ramp_ts)?);
+
+            // Compute amp factor based on ramp time
+            if self.target_amp_factor > self.initial_amp_factor {
+                // Ramp up
+                let amp_diff = self
+                    .target_amp_factor
+                    .checked_sub(self.initial_amp_factor)?;
+                let amp_delta = amp_diff.checked_mul(time_delta)?.checked_div(time_range)?;
+                self.initial_amp_factor.checked_add(amp_delta)
+            } else {
+                // Ramp down
+                let amp_diff = self
+                    .initial_amp_factor
+                    .checked_sub(self.target_amp_factor)?;
+                let amp_delta = amp_diff.checked_mul(time_delta)?.checked_div(time_range)?;
+                self.initial_amp_factor.checked_sub(amp_delta)
+            }
+        } else {
+            // when stop_ramp_ts == 0 or current_ts >= stop_ramp_ts
+            Some(self.target_amp_factor)
+        }
+    }
+
+    fn compute_next_d(
+        &self,
+        amp_factor: U256,
+        d_init: U256,
+        d_prod: U256,
+        sum_x: U256,
+    ) -> Option<U256> {
+        let ann = amp_factor.checked_mul(N_COINS.into())?;
         let leverage = ann.checked_mul(sum_x)?;
         // d = (ann * sum_x + d_prod * n_coins) * d / ((ann - 1) * d + (n_coins + 1) * d_prod)
         let numerator =
@@ -71,6 +104,7 @@ impl StableSwap {
         if sum_x == 0.into() {
             Some(0.into())
         } else {
+            let amp_factor = self.compute_amp_factor()?;
             let amount_a_times_coins = amount_a.checked_mul(N_COINS.into())?;
             let amount_b_times_coins = amount_b.checked_mul(N_COINS.into())?;
 
@@ -82,7 +116,7 @@ impl StableSwap {
                 d_prod = d_prod.checked_mul(d)?.checked_div(amount_a_times_coins)?;
                 d_prod = d_prod.checked_mul(d)?.checked_div(amount_b_times_coins)?;
                 d_prev = d;
-                d = self.compute_next_d(d, d_prod, sum_x)?;
+                d = self.compute_next_d(amp_factor, d, d_prod, sum_x)?;
                 // Equality with the precision of 1
                 if d > d_prev {
                     if d.checked_sub(d_prev)? <= 1.into() {
@@ -146,7 +180,8 @@ impl StableSwap {
     /// y**2 + b*y = c
     #[allow(clippy::many_single_char_names)]
     pub fn compute_y(&self, x: U256, d: U256) -> Option<U256> {
-        let ann: U256 = self.initial_amp_factor.checked_mul(N_COINS.into())?; // A * n ** n
+        let amp_factor = self.compute_amp_factor()?;
+        let ann: U256 = amp_factor.checked_mul(N_COINS.into())?; // A * n ** n
 
         // sum' = prod' = x
         // c =  D ** (n + 1) / (n ** (2 * n) * prod' * A)

@@ -22,9 +22,9 @@ pub struct SwapResult {
 /// The StableSwap invariant calculator.
 pub struct StableSwap {
     /// Initial amplification coefficient (A)
-    initial_amp_factor: U256,
+    initial_amp_factor: u64,
     /// Target amplificaiton coeffiecient (A)
-    target_amp_factor: U256,
+    target_amp_factor: u64,
     /// Current unix timestamp
     current_ts: i64,
     /// Ramp A start timestamp
@@ -36,15 +36,15 @@ pub struct StableSwap {
 impl StableSwap {
     /// New StableSwap calculator
     pub fn new(
-        initial_amp_factor_u64: u64,
-        target_amp_factor_u64: u64,
+        initial_amp_factor: u64,
+        target_amp_factor: u64,
         current_ts: i64,
         start_ramp_ts: i64,
         stop_ramp_ts: i64,
     ) -> Self {
         Self {
-            initial_amp_factor: U256::from(initial_amp_factor_u64),
-            target_amp_factor: U256::from(target_amp_factor_u64),
+            initial_amp_factor: initial_amp_factor,
+            target_amp_factor: target_amp_factor,
             current_ts,
             start_ramp_ts,
             stop_ramp_ts,
@@ -52,29 +52,27 @@ impl StableSwap {
     }
 
     fn compute_amp_factor(&self) -> Option<U256> {
+        let target_amp_u256 = U256::from(self.target_amp_factor);
         if self.current_ts < self.stop_ramp_ts {
+            let initial_amp_u256 = U256::from(self.initial_amp_factor);
             let time_range = U256::from(self.stop_ramp_ts.checked_sub(self.start_ramp_ts)?);
             let time_delta = U256::from(self.current_ts.checked_sub(self.start_ramp_ts)?);
 
             // Compute amp factor based on ramp time
-            if self.target_amp_factor > self.initial_amp_factor {
+            if target_amp_u256 > initial_amp_u256 {
                 // Ramp up
-                let amp_diff = self
-                    .target_amp_factor
-                    .checked_sub(self.initial_amp_factor)?;
+                let amp_diff = target_amp_u256.checked_sub(initial_amp_u256)?;
                 let amp_delta = amp_diff.checked_mul(time_delta)?.checked_div(time_range)?;
-                self.initial_amp_factor.checked_add(amp_delta)
+                initial_amp_u256.checked_add(amp_delta)
             } else {
                 // Ramp down
-                let amp_diff = self
-                    .initial_amp_factor
-                    .checked_sub(self.target_amp_factor)?;
+                let amp_diff = initial_amp_u256.checked_sub(target_amp_u256)?;
                 let amp_delta = amp_diff.checked_mul(time_delta)?.checked_div(time_range)?;
-                self.initial_amp_factor.checked_sub(amp_delta)
+                initial_amp_u256.checked_sub(amp_delta)
             }
         } else {
             // when stop_ramp_ts == 0 or current_ts >= stop_ramp_ts
-            Some(self.target_amp_factor)
+            Some(target_amp_u256)
         }
     }
 
@@ -293,6 +291,7 @@ mod tests {
     use super::*;
     use rand::Rng;
     use sim::{Model, MODEL_FEE_DENOMINATOR, MODEL_FEE_NUMERATOR};
+    use std::convert::TryInto;
 
     const MODEL_FEES: Fees = Fees {
         admin_trade_fee_numerator: 0,
@@ -314,8 +313,8 @@ mod tests {
         stop_ramp_ts: i64,
     ) -> U256 {
         let swap = StableSwap {
-            initial_amp_factor: U256::from(model.amp_factor),
-            target_amp_factor: U256::from(model.amp_factor),
+            initial_amp_factor: model.amp_factor.try_into().unwrap(),
+            target_amp_factor: model.amp_factor.try_into().unwrap(),
             current_ts,
             start_ramp_ts,
             stop_ramp_ts,
@@ -336,8 +335,8 @@ mod tests {
         stop_ramp_ts: i64,
     ) {
         let swap = StableSwap {
-            initial_amp_factor: U256::from(model.amp_factor),
-            target_amp_factor: U256::from(model.amp_factor),
+            initial_amp_factor: model.amp_factor.try_into().unwrap(),
+            target_amp_factor: model.amp_factor.try_into().unwrap(),
             current_ts,
             start_ramp_ts,
             stop_ramp_ts,

@@ -323,8 +323,8 @@ mod tests {
         for tick in 0..RAMP_TICKS {
             let current_ts = start_ramp_ts + tick;
             let invariant = StableSwap::new(
-                initial_amp_factor.into(),
-                target_amp_factor.into(),
+                initial_amp_factor,
+                target_amp_factor,
                 current_ts,
                 start_ramp_ts,
                 stop_ramp_ts,

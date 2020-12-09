@@ -313,7 +313,7 @@ mod tests {
         let mut rng = rand::thread_rng();
         let initial_amp_factor = 100;
         let target_amp_factor = initial_amp_factor * 2;
-        let start_ramp_ts = rng.gen_range(0, i64::MAX - RAMP_TICKS);
+        let start_ramp_ts = rng.gen_range(ZERO_TS, i64::MAX - RAMP_TICKS);
         let stop_ramp_ts = start_ramp_ts + RAMP_DURATION;
         println!(
             "start_ramp_ts: {}, stop_ramp_ts: {}",
@@ -344,7 +344,7 @@ mod tests {
         let initial_amp_factor = 100;
         let target_amp_factor = initial_amp_factor / 10;
         let amp_delta = initial_amp_factor - target_amp_factor;
-        let start_ramp_ts = rng.gen_range(0, i64::MAX - RAMP_TICKS);
+        let start_ramp_ts = rng.gen_range(ZERO_TS, i64::MAX - RAMP_TICKS);
         let stop_ramp_ts = start_ramp_ts + RAMP_DURATION;
         println!(
             "start_ramp_ts: {}, stop_ramp_ts: {}",

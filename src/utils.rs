@@ -1,4 +1,5 @@
 //! Utility methods
+
 #![cfg(feature = "program")]
 
 use crate::error::SwapError;
@@ -450,6 +451,7 @@ pub mod test_utils {
             )
             .unwrap();
 
+            // perform deposit
             do_process_instruction(
                 deposit(
                     &SWAP_PROGRAM_ID,
@@ -514,7 +516,7 @@ pub mod test_utils {
             )
             .unwrap();
 
-            // withraw token a and b correctly
+            // perform withraw
             do_process_instruction(
                 withdraw(
                     &SWAP_PROGRAM_ID,
@@ -581,7 +583,7 @@ pub mod test_utils {
             )
             .unwrap();
 
-            // withraw base token correctly
+            // perform withraw_one
             do_process_instruction(
                 withdraw_one(
                     &SWAP_PROGRAM_ID,

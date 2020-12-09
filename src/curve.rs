@@ -378,8 +378,8 @@ mod tests {
         stop_ramp_ts: i64,
     ) -> U256 {
         let swap = StableSwap {
-            initial_amp_factor: model.amp_factor.into(),
-            target_amp_factor: model.amp_factor.into(),
+            initial_amp_factor: U256::from(model.amp_factor),
+            target_amp_factor: U256::from(model.amp_factor),
             current_ts,
             start_ramp_ts,
             stop_ramp_ts,
@@ -400,8 +400,8 @@ mod tests {
         stop_ramp_ts: i64,
     ) {
         let swap = StableSwap {
-            initial_amp_factor: model.amp_factor.into(),
-            target_amp_factor: model.amp_factor.into(),
+            initial_amp_factor: U256::from(model.amp_factor),
+            target_amp_factor: U256::from(model.amp_factor),
             current_ts,
             start_ramp_ts,
             stop_ramp_ts,

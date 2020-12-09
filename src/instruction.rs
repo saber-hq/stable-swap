@@ -77,7 +77,7 @@ pub struct WithdrawOneData {
 #[derive(Clone, Debug, PartialEq)]
 pub struct RampAData {
     /// Amp. Coefficient to ramp to
-    pub future_amp: u64,
+    pub target_amp: u64,
     /// Unix timestamp to stop ramp
     pub stop_ramp_ts: i64,
 }
@@ -118,10 +118,10 @@ impl AdminInstruction {
         let (&tag, rest) = input.split_first().ok_or(SwapError::InvalidInstruction)?;
         Ok(match tag {
             100 => {
-                let (future_amp, rest) = unpack_u64(rest)?;
+                let (target_amp, rest) = unpack_u64(rest)?;
                 let (stop_ramp_ts, _rest) = unpack_i64(rest)?;
                 Some(Self::RampA(RampAData {
-                    future_amp,
+                    target_amp,
                     stop_ramp_ts,
                 }))
             }
@@ -148,11 +148,11 @@ impl AdminInstruction {
         let mut buf = Vec::with_capacity(size_of::<Self>());
         match *self {
             Self::RampA(RampAData {
-                future_amp,
+                target_amp,
                 stop_ramp_ts,
             }) => {
                 buf.push(100);
-                buf.extend_from_slice(&future_amp.to_le_bytes());
+                buf.extend_from_slice(&target_amp.to_le_bytes());
                 buf.extend_from_slice(&stop_ramp_ts.to_le_bytes());
             }
             Self::StopRampA => buf.push(101),
@@ -620,16 +620,16 @@ mod tests {
 
     #[test]
     fn test_admin_instruction_packing() {
-        let future_amp = 100;
+        let target_amp = 100;
         let stop_ramp_ts = i64::MAX;
         let check = AdminInstruction::RampA(RampAData {
-            future_amp,
+            target_amp,
             stop_ramp_ts,
         });
         let packed = check.pack();
         let mut expect = vec![];
         expect.push(100 as u8);
-        expect.extend_from_slice(&future_amp.to_le_bytes());
+        expect.extend_from_slice(&target_amp.to_le_bytes());
         expect.extend_from_slice(&stop_ramp_ts.to_le_bytes());
         assert_eq!(packed, expect);
         let unpacked = AdminInstruction::unpack(&expect).unwrap();

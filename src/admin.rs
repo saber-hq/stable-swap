@@ -6,15 +6,25 @@ use crate::{
     error::SwapError,
     fees::Fees,
     instruction::{AdminInstruction, RampAData},
+    state::SwapInfo,
+    utils::authority_id,
 };
 #[cfg(not(target_arch = "bpf"))]
 use solana_sdk::{
-    account_info::AccountInfo, entrypoint::ProgramResult, info, program_error::ProgramError,
+    account_info::{next_account_info, AccountInfo},
+    entrypoint::ProgramResult,
+    info,
+    program_error::ProgramError,
+    program_pack::Pack,
     pubkey::Pubkey,
 };
 #[cfg(target_arch = "bpf")]
 use solana_sdk::{
-    account_info::AccountInfo, entrypoint::ProgramResult, info, program_error::ProgramError,
+    account_info::{next_account_info, AccountInfo},
+    entrypoint::ProgramResult,
+    info,
+    program_error::ProgramError,
+    program_pack::Pack,
     pubkey::Pubkey,
 };
 
@@ -26,11 +36,11 @@ pub fn process_admin_instruction(
 ) -> ProgramResult {
     match *instruction {
         AdminInstruction::RampA(RampAData {
-            future_amp,
+            target_amp,
             stop_ramp_ts,
         }) => {
             info!("Instruction : RampA");
-            ramp_a(program_id, future_amp, stop_ramp_ts, accounts)
+            ramp_a(program_id, target_amp, stop_ramp_ts, accounts)
         }
         AdminInstruction::StopRampA => {
             info!("Instruction: StopRampA");
@@ -80,7 +90,7 @@ pub fn process_admin_instruction(
 }
 
 /// Access control for admin only instructions
-fn _is_admin(expected_admin_key: &Pubkey, admin_account_info: &AccountInfo) -> ProgramResult {
+fn is_admin(expected_admin_key: &Pubkey, admin_account_info: &AccountInfo) -> ProgramResult {
     if expected_admin_key != admin_account_info.key {
         return Err(SwapError::Unauthorized.into());
     }
@@ -92,12 +102,26 @@ fn _is_admin(expected_admin_key: &Pubkey, admin_account_info: &AccountInfo) -> P
 
 /// Ramp to future a
 fn ramp_a(
-    _program_id: &Pubkey,
-    _future_a: u64,
-    _stop_ramp_ts: i64,
-    _account: &[AccountInfo],
+    program_id: &Pubkey,
+    target_amp: u64,
+    stop_ramp_ts: i64,
+    accounts: &[AccountInfo],
 ) -> ProgramResult {
-    unimplemented!("ramp_a not implemented");
+    let account_info_iter = &mut accounts.iter();
+    let swap_info = next_account_info(account_info_iter)?;
+    let authority_info = next_account_info(account_info_iter)?;
+    let admin_info = next_account_info(account_info_iter)?;
+
+    let mut token_swap = SwapInfo::unpack(&swap_info.data.borrow())?;
+    if *authority_info.key != authority_id(program_id, swap_info.key, token_swap.nonce)? {
+        return Err(SwapError::InvalidProgramAddress.into());
+    }
+    is_admin(&token_swap.admin_key, admin_info)?;
+
+    token_swap.target_amp_factor = target_amp;
+    token_swap.stop_ramp_ts = stop_ramp_ts;
+    SwapInfo::pack(token_swap, &mut swap_info.data.borrow_mut())?;
+    Ok(())
 }
 
 /// Stop ramp a
@@ -183,7 +207,7 @@ mod tests {
         );
 
         // Correct admin
-        assert_eq!(Ok(()), _is_admin(&admin_key, &admin_account_info));
+        assert_eq!(Ok(()), is_admin(&admin_key, &admin_account_info));
 
         // Unauthorized account
         let fake_admin_key = pubkey_rand();
@@ -191,14 +215,14 @@ mod tests {
         fake_admin_account.key = &fake_admin_key;
         assert_eq!(
             Err(SwapError::Unauthorized.into()),
-            _is_admin(&admin_key, &fake_admin_account)
+            is_admin(&admin_key, &fake_admin_account)
         );
 
         // Admin did not sign
         admin_account_info.is_signer = false;
         assert_eq!(
             Err(ProgramError::MissingRequiredSignature),
-            _is_admin(&admin_key, &admin_account_info)
+            is_admin(&admin_key, &admin_account_info)
         );
     }
 }

@@ -14,6 +14,7 @@ use crate::{
     },
     pool_converter::PoolTokenConverter,
     state::SwapInfo,
+    utils::authority_id,
 };
 use num_traits::FromPrimitive;
 #[cfg(not(target_arch = "bpf"))]
@@ -53,16 +54,6 @@ impl Processor {
     /// Unpacks a spl_token `Mint`.
     pub fn unpack_mint(data: &[u8]) -> Result<Mint, SwapError> {
         TokenPack::unpack(data).map_err(|_| SwapError::ExpectedMint)
-    }
-
-    /// Calculates the authority id by generating a program address.
-    pub fn authority_id(
-        program_id: &Pubkey,
-        my_info: &Pubkey,
-        nonce: u8,
-    ) -> Result<Pubkey, SwapError> {
-        Pubkey::create_program_address(&[&my_info.to_bytes()[..32], &[nonce]], program_id)
-            .or(Err(SwapError::InvalidProgramAddress))
     }
 
     /// Issue a spl_token `Burn` instruction.
@@ -172,7 +163,7 @@ impl Processor {
         if token_swap.is_initialized {
             return Err(SwapError::AlreadyInUse.into());
         }
-        if *authority_info.key != Self::authority_id(program_id, swap_info.key, nonce)? {
+        if *authority_info.key != authority_id(program_id, swap_info.key, nonce)? {
             return Err(SwapError::InvalidProgramAddress.into());
         }
         let destination = Self::unpack_token_account(&destination_info.data.borrow())?;
@@ -278,7 +269,7 @@ impl Processor {
         let clock_sysvar_info = next_account_info(account_info_iter)?;
 
         let token_swap = SwapInfo::unpack(&swap_info.data.borrow())?;
-        if *authority_info.key != Self::authority_id(program_id, swap_info.key, token_swap.nonce)? {
+        if *authority_info.key != authority_id(program_id, swap_info.key, token_swap.nonce)? {
             return Err(SwapError::InvalidProgramAddress.into());
         }
         if !(*swap_source_info.key == token_swap.token_a
@@ -381,7 +372,7 @@ impl Processor {
         let clock_sysvar_info = next_account_info(account_info_iter)?;
 
         let token_swap = SwapInfo::unpack(&swap_info.data.borrow())?;
-        if *authority_info.key != Self::authority_id(program_id, swap_info.key, token_swap.nonce)? {
+        if *authority_info.key != authority_id(program_id, swap_info.key, token_swap.nonce)? {
             return Err(SwapError::InvalidProgramAddress.into());
         }
         if *token_a_info.key != token_swap.token_a {
@@ -473,7 +464,7 @@ impl Processor {
         let token_program_info = next_account_info(account_info_iter)?;
 
         let token_swap = SwapInfo::unpack(&swap_info.data.borrow())?;
-        if *authority_info.key != Self::authority_id(program_id, swap_info.key, token_swap.nonce)? {
+        if *authority_info.key != authority_id(program_id, swap_info.key, token_swap.nonce)? {
             return Err(SwapError::InvalidProgramAddress.into());
         }
         if *token_a_info.key != token_swap.token_a {
@@ -598,7 +589,7 @@ impl Processor {
             return Err(SwapError::InvalidInput.into());
         }
         let token_swap = SwapInfo::unpack(&swap_info.data.borrow())?;
-        if *authority_info.key != Self::authority_id(program_id, swap_info.key, token_swap.nonce)? {
+        if *authority_info.key != authority_id(program_id, swap_info.key, token_swap.nonce)? {
             return Err(SwapError::InvalidProgramAddress.into());
         }
         if *base_token_info.key != token_swap.token_b && *base_token_info.key != token_swap.token_a

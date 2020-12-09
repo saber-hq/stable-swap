@@ -43,8 +43,8 @@ impl StableSwap {
         stop_ramp_ts: i64,
     ) -> Self {
         Self {
-            initial_amp_factor: initial_amp_factor,
-            target_amp_factor: target_amp_factor,
+            initial_amp_factor,
+            target_amp_factor,
             current_ts,
             start_ramp_ts,
             stop_ramp_ts,

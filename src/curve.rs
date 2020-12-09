@@ -59,7 +59,7 @@ impl StableSwap {
             let time_delta = U256::from(self.current_ts.checked_sub(self.start_ramp_ts)?);
 
             // Compute amp factor based on ramp time
-            if target_amp_u256 > initial_amp_u256 {
+            if target_amp_u256 >= initial_amp_u256 {
                 // Ramp up
                 let amp_diff = target_amp_u256.checked_sub(initial_amp_u256)?;
                 let amp_delta = amp_diff.checked_mul(time_delta)?.checked_div(time_range)?;
@@ -303,6 +303,70 @@ mod tests {
         withdraw_fee_numerator: 0,
         withdraw_fee_denominator: 1,
     };
+
+    const RAMP_DURATION: i64 = 86400;
+    const RAMP_TICKS: i64 = 100000;
+
+    #[test]
+    fn test_ramp_amp_up() {
+        let mut rng = rand::thread_rng();
+        let initial_amp_factor = 100;
+        let target_amp_factor = initial_amp_factor * 2;
+        let start_ramp_ts = rng.gen_range(0, i64::MAX - RAMP_TICKS);
+        let stop_ramp_ts = start_ramp_ts + RAMP_DURATION;
+        println!(
+            "start_ramp_ts: {}, stop_ramp_ts: {}",
+            start_ramp_ts, stop_ramp_ts
+        );
+
+        for tick in 0..RAMP_TICKS {
+            let current_ts = start_ramp_ts + tick;
+            let invariant = StableSwap {
+                initial_amp_factor,
+                target_amp_factor,
+                current_ts,
+                start_ramp_ts,
+                stop_ramp_ts,
+            };
+            let expected = if tick >= RAMP_DURATION {
+                target_amp_factor
+            } else {
+                initial_amp_factor + (initial_amp_factor * tick as u64 / RAMP_DURATION as u64)
+            };
+            assert_eq!(invariant.compute_amp_factor().unwrap(), expected.into());
+        }
+    }
+
+    #[test]
+    fn test_ramp_amp_down() {
+        let mut rng = rand::thread_rng();
+        let initial_amp_factor = 100;
+        let target_amp_factor = initial_amp_factor / 10;
+        let amp_delta = initial_amp_factor - target_amp_factor;
+        let start_ramp_ts = rng.gen_range(0, i64::MAX - RAMP_TICKS);
+        let stop_ramp_ts = start_ramp_ts + RAMP_DURATION;
+        println!(
+            "start_ramp_ts: {}, stop_ramp_ts: {}",
+            start_ramp_ts, stop_ramp_ts
+        );
+
+        for tick in 0..RAMP_TICKS {
+            let current_ts = start_ramp_ts + tick;
+            let invariant = StableSwap {
+                initial_amp_factor,
+                target_amp_factor,
+                current_ts,
+                start_ramp_ts,
+                stop_ramp_ts,
+            };
+            let expected = if tick >= RAMP_DURATION {
+                target_amp_factor
+            } else {
+                initial_amp_factor - (amp_delta * tick as u64 / RAMP_DURATION as u64)
+            };
+            assert_eq!(invariant.compute_amp_factor().unwrap(), expected.into());
+        }
+    }
 
     fn check_d(
         model: &Model,

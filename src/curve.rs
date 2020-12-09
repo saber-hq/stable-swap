@@ -59,17 +59,17 @@ impl StableSwap {
             // Compute amp factor based on ramp time
             if self.target_amp_factor >= self.initial_amp_factor {
                 // Ramp up
-                let amp_diff = self
+                let amp_range = self
                     .target_amp_factor
                     .checked_sub(self.initial_amp_factor)?;
-                let amp_delta = amp_diff.checked_mul(time_delta)?.checked_div(time_range)?;
+                let amp_delta = amp_range.checked_mul(time_delta)?.checked_div(time_range)?;
                 self.initial_amp_factor.checked_add(amp_delta)
             } else {
                 // Ramp down
-                let amp_diff = self
+                let amp_range = self
                     .initial_amp_factor
                     .checked_sub(self.target_amp_factor)?;
-                let amp_delta = amp_diff.checked_mul(time_delta)?.checked_div(time_range)?;
+                let amp_delta = amp_range.checked_mul(time_delta)?.checked_div(time_range)?;
                 self.initial_amp_factor.checked_sub(amp_delta)
             }
         } else {
@@ -343,7 +343,7 @@ mod tests {
         let mut rng = rand::thread_rng();
         let initial_amp_factor = 100;
         let target_amp_factor = initial_amp_factor / 10;
-        let amp_delta = initial_amp_factor - target_amp_factor;
+        let amp_range = initial_amp_factor - target_amp_factor;
         let start_ramp_ts = rng.gen_range(ZERO_TS, i64::MAX - RAMP_TICKS);
         let stop_ramp_ts = start_ramp_ts + RAMP_DURATION;
         println!(
@@ -363,7 +363,7 @@ mod tests {
             let expected = if tick >= RAMP_DURATION {
                 target_amp_factor
             } else {
-                initial_amp_factor - (amp_delta * tick as u64 / RAMP_DURATION as u64)
+                initial_amp_factor - (amp_range * tick as u64 / RAMP_DURATION as u64)
             };
             assert_eq!(invariant.compute_amp_factor().unwrap(), expected.into());
         }

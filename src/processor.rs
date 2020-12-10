@@ -7,7 +7,7 @@ use crate::utils::invoke_signed;
 use crate::{
     admin::process_admin_instruction,
     bn::U256,
-    curve::{StableSwap, ZERO_TS},
+    curve::{StableSwap, MIN_AMP, ZERO_TS},
     error::SwapError,
     fees::Fees,
     instruction::{
@@ -870,7 +870,7 @@ mod tests {
     #[test]
     fn test_initialize() {
         let user_key = pubkey_rand();
-        let amp_factor = 1;
+        let amp_factor = MIN_AMP;
         let token_a_amount = 1000;
         let token_b_amount = 2000;
         let pool_token_amount = 10;
@@ -1234,7 +1234,7 @@ mod tests {
     fn test_deposit() {
         let user_key = pubkey_rand();
         let depositor_key = pubkey_rand();
-        let amp_factor = 1;
+        let amp_factor = MIN_AMP;
         let token_a_amount = 1000;
         let token_b_amount = 9000;
         let mut accounts = SwapAccountInfo::new(
@@ -1712,7 +1712,7 @@ mod tests {
     #[test]
     fn test_withdraw() {
         let user_key = pubkey_rand();
-        let amp_factor = 1;
+        let amp_factor = MIN_AMP;
         let token_a_amount = 1000;
         let token_b_amount = 2000;
         let mut accounts = SwapAccountInfo::new(
@@ -2837,7 +2837,7 @@ mod tests {
     #[test]
     fn test_withdraw_one() {
         let user_key = pubkey_rand();
-        let amp_factor = 1;
+        let amp_factor = MIN_AMP;
         let token_a_amount = 1000;
         let token_b_amount = 1000;
         let mut accounts = SwapAccountInfo::new(

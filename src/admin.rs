@@ -3,6 +3,8 @@
 #![cfg(feature = "program")]
 
 use crate::{
+    bn::U256,
+    curve::{StableSwap, MAX_AMP, MIN_RAMP_DURATION},
     error::SwapError,
     fees::Fees,
     instruction::{AdminInstruction, RampAData},
@@ -16,6 +18,7 @@ use solana_sdk::{
     program_error::ProgramError,
     program_pack::Pack,
     pubkey::Pubkey,
+    sysvar::{clock::Clock, Sysvar},
 };
 
 /// Process admin instruction
@@ -101,14 +104,67 @@ fn ramp_a(
     let swap_info = next_account_info(account_info_iter)?;
     let authority_info = next_account_info(account_info_iter)?;
     let admin_info = next_account_info(account_info_iter)?;
+    let clock_sysvar_info = next_account_info(account_info_iter)?;
+
+    if target_amp > MAX_AMP {
+        return Err(SwapError::InvalidInput.into());
+    }
 
     let mut token_swap = SwapInfo::unpack(&swap_info.data.borrow())?;
     if *authority_info.key != authority_id(program_id, swap_info.key, token_swap.nonce)? {
         return Err(SwapError::InvalidProgramAddress.into());
     }
     is_admin(&token_swap.admin_key, admin_info)?;
+    let clock = Clock::from_account_info(clock_sysvar_info)?;
+    let ramp_lock_ts = token_swap
+        .start_ramp_ts
+        .checked_add(MIN_RAMP_DURATION)
+        .ok_or(SwapError::CalculationFailure)?;
+    if clock.unix_timestamp < ramp_lock_ts {
+        return Err(SwapError::RampLocked.into());
+    }
+    let min_ramp_ts = clock
+        .unix_timestamp
+        .checked_add(MIN_RAMP_DURATION)
+        .ok_or(SwapError::CalculationFailure)?;
+    if stop_ramp_ts < min_ramp_ts {
+        return Err(SwapError::InsufficientRampTime.into());
+    }
+    let invariant = StableSwap::new(
+        token_swap.initial_amp_factor,
+        token_swap.target_amp_factor,
+        clock.unix_timestamp,
+        token_swap.start_ramp_ts,
+        token_swap.stop_ramp_ts,
+    );
 
+    const MAX_A_CHANGE: u64 = 10;
+    let current_amp = U256::to_u64(
+        invariant
+            .compute_amp_factor()
+            .ok_or(SwapError::CalculationFailure)?,
+    )?;
+    if target_amp < current_amp {
+        let down_ceil = target_amp
+            .checked_mul(MAX_A_CHANGE)
+            .ok_or(SwapError::CalculationFailure)?;
+        if current_amp > down_ceil {
+            // target_amp too low
+            return Err(SwapError::InvalidInput.into());
+        }
+    } else {
+        let up_ceil = current_amp
+            .checked_mul(MAX_A_CHANGE)
+            .ok_or(SwapError::CalculationFailure)?;
+        if target_amp > up_ceil {
+            // target_amp too high
+            return Err(SwapError::InvalidInput.into());
+        }
+    }
+
+    token_swap.initial_amp_factor = current_amp;
     token_swap.target_amp_factor = target_amp;
+    token_swap.start_ramp_ts = clock.unix_timestamp;
     token_swap.stop_ramp_ts = stop_ramp_ts;
     SwapInfo::pack(token_swap, &mut swap_info.data.borrow_mut())?;
     Ok(())

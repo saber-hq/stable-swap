@@ -809,6 +809,8 @@ impl PrintProgramError for SwapError {
             SwapError::Unauthorized => {
                 info!("Error: Account is not authorized to execute this instruction")
             }
+            SwapError::RampLocked => info!("Error: Ramp is locked in this time period"),
+            SwapError::InsufficientRampTime => info!("Error: Insufficient ramp time"),
         }
     }
 }

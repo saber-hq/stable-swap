@@ -6,6 +6,10 @@ use crate::{bn::U256, fees::Fees};
 const N_COINS: u64 = 2;
 /// Timestamp at 0
 pub const ZERO_TS: i64 = 0;
+/// Minimum ramp duration
+pub const MIN_RAMP_DURATION: i64 = 86400;
+/// Max amplification coefficient
+pub const MAX_AMP: u64 = 1_000_000;
 
 /// Encodes all results of swapping from a source token to a destination token
 pub struct SwapResult {
@@ -51,7 +55,26 @@ impl StableSwap {
         }
     }
 
-    fn compute_amp_factor(&self) -> Option<U256> {
+    fn compute_next_d(
+        &self,
+        amp_factor: U256,
+        d_init: U256,
+        d_prod: U256,
+        sum_x: U256,
+    ) -> Option<U256> {
+        let ann = amp_factor.checked_mul(N_COINS.into())?;
+        let leverage = ann.checked_mul(sum_x)?;
+        // d = (ann * sum_x + d_prod * n_coins) * d / ((ann - 1) * d + (n_coins + 1) * d_prod)
+        let numerator =
+            d_init.checked_mul(d_prod.checked_mul(N_COINS.into())?.checked_add(leverage)?)?;
+        let denominator = d_init
+            .checked_mul(ann.checked_sub(1.into())?)?
+            .checked_add(d_prod.checked_mul((N_COINS + 1).into())?)?;
+        numerator.checked_div(denominator)
+    }
+
+    /// Compute the amplification coefficient (A)
+    pub fn compute_amp_factor(&self) -> Option<U256> {
         if self.current_ts < self.stop_ramp_ts {
             let time_range = U256::from(self.stop_ramp_ts.checked_sub(self.start_ramp_ts)?);
             let time_delta = U256::from(self.current_ts.checked_sub(self.start_ramp_ts)?);
@@ -76,24 +99,6 @@ impl StableSwap {
             // when stop_ramp_ts == 0 or current_ts >= stop_ramp_ts
             Some(self.target_amp_factor)
         }
-    }
-
-    fn compute_next_d(
-        &self,
-        amp_factor: U256,
-        d_init: U256,
-        d_prod: U256,
-        sum_x: U256,
-    ) -> Option<U256> {
-        let ann = amp_factor.checked_mul(N_COINS.into())?;
-        let leverage = ann.checked_mul(sum_x)?;
-        // d = (ann * sum_x + d_prod * n_coins) * d / ((ann - 1) * d + (n_coins + 1) * d_prod)
-        let numerator =
-            d_init.checked_mul(d_prod.checked_mul(N_COINS.into())?.checked_add(leverage)?)?;
-        let denominator = d_init
-            .checked_mul(ann.checked_sub(1.into())?)?
-            .checked_add(d_prod.checked_mul((N_COINS + 1).into())?)?;
-        numerator.checked_div(denominator)
     }
 
     /// Compute stable swap invariant (D)
@@ -305,7 +310,6 @@ mod tests {
         withdraw_fee_denominator: 1,
     };
 
-    const RAMP_DURATION: i64 = 86400;
     const RAMP_TICKS: i64 = 100000;
 
     #[test]
@@ -314,7 +318,7 @@ mod tests {
         let initial_amp_factor = 100;
         let target_amp_factor = initial_amp_factor * 2;
         let start_ramp_ts = rng.gen_range(ZERO_TS, i64::MAX - RAMP_TICKS);
-        let stop_ramp_ts = start_ramp_ts + RAMP_DURATION;
+        let stop_ramp_ts = start_ramp_ts + MIN_RAMP_DURATION;
         println!(
             "start_ramp_ts: {}, stop_ramp_ts: {}",
             start_ramp_ts, stop_ramp_ts
@@ -329,10 +333,10 @@ mod tests {
                 start_ramp_ts,
                 stop_ramp_ts,
             );
-            let expected = if tick >= RAMP_DURATION {
+            let expected = if tick >= MIN_RAMP_DURATION {
                 target_amp_factor
             } else {
-                initial_amp_factor + (initial_amp_factor * tick as u64 / RAMP_DURATION as u64)
+                initial_amp_factor + (initial_amp_factor * tick as u64 / MIN_RAMP_DURATION as u64)
             };
             assert_eq!(invariant.compute_amp_factor().unwrap(), expected.into());
         }
@@ -345,7 +349,7 @@ mod tests {
         let target_amp_factor = initial_amp_factor / 10;
         let amp_range = initial_amp_factor - target_amp_factor;
         let start_ramp_ts = rng.gen_range(ZERO_TS, i64::MAX - RAMP_TICKS);
-        let stop_ramp_ts = start_ramp_ts + RAMP_DURATION;
+        let stop_ramp_ts = start_ramp_ts + MIN_RAMP_DURATION;
         println!(
             "start_ramp_ts: {}, stop_ramp_ts: {}",
             start_ramp_ts, stop_ramp_ts
@@ -360,10 +364,10 @@ mod tests {
                 start_ramp_ts,
                 stop_ramp_ts,
             );
-            let expected = if tick >= RAMP_DURATION {
+            let expected = if tick >= MIN_RAMP_DURATION {
                 target_amp_factor
             } else {
-                initial_amp_factor - (amp_range * tick as u64 / RAMP_DURATION as u64)
+                initial_amp_factor - (amp_range * tick as u64 / MIN_RAMP_DURATION as u64)
             };
             assert_eq!(invariant.compute_amp_factor().unwrap(), expected.into());
         }

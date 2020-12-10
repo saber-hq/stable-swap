@@ -13,6 +13,7 @@ import { Fees } from "./fees";
 export const createInitSwapInstruction = (
   tokenSwapAccount: Account,
   authority: PublicKey,
+  adminAccount: PublicKey,
   adminFeeAccountA: PublicKey,
   adminFeeAccountB: PublicKey,
   tokenAccountA: PublicKey,
@@ -28,6 +29,7 @@ export const createInitSwapInstruction = (
   const keys = [
     { pubkey: tokenSwapAccount.publicKey, isSigner: false, isWritable: true },
     { pubkey: authority, isSigner: false, isWritable: false },
+    { pubkey: adminAccount, isSigner: false, isWritable: false },
     { pubkey: adminFeeAccountA, isSigner: false, isWritable: false },
     { pubkey: adminFeeAccountB, isSigner: false, isWritable: false },
     { pubkey: tokenAccountA, isSigner: false, isWritable: false },

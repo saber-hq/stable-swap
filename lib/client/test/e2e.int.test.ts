@@ -151,6 +151,7 @@ describe("e2e test", () => {
         payer,
         stableSwapAccount,
         authority,
+        owner.publicKey,
         adminFeeAccountA,
         adminFeeAccountB,
         tokenAccountA,

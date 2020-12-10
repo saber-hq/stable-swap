@@ -79,6 +79,7 @@ const run = async () => {
     payer,
     stableSwapAccount,
     authority,
+    owner.publicKey,
     adminAccountA,
     adminAccountB,
     tokenAccountA,

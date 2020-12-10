@@ -8,6 +8,8 @@ const N_COINS: u64 = 2;
 pub const ZERO_TS: i64 = 0;
 /// Minimum ramp duration
 pub const MIN_RAMP_DURATION: i64 = 86400;
+/// Min amplification coefficient
+pub const MIN_AMP: u64 = 1;
 /// Max amplification coefficient
 pub const MAX_AMP: u64 = 1_000_000;
 
@@ -555,7 +557,7 @@ mod tests {
         for _ in 0..100 {
             let mut rng = rand::thread_rng();
 
-            let amp_factor: u64 = rng.gen_range(1, 10_000);
+            let amp_factor: u64 = rng.gen_range(MIN_AMP, MAX_AMP);
             let amount_a: u64 = rng.gen_range(1, u64::MAX);
             let amount_b: u64 = rng.gen_range(1, u64::MAX);
             let start_ramp_ts: i64 = rng.gen_range(ZERO_TS, i64::MAX);
@@ -707,8 +709,8 @@ mod tests {
         for _ in 0..100 {
             let mut rng = rand::thread_rng();
 
-            let initial_amp_factor: u64 = rng.gen_range(1, 10_000);
-            let target_amp_factor: u64 = rng.gen_range(1, 10_000);
+            let initial_amp_factor: u64 = rng.gen_range(MIN_AMP, MAX_AMP);
+            let target_amp_factor: u64 = rng.gen_range(MIN_AMP, MAX_AMP);
             let start_ramp_ts: i64 = rng.gen_range(ZERO_TS, i64::MAX);
             let stop_ramp_ts: i64 = rng.gen_range(start_ramp_ts, i64::MAX);
             let current_ts: i64 = rng.gen_range(start_ramp_ts, stop_ramp_ts);
@@ -864,8 +866,8 @@ mod tests {
         for _ in 0..100 {
             let mut rng = rand::thread_rng();
 
-            let initial_amp_factor: u64 = rng.gen_range(1, 10_000);
-            let target_amp_factor: u64 = rng.gen_range(1, 10_000);
+            let initial_amp_factor: u64 = rng.gen_range(MIN_AMP, MAX_AMP);
+            let target_amp_factor: u64 = rng.gen_range(MIN_AMP, MAX_AMP);
             let start_ramp_ts: i64 = rng.gen_range(ZERO_TS, i64::MAX);
             let stop_ramp_ts: i64 = rng.gen_range(start_ramp_ts, i64::MAX);
             let current_ts: i64 = rng.gen_range(start_ramp_ts, stop_ramp_ts);

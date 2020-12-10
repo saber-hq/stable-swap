@@ -4,7 +4,7 @@
 
 use crate::{
     bn::U256,
-    curve::{StableSwap, MAX_AMP, MIN_RAMP_DURATION},
+    curve::{StableSwap, MAX_AMP, MIN_AMP, MIN_RAMP_DURATION},
     error::SwapError,
     fees::Fees,
     instruction::{AdminInstruction, RampAData},
@@ -106,7 +106,7 @@ fn ramp_a(
     let admin_info = next_account_info(account_info_iter)?;
     let clock_sysvar_info = next_account_info(account_info_iter)?;
 
-    if target_amp == 0 || target_amp > MAX_AMP {
+    if target_amp < MIN_AMP || target_amp > MAX_AMP {
         return Err(SwapError::InvalidInput.into());
     }
 

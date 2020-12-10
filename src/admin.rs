@@ -110,10 +110,10 @@ fn ramp_a(
         return Err(SwapError::InvalidInput.into());
     }
     let mut token_swap = SwapInfo::unpack(&swap_info.data.borrow())?;
+    is_admin(&token_swap.admin_key, admin_info)?;
     if *authority_info.key != authority_id(program_id, swap_info.key, token_swap.nonce)? {
         return Err(SwapError::InvalidProgramAddress.into());
     }
-    is_admin(&token_swap.admin_key, admin_info)?;
 
     let clock = Clock::from_account_info(clock_sysvar_info)?;
     let ramp_lock_ts = token_swap
@@ -131,6 +131,7 @@ fn ramp_a(
         return Err(SwapError::InsufficientRampTime.into());
     }
 
+    const MAX_A_CHANGE: u64 = 10;
     let invariant = StableSwap::new(
         token_swap.initial_amp_factor,
         token_swap.target_amp_factor,
@@ -138,7 +139,6 @@ fn ramp_a(
         token_swap.start_ramp_ts,
         token_swap.stop_ramp_ts,
     );
-    const MAX_A_CHANGE: u64 = 10;
     let current_amp = U256::to_u64(
         invariant
             .compute_amp_factor()

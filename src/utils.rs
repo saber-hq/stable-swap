@@ -64,7 +64,9 @@ pub fn invoke_signed<'a>(
 #[cfg(test)]
 pub mod test_utils {
     use super::*;
-    use crate::{fees::Fees, instruction::*, processor::Processor, state::SwapInfo};
+    use crate::{
+        curve::ZERO_TS, fees::Fees, instruction::*, processor::Processor, state::SwapInfo,
+    };
     use solana_sdk::{
         account::Account,
         account_info::create_is_signer_account_infos,
@@ -80,8 +82,22 @@ pub mod test_utils {
         state::{Account as SplAccount, Mint as SplMint},
     };
 
-    pub fn default_clock_account() -> Account {
-        Account::new_data(1, &Clock::default(), &id()).unwrap()
+    /// Fees for testing
+    pub const DEFAULT_TEST_FEES: Fees = Fees {
+        admin_trade_fee_numerator: 1,
+        admin_trade_fee_denominator: 2,
+        admin_withdraw_fee_numerator: 1,
+        admin_withdraw_fee_denominator: 2,
+        trade_fee_numerator: 6,
+        trade_fee_denominator: 100,
+        withdraw_fee_numerator: 6,
+        withdraw_fee_denominator: 100,
+    };
+
+    pub fn clock_account(ts: i64) -> Account {
+        let mut clock = Clock::default();
+        clock.unix_timestamp = ts;
+        Account::new_data(1, &clock, &id()).unwrap()
     }
 
     pub fn pubkey_rand() -> Pubkey {
@@ -394,7 +410,7 @@ pub mod test_utils {
                     &mut user_destination_account,
                     &mut admin_destination_account,
                     &mut Account::default(),
-                    &mut default_clock_account(),
+                    &mut clock_account(ZERO_TS),
                 ],
             )?;
 
@@ -482,7 +498,7 @@ pub mod test_utils {
                     &mut self.pool_mint_account,
                     &mut depositor_pool_account,
                     &mut Account::default(),
-                    &mut default_clock_account(),
+                    &mut clock_account(ZERO_TS),
                 ],
             )
         }
@@ -613,14 +629,19 @@ pub mod test_utils {
                     &mut dest_token_account,
                     &mut self.admin_fee_a_account,
                     &mut Account::default(),
-                    &mut default_clock_account(),
+                    &mut clock_account(ZERO_TS),
                 ],
             )
         }
 
         /** Admin functions **/
 
-        pub fn ramp_a(&mut self, target_amp: u64, stop_ramp_ts: i64) -> ProgramResult {
+        pub fn ramp_a(
+            &mut self,
+            target_amp: u64,
+            current_ts: i64,
+            stop_ramp_ts: i64,
+        ) -> ProgramResult {
             do_process_instruction(
                 ramp_a(
                     &SWAP_PROGRAM_ID,
@@ -635,7 +656,7 @@ pub mod test_utils {
                     &mut self.swap_account,
                     &mut Account::default(),
                     &mut self.admin_account,
-                    &mut default_clock_account(),
+                    &mut clock_account(current_ts),
                 ],
             )
         }

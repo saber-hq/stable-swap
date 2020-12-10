@@ -823,7 +823,6 @@ solana_sdk::program_stubs!();
 mod tests {
     use super::*;
     use crate::{
-        fees::Fees,
         instruction::{deposit, swap, withdraw, withdraw_one},
         utils::{test_utils::*, SWAP_PROGRAM_ID, TOKEN_PROGRAM_ID},
     };
@@ -838,17 +837,6 @@ mod tests {
     /// Note that on Ethereum, Uniswap uses the geometric mean of all provided
     /// input amounts, and Balancer uses 100 * 10 ^ 18.
     const INITIAL_SWAP_POOL_AMOUNT: u64 = 1_000_000_000;
-    /// Fees for testing
-    const DEFAULT_TEST_FEES: Fees = Fees {
-        admin_trade_fee_numerator: 1,
-        admin_trade_fee_denominator: 2,
-        admin_withdraw_fee_numerator: 1,
-        admin_withdraw_fee_denominator: 2,
-        trade_fee_numerator: 6,
-        trade_fee_denominator: 100,
-        withdraw_fee_numerator: 6,
-        withdraw_fee_denominator: 100,
-    };
 
     #[test]
     fn test_token_program_id_error() {
@@ -1491,7 +1479,7 @@ mod tests {
                         &mut accounts.pool_mint_account,
                         &mut pool_account,
                         &mut Account::default(),
-                        &mut default_clock_account(),
+                        &mut clock_account(ZERO_TS),
                     ],
                 )
             );
@@ -1537,7 +1525,7 @@ mod tests {
                         &mut accounts.pool_mint_account,
                         &mut pool_account,
                         &mut Account::default(),
-                        &mut default_clock_account(),
+                        &mut clock_account(ZERO_TS),
                     ],
                 )
             );
@@ -2464,7 +2452,7 @@ mod tests {
                         &mut token_b_account,
                         &mut accounts.admin_fee_b_account,
                         &mut Account::default(),
-                        &mut default_clock_account(),
+                        &mut clock_account(ZERO_TS),
                     ],
                 ),
             );
@@ -2532,7 +2520,7 @@ mod tests {
                         &mut token_b_account,
                         &mut accounts.admin_fee_b_account,
                         &mut Account::default(),
-                        &mut default_clock_account(),
+                        &mut clock_account(ZERO_TS),
                     ],
                 ),
             );
@@ -2574,7 +2562,7 @@ mod tests {
                         &mut token_b_account,
                         &mut wrong_admin_account,
                         &mut Account::default(),
-                        &mut default_clock_account(),
+                        &mut clock_account(ZERO_TS),
                     ],
                 ),
             );
@@ -2668,7 +2656,7 @@ mod tests {
                         &mut accounts.admin_fee_b_account,
                         &mut token_b_account,
                         &mut Account::default(),
-                        &mut default_clock_account(),
+                        &mut clock_account(ZERO_TS),
                     ],
                 ),
             );
@@ -3132,7 +3120,7 @@ mod tests {
                         &mut token_a_account,
                         &mut accounts.admin_fee_a_account,
                         &mut Account::default(),
-                        &mut default_clock_account(),
+                        &mut clock_account(ZERO_TS),
                     ],
                 )
             );
@@ -3183,7 +3171,7 @@ mod tests {
                         &mut token_a_account,
                         &mut accounts.admin_fee_a_account,
                         &mut Account::default(),
-                        &mut default_clock_account(),
+                        &mut clock_account(ZERO_TS),
                     ],
                 )
             );

@@ -109,12 +109,12 @@ fn ramp_a(
     if target_amp < MIN_AMP || target_amp > MAX_AMP {
         return Err(SwapError::InvalidInput.into());
     }
-
     let mut token_swap = SwapInfo::unpack(&swap_info.data.borrow())?;
     if *authority_info.key != authority_id(program_id, swap_info.key, token_swap.nonce)? {
         return Err(SwapError::InvalidProgramAddress.into());
     }
     is_admin(&token_swap.admin_key, admin_info)?;
+
     let clock = Clock::from_account_info(clock_sysvar_info)?;
     let ramp_lock_ts = token_swap
         .start_ramp_ts
@@ -130,6 +130,7 @@ fn ramp_a(
     if stop_ramp_ts < min_ramp_ts {
         return Err(SwapError::InsufficientRampTime.into());
     }
+
     let invariant = StableSwap::new(
         token_swap.initial_amp_factor,
         token_swap.target_amp_factor,
@@ -137,7 +138,6 @@ fn ramp_a(
         token_swap.start_ramp_ts,
         token_swap.stop_ramp_ts,
     );
-
     const MAX_A_CHANGE: u64 = 10;
     let current_amp = U256::to_u64(
         invariant
@@ -232,8 +232,14 @@ fn revert_new_fees(_program_id: &Pubkey, _accounts: &[AccountInfo]) -> ProgramRe
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::utils::test_utils::pubkey_rand;
+    use crate::{
+        curve::ZERO_TS,
+        utils::{test_utils::*, TOKEN_PROGRAM_ID},
+    };
     use solana_sdk::clock::Epoch;
+
+    const DEFAULT_TOKEN_A_AMOUNT: u64 = 1_000_000_000;
+    const DEFAULT_TOKEN_B_AMOUNT: u64 = 1_000_000_000;
 
     #[test]
     fn test_is_admin() {
@@ -270,5 +276,116 @@ mod tests {
             Err(ProgramError::MissingRequiredSignature),
             is_admin(&admin_key, &admin_account_info)
         );
+    }
+
+    #[test]
+    fn test_ramp_a() {
+        let user_key = pubkey_rand();
+        let amp_factor = MIN_AMP * 100;
+        let mut accounts = SwapAccountInfo::new(
+            &user_key,
+            amp_factor,
+            DEFAULT_TOKEN_A_AMOUNT,
+            DEFAULT_TOKEN_B_AMOUNT,
+            DEFAULT_TEST_FEES,
+        );
+
+        // swap not initialized
+        {
+            assert_eq!(
+                Err(ProgramError::UninitializedAccount),
+                accounts.ramp_a(MIN_AMP, ZERO_TS, MIN_RAMP_DURATION)
+            );
+        }
+
+        accounts.initialize_swap().unwrap();
+
+        // Invalid target amp
+        {
+            let stop_ramp_ts = MIN_RAMP_DURATION;
+            let target_amp = 0;
+            assert_eq!(
+                Err(SwapError::InvalidInput.into()),
+                accounts.ramp_a(target_amp, ZERO_TS, stop_ramp_ts)
+            );
+            let target_amp = MAX_AMP + 1;
+            assert_eq!(
+                Err(SwapError::InvalidInput.into()),
+                accounts.ramp_a(target_amp, ZERO_TS, stop_ramp_ts)
+            );
+        }
+
+        // wrong nonce for authority_key
+        {
+            let old_authority = accounts.authority_key;
+            let (bad_authority_key, _nonce) = Pubkey::find_program_address(
+                &[&accounts.swap_key.to_bytes()[..]],
+                &TOKEN_PROGRAM_ID,
+            );
+            accounts.authority_key = bad_authority_key;
+            assert_eq!(
+                Err(SwapError::InvalidProgramAddress.into()),
+                accounts.ramp_a(MIN_AMP, ZERO_TS, MIN_RAMP_DURATION)
+            );
+            accounts.authority_key = old_authority;
+        }
+
+        // Unauthorized account
+        {
+            let old_admin_key = accounts.admin_key;
+            let fake_admin_key = pubkey_rand();
+            accounts.admin_key = fake_admin_key;
+            assert_eq!(
+                Err(SwapError::Unauthorized.into()),
+                accounts.ramp_a(MIN_AMP, ZERO_TS, MIN_RAMP_DURATION)
+            );
+            accounts.admin_key = old_admin_key;
+        }
+
+        // ramp locked
+        {
+            assert_eq!(
+                Err(SwapError::RampLocked.into()),
+                accounts.ramp_a(MIN_AMP, ZERO_TS, MIN_RAMP_DURATION / 2)
+            );
+        }
+
+        // insufficient ramp time
+        {
+            assert_eq!(
+                Err(SwapError::InsufficientRampTime.into()),
+                accounts.ramp_a(amp_factor, MIN_RAMP_DURATION, ZERO_TS)
+            );
+        }
+
+        // invalid amp targets
+        {
+            // amp target too low
+            assert_eq!(
+                Err(SwapError::InvalidInput.into()),
+                accounts.ramp_a(MIN_AMP, MIN_RAMP_DURATION, MIN_RAMP_DURATION * 2)
+            );
+            // amp target too high
+            assert_eq!(
+                Err(SwapError::InvalidInput.into()),
+                accounts.ramp_a(MAX_AMP, MIN_RAMP_DURATION, MIN_RAMP_DURATION * 2)
+            );
+        }
+
+        // valid ramp
+        {
+            let target_amp = MIN_AMP * 200;
+            let current_ts = MIN_RAMP_DURATION;
+            let stop_ramp_ts = MIN_RAMP_DURATION * 2;
+            accounts
+                .ramp_a(target_amp, current_ts, stop_ramp_ts)
+                .unwrap();
+
+            let swap_info = SwapInfo::unpack(&accounts.swap_account.data).unwrap();
+            assert_eq!(swap_info.initial_amp_factor, amp_factor);
+            assert_eq!(swap_info.target_amp_factor, target_amp);
+            assert_eq!(swap_info.start_ramp_ts, current_ts);
+            assert_eq!(swap_info.stop_ramp_ts, stop_ramp_ts);
+        }
     }
 }

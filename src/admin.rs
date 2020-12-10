@@ -106,7 +106,7 @@ fn ramp_a(
     let admin_info = next_account_info(account_info_iter)?;
     let clock_sysvar_info = next_account_info(account_info_iter)?;
 
-    if target_amp > MAX_AMP {
+    if target_amp == 0 || target_amp > MAX_AMP {
         return Err(SwapError::InvalidInput.into());
     }
 

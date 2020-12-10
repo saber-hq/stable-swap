@@ -149,11 +149,9 @@ fn ramp_a(
             // target_amp too low
             return Err(SwapError::InvalidInput.into());
         }
-    } else {
-        if target_amp > current_amp * MAX_A_CHANGE {
-            // target_amp too high
-            return Err(SwapError::InvalidInput.into());
-        }
+    } else if target_amp > current_amp * MAX_A_CHANGE {
+        // target_amp too high
+        return Err(SwapError::InvalidInput.into());
     }
 
     token_swap.initial_amp_factor = current_amp;

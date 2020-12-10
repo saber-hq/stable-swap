@@ -7,7 +7,7 @@ use crate::utils::invoke_signed;
 use crate::{
     admin::process_admin_instruction,
     bn::U256,
-    curve::{StableSwap, MIN_AMP, ZERO_TS},
+    curve::{StableSwap, MAX_AMP, MIN_AMP, ZERO_TS},
     error::SwapError,
     fees::Fees,
     instruction::{
@@ -151,6 +151,10 @@ impl Processor {
         let pool_mint_info = next_account_info(account_info_iter)?;
         let destination_info = next_account_info(account_info_iter)?; // Destination account to mint LP tokens to
         let token_program_info = next_account_info(account_info_iter)?;
+
+        if amp_factor < MIN_AMP || amp_factor > MAX_AMP {
+            return Err(SwapError::InvalidInput.into());
+        }
 
         let token_swap = SwapInfo::unpack_unchecked(&swap_info.data.borrow())?;
         if token_swap.is_initialized {
@@ -890,6 +894,24 @@ mod tests {
                 accounts.initialize_swap()
             );
             accounts.nonce = old_nonce;
+        }
+
+        // invalid amp factors
+        {
+            let old_initial_amp_factor = accounts.initial_amp_factor;
+            accounts.initial_amp_factor = MIN_AMP - 1;
+            // amp factor too low
+            assert_eq!(
+                Err(SwapError::InvalidInput.into()),
+                accounts.initialize_swap()
+            );
+            accounts.initial_amp_factor = MAX_AMP + 1;
+            // amp factor too high
+            assert_eq!(
+                Err(SwapError::InvalidInput.into()),
+                accounts.initialize_swap()
+            );
+            accounts.initial_amp_factor = old_initial_amp_factor;
         }
 
         // uninitialized token a account

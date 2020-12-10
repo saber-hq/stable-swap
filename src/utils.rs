@@ -3,18 +3,15 @@
 #![cfg(feature = "program")]
 
 use crate::error::SwapError;
-use ::spl_token::processor::Processor as SplProcessor;
+#[cfg(target_arch = "bpf")]
+use solana_sdk::pubkey::Pubkey;
+#[cfg(not(target_arch = "bpf"))]
 use solana_sdk::{
     account_info::AccountInfo, entrypoint::ProgramResult, instruction::Instruction,
     program_error::ProgramError, pubkey::Pubkey,
 };
-
-/// Test program id for the swap program.
 #[cfg(not(target_arch = "bpf"))]
-pub const SWAP_PROGRAM_ID: Pubkey = Pubkey::new_from_array([2u8; 32]);
-/// Test program id for the token program.
-#[cfg(not(target_arch = "bpf"))]
-pub const TOKEN_PROGRAM_ID: Pubkey = Pubkey::new_from_array([1u8; 32]);
+use spl_token::processor::Processor as SplProcessor;
 
 /// Calculates the authority id by generating a program address.
 pub fn authority_id(program_id: &Pubkey, my_info: &Pubkey, nonce: u8) -> Result<Pubkey, SwapError> {
@@ -22,6 +19,12 @@ pub fn authority_id(program_id: &Pubkey, my_info: &Pubkey, nonce: u8) -> Result<
         .or(Err(SwapError::InvalidProgramAddress))
 }
 
+/// Test program id for the swap program.
+#[cfg(not(target_arch = "bpf"))]
+pub const SWAP_PROGRAM_ID: Pubkey = Pubkey::new_from_array([2u8; 32]);
+/// Test program id for the token program.
+#[cfg(not(target_arch = "bpf"))]
+pub const TOKEN_PROGRAM_ID: Pubkey = Pubkey::new_from_array([1u8; 32]);
 /// Routes invokes to the token program, used for testing.
 #[cfg(not(target_arch = "bpf"))]
 pub fn invoke_signed<'a>(

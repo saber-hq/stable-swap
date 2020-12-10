@@ -9,16 +9,6 @@ use crate::{
     state::SwapInfo,
     utils::authority_id,
 };
-#[cfg(not(target_arch = "bpf"))]
-use solana_sdk::{
-    account_info::{next_account_info, AccountInfo},
-    entrypoint::ProgramResult,
-    info,
-    program_error::ProgramError,
-    program_pack::Pack,
-    pubkey::Pubkey,
-};
-#[cfg(target_arch = "bpf")]
 use solana_sdk::{
     account_info::{next_account_info, AccountInfo},
     entrypoint::ProgramResult,

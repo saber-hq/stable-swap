@@ -67,6 +67,12 @@ pub enum SwapError {
     /// Unauthorized
     #[error("Account is not authorized to execute this instruction")]
     Unauthorized,
+    /// Amp. coefficient change is within min ramp duration
+    #[error("Ramp is locked in this time period")]
+    RampLocked,
+    /// Insufficient ramp time for the ramp operation
+    #[error("Insufficient ramp time")]
+    InsufficientRampTime,
 }
 impl From<SwapError> for ProgramError {
     fn from(e: SwapError) -> Self {

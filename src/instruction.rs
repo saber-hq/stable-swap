@@ -77,7 +77,7 @@ pub struct WithdrawOneData {
 #[derive(Clone, Debug, PartialEq)]
 pub struct RampAData {
     /// Amp. Coefficient to ramp to
-    pub future_amp: u64,
+    pub target_amp: u64,
     /// Unix timestamp to stop ramp
     pub stop_ramp_ts: i64,
 }
@@ -118,10 +118,10 @@ impl AdminInstruction {
         let (&tag, rest) = input.split_first().ok_or(SwapError::InvalidInstruction)?;
         Ok(match tag {
             100 => {
-                let (future_amp, rest) = unpack_u64(rest)?;
+                let (target_amp, rest) = unpack_u64(rest)?;
                 let (stop_ramp_ts, _rest) = unpack_i64(rest)?;
                 Some(Self::RampA(RampAData {
-                    future_amp,
+                    target_amp,
                     stop_ramp_ts,
                 }))
             }
@@ -148,11 +148,11 @@ impl AdminInstruction {
         let mut buf = Vec::with_capacity(size_of::<Self>());
         match *self {
             Self::RampA(RampAData {
-                future_amp,
+                target_amp,
                 stop_ramp_ts,
             }) => {
                 buf.push(100);
-                buf.extend_from_slice(&future_amp.to_le_bytes());
+                buf.extend_from_slice(&target_amp.to_le_bytes());
                 buf.extend_from_slice(&stop_ramp_ts.to_le_bytes());
             }
             Self::StopRampA => buf.push(101),
@@ -176,6 +176,35 @@ impl AdminInstruction {
     }
 }
 
+/// Creates a 'ramp_a' instruction
+pub fn ramp_a(
+    program_id: &Pubkey,
+    swap_pubkey: &Pubkey,
+    authority_pubkey: &Pubkey,
+    admin_pubkey: &Pubkey,
+    target_amp: u64,
+    stop_ramp_ts: i64,
+) -> Result<Instruction, ProgramError> {
+    let data = AdminInstruction::RampA(RampAData {
+        target_amp,
+        stop_ramp_ts,
+    })
+    .pack();
+
+    let accounts = vec![
+        AccountMeta::new(*swap_pubkey, true),
+        AccountMeta::new(*authority_pubkey, false),
+        AccountMeta::new(*admin_pubkey, true),
+        AccountMeta::new(clock::id(), false),
+    ];
+
+    Ok(Instruction {
+        program_id: *program_id,
+        accounts,
+        data,
+    })
+}
+
 /// Instructions supported by the SwapInfo program.
 #[repr(C)]
 #[derive(Debug, PartialEq)]
@@ -184,9 +213,12 @@ pub enum SwapInstruction {
     ///
     ///   0. `[writable, signer]` New Token-swap to create.
     ///   1. `[]` $authority derived from `create_program_address(&[Token-swap account])`
-    ///   2. `[]` token_a Account. Must be non zero, owned by $authority.
-    ///   3. `[]` token_b Account. Must be non zero, owned by $authority.
-    ///   4. `[writable]` Pool Token Mint. Must be empty, owned by $authority.
+    ///   2. `[]` admin Account.
+    ///   3. `[]` admin_fee_a admin fee Account for token_a.
+    ///   4. `[]` admin_fee_b admin fee Account for token_b.
+    ///   5. `[]` token_a Account. Must be non zero, owned by $authority.
+    ///   6. `[]` token_b Account. Must be non zero, owned by $authority.
+    ///   7. `[writable]` Pool Token Mint. Must be empty, owned by $authority.
     Initialize(InitializeData),
 
     ///   Swap the tokens in the pool.
@@ -227,8 +259,8 @@ pub enum SwapInstruction {
     ///   5. `[writable]` token_b Swap Account to withdraw FROM.
     ///   6. `[writable]` token_a user Account to credit.
     ///   7. `[writable]` token_b user Account to credit.
-    ///   8. `[wrtaible]` admin_fee_a admin fee Account for token_a.
-    ///   9. `[wrtaible]` admin_fee_b admin fee Account for token_b.
+    ///   8. `[writable]` admin_fee_a admin fee Account for token_a.
+    ///   9. `[writable]` admin_fee_b admin fee Account for token_b.
     ///   10. `[]` Token program id
     Withdraw(WithdrawData),
 
@@ -365,6 +397,7 @@ pub fn initialize(
     pool_token_program_id: &Pubkey, // Token program used for the pool token
     swap_pubkey: &Pubkey,
     authority_pubkey: &Pubkey,
+    admin_pubkey: &Pubkey,
     admin_fee_a_pubkey: &Pubkey,
     admin_fee_b_pubkey: &Pubkey,
     token_a_pubkey: &Pubkey,
@@ -385,6 +418,7 @@ pub fn initialize(
     let accounts = vec![
         AccountMeta::new(*swap_pubkey, true),
         AccountMeta::new(*authority_pubkey, false),
+        AccountMeta::new(*admin_pubkey, false),
         AccountMeta::new(*admin_fee_a_pubkey, false),
         AccountMeta::new(*admin_fee_b_pubkey, false),
         AccountMeta::new(*token_a_pubkey, false),
@@ -615,16 +649,16 @@ mod tests {
 
     #[test]
     fn test_admin_instruction_packing() {
-        let future_amp = 100;
+        let target_amp = 100;
         let stop_ramp_ts = i64::MAX;
         let check = AdminInstruction::RampA(RampAData {
-            future_amp,
+            target_amp,
             stop_ramp_ts,
         });
         let packed = check.pack();
         let mut expect = vec![];
         expect.push(100 as u8);
-        expect.extend_from_slice(&future_amp.to_le_bytes());
+        expect.extend_from_slice(&target_amp.to_le_bytes());
         expect.extend_from_slice(&stop_ramp_ts.to_le_bytes());
         assert_eq!(packed, expect);
         let unpacked = AdminInstruction::unpack(&expect).unwrap();

@@ -30,6 +30,7 @@ export const StableSwapLayout: typeof BufferLayout.Structure = BufferLayout.stru
     PublicKeyLayout("tokenPool"),
     PublicKeyLayout("mintA"),
     PublicKeyLayout("mintB"),
+    PublicKeyLayout("adminAccount"),
     PublicKeyLayout("adminFeeAccountA"),
     PublicKeyLayout("adminFeeAccountB"),
     BufferLayout.nu64("adminTradeFeeNumerator"),

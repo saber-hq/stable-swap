@@ -52,6 +52,11 @@ export class StableSwap {
   authority: PublicKey;
 
   /**
+   * Admin account
+   */
+  adminAccount: PublicKey;
+
+  /**
    * Admin fee account for token A
    */
   adminFeeAccountA: PublicKey;
@@ -114,6 +119,7 @@ export class StableSwap {
    * @param tokenProgramId
    * @param poolToken
    * @param authority
+   * @param adminAccount
    * @param adminFeeAccountA
    * @param adminFeeAccountB
    * @param tokenAccountA
@@ -133,6 +139,7 @@ export class StableSwap {
     tokenProgramId: PublicKey,
     poolToken: PublicKey,
     authority: PublicKey,
+    adminAccount: PublicKey,
     adminFeeAccountA: PublicKey,
     adminFeeAccountB: PublicKey,
     tokenAccountA: PublicKey,
@@ -151,6 +158,7 @@ export class StableSwap {
     this.tokenProgramId = tokenProgramId;
     this.poolToken = poolToken;
     this.authority = authority;
+    this.adminAccount = adminAccount;
     this.adminFeeAccountA = adminFeeAccountA;
     this.adminFeeAccountB = adminFeeAccountB;
     this.tokenAccountA = tokenAccountA;
@@ -199,6 +207,7 @@ export class StableSwap {
       [address.toBuffer()],
       programId
     );
+    const adminAccount = new PublicKey(stableSwapData.adminAccount);
     const adminFeeAccountA = new PublicKey(stableSwapData.adminFeeAccountA);
     const adminFeeAccountB = new PublicKey(stableSwapData.adminFeeAccountB);
     const tokenAccountA = new PublicKey(stableSwapData.tokenAccountA);
@@ -229,6 +238,7 @@ export class StableSwap {
       tokenProgramId,
       poolToken,
       authority,
+      adminAccount,
       adminFeeAccountA,
       adminFeeAccountB,
       tokenAccountA,
@@ -244,11 +254,12 @@ export class StableSwap {
   }
 
   /**
-   * Create a new StableSwap instance
+   * Constructor for new StableSwap client object
    * @param connection
    * @param payer
    * @param stableSwapAccount
    * @param authority
+   * @param adminAccount
    * @param adminFeeAccountA
    * @param adminFeeAccountB
    * @param tokenAccountA
@@ -268,6 +279,7 @@ export class StableSwap {
     payer: Account,
     stableSwapAccount: Account,
     authority: PublicKey,
+    adminAccount: PublicKey,
     adminFeeAccountA: PublicKey,
     adminFeeAccountB: PublicKey,
     tokenAccountA: PublicKey,
@@ -299,6 +311,7 @@ export class StableSwap {
     const instruction = instructions.createInitSwapInstruction(
       stableSwapAccount,
       authority,
+      adminAccount,
       adminFeeAccountA,
       adminFeeAccountB,
       tokenAccountA,
@@ -328,6 +341,7 @@ export class StableSwap {
       tokenProgramId,
       poolToken,
       authority,
+      adminAccount,
       adminFeeAccountA,
       adminFeeAccountB,
       tokenAccountA,

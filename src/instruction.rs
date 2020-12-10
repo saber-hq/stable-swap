@@ -176,6 +176,35 @@ impl AdminInstruction {
     }
 }
 
+/// Creates a 'ramp_a' instruction
+pub fn ramp_a(
+    program_id: &Pubkey,
+    swap_pubkey: &Pubkey,
+    authority_pubkey: &Pubkey,
+    admin_pubkey: &Pubkey,
+    target_amp: u64,
+    stop_ramp_ts: i64,
+) -> Result<Instruction, ProgramError> {
+    let data = AdminInstruction::RampA(RampAData {
+        target_amp,
+        stop_ramp_ts,
+    })
+    .pack();
+
+    let accounts = vec![
+        AccountMeta::new(*swap_pubkey, true),
+        AccountMeta::new(*authority_pubkey, false),
+        AccountMeta::new(*admin_pubkey, true),
+        AccountMeta::new(clock::id(), false),
+    ];
+
+    Ok(Instruction {
+        program_id: *program_id,
+        accounts,
+        data,
+    })
+}
+
 /// Instructions supported by the SwapInfo program.
 #[repr(C)]
 #[derive(Debug, PartialEq)]

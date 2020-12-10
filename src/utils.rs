@@ -617,6 +617,28 @@ pub mod test_utils {
                 ],
             )
         }
+
+        /** Admin functions **/
+
+        pub fn ramp_a(&mut self, target_amp: u64, stop_ramp_ts: i64) -> ProgramResult {
+            do_process_instruction(
+                ramp_a(
+                    &SWAP_PROGRAM_ID,
+                    &self.swap_key,
+                    &self.authority_key,
+                    &self.admin_key,
+                    target_amp,
+                    stop_ramp_ts,
+                )
+                .unwrap(),
+                vec![
+                    &mut self.swap_account,
+                    &mut Account::default(),
+                    &mut self.admin_account,
+                    &mut default_clock_account(),
+                ],
+            )
+        }
     }
 
     pub fn do_process_instruction(

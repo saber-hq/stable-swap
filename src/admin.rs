@@ -163,8 +163,40 @@ fn ramp_a(
 }
 
 /// Stop ramp a
-fn stop_ramp_a(_program_id: &Pubkey, _accounts: &[AccountInfo]) -> ProgramResult {
-    unimplemented!("stop_ramp_a not implemented");
+fn stop_ramp_a(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
+    let account_info_iter = &mut accounts.iter();
+    let swap_info = next_account_info(account_info_iter)?;
+    let authority_info = next_account_info(account_info_iter)?;
+    let admin_info = next_account_info(account_info_iter)?;
+    let clock_sysvar_info = next_account_info(account_info_iter)?;
+
+    let mut token_swap = SwapInfo::unpack(&swap_info.data.borrow())?;
+    is_admin(&token_swap.admin_key, admin_info)?;
+    if *authority_info.key != authority_id(program_id, swap_info.key, token_swap.nonce)? {
+        return Err(SwapError::InvalidProgramAddress.into());
+    }
+
+    let clock = Clock::from_account_info(clock_sysvar_info)?;
+    let invariant = StableSwap::new(
+        token_swap.initial_amp_factor,
+        token_swap.target_amp_factor,
+        clock.unix_timestamp,
+        token_swap.start_ramp_ts,
+        token_swap.stop_ramp_ts,
+    );
+    let current_amp = U256::to_u64(
+        invariant
+            .compute_amp_factor()
+            .ok_or(SwapError::CalculationFailure)?,
+    )?;
+
+    token_swap.initial_amp_factor = current_amp;
+    token_swap.target_amp_factor = current_amp;
+    token_swap.start_ramp_ts = clock.unix_timestamp;
+    token_swap.stop_ramp_ts = clock.unix_timestamp;
+    // now (current_ts < stop_ramp_ts) is always False, compute_amp_factor should return target_amp
+    SwapInfo::pack(token_swap, &mut swap_info.data.borrow_mut())?;
+    Ok(())
 }
 
 /// Pause swap

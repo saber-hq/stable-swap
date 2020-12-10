@@ -145,18 +145,12 @@ fn ramp_a(
             .ok_or(SwapError::CalculationFailure)?,
     )?;
     if target_amp < current_amp {
-        let down_ceil = target_amp
-            .checked_mul(MAX_A_CHANGE)
-            .ok_or(SwapError::CalculationFailure)?;
-        if current_amp > down_ceil {
+        if current_amp > target_amp * MAX_A_CHANGE {
             // target_amp too low
             return Err(SwapError::InvalidInput.into());
         }
     } else {
-        let up_ceil = current_amp
-            .checked_mul(MAX_A_CHANGE)
-            .ok_or(SwapError::CalculationFailure)?;
-        if target_amp > up_ceil {
+        if target_amp > current_amp * MAX_A_CHANGE {
             // target_amp too high
             return Err(SwapError::InvalidInput.into());
         }

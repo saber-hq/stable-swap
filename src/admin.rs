@@ -252,7 +252,7 @@ fn set_fee_account_b(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramRe
         return Err(SwapError::InvalidAdmin.into());
     }
 
-    token_swap.admin_fee_account_b = *new_fee_account_b_info.key;
+    token_swap.admin_fee_key_b = *new_fee_account_b_info.key;
     SwapInfo::pack(token_swap, &mut swap_info.data.borrow_mut())?;
     Ok(())
 }
@@ -676,7 +676,7 @@ mod tests {
                 .unwrap();
 
             let swap_info = SwapInfo::unpack(&accounts.swap_account.data).unwrap();
-            assert_eq!(swap_info.admin_fee_account_b, admin_fee_key_b);
+            assert_eq!(swap_info.admin_fee_key_b, admin_fee_key_b);
         }
     }
 }

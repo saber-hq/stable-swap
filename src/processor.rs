@@ -194,9 +194,9 @@ impl Processor {
         if pool_mint.supply != 0 {
             return Err(SwapError::InvalidSupply.into());
         }
-        let admin_fee_account_a = utils::unpack_token_account(&admin_fee_a_info.data.borrow())?;
+        let admin_fee_key_a = utils::unpack_token_account(&admin_fee_a_info.data.borrow())?;
         let admin_fee_account_b = utils::unpack_token_account(&admin_fee_b_info.data.borrow())?;
-        if token_a.mint != admin_fee_account_a.mint {
+        if token_a.mint != admin_fee_key_a.mint {
             // TODO: Add test
             return Err(SwapError::InvalidAdmin.into());
         }
@@ -234,7 +234,7 @@ impl Processor {
             token_a_mint: token_a.mint,
             token_b_mint: token_b.mint,
             admin_key: *admin_key_info.key,
-            admin_fee_account_a: *admin_fee_a_info.key,
+            admin_fee_key_a: *admin_fee_a_info.key,
             admin_fee_account_b: *admin_fee_b_info.key,
             fees,
         };
@@ -276,7 +276,7 @@ impl Processor {
             return Err(SwapError::IncorrectSwapAccount.into());
         }
         if *swap_destination_info.key == token_swap.token_a
-            && *admin_destination_info.key != token_swap.admin_fee_account_a
+            && *admin_destination_info.key != token_swap.admin_fee_key_a
         {
             return Err(SwapError::InvalidAdmin.into());
         }
@@ -471,7 +471,7 @@ impl Processor {
         if *pool_mint_info.key != token_swap.pool_mint {
             return Err(SwapError::IncorrectPoolMint.into());
         }
-        if *admin_fee_dest_a_info.key != token_swap.admin_fee_account_a {
+        if *admin_fee_dest_a_info.key != token_swap.admin_fee_key_a {
             return Err(SwapError::InvalidAdmin.into());
         }
         if *admin_fee_dest_b_info.key != token_swap.admin_fee_account_b {
@@ -598,7 +598,7 @@ impl Processor {
             return Err(SwapError::IncorrectSwapAccount.into());
         }
         if *base_token_info.key == token_swap.token_a
-            && *admin_destination_info.key != token_swap.admin_fee_account_a
+            && *admin_destination_info.key != token_swap.admin_fee_key_a
         {
             return Err(SwapError::InvalidAdmin.into());
         }
@@ -2334,12 +2334,9 @@ mod tests {
             );
             let pool_account = utils::unpack_token_account(&pool_account.data).unwrap();
             assert_eq!(pool_account.amount, initial_pool - withdraw_amount);
-            let admin_fee_account_a =
+            let admin_fee_key_a =
                 utils::unpack_token_account(&accounts.admin_fee_a_account.data).unwrap();
-            assert_eq!(
-                admin_fee_account_a.amount,
-                U256::to_u64(admin_fee_a).unwrap()
-            );
+            assert_eq!(admin_fee_key_a.amount, U256::to_u64(admin_fee_a).unwrap());
             let admin_fee_account_b =
                 utils::unpack_token_account(&accounts.admin_fee_b_account.data).unwrap();
             assert_eq!(
@@ -3399,9 +3396,9 @@ mod tests {
             old_swap_token_a.amount - swap_token_a.amount - expected_admin_fee,
             U256::to_u64(expected_withdraw_one_amount).unwrap()
         );
-        let admin_fee_account_a =
+        let admin_fee_key_a =
             utils::unpack_token_account(&accounts.admin_fee_a_account.data).unwrap();
-        assert_eq!(admin_fee_account_a.amount, expected_admin_fee);
+        assert_eq!(admin_fee_key_a.amount, expected_admin_fee);
         let swap_token_b = utils::unpack_token_account(&accounts.token_b_account.data).unwrap();
         assert_eq!(swap_token_b.amount, old_swap_token_b.amount);
         let pool_mint = Processor::unpack_mint(&accounts.pool_mint_account.data).unwrap();

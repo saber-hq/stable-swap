@@ -95,9 +95,7 @@ pub enum AdminInstruction {
     /// TODO: Docs
     Unpause,
     /// TODO: Docs
-    SetFeeAccountA,
-    /// TODO: Docs
-    SetFeeAccountB,
+    SetFeeAccount,
     /// TODO: Docs
     ApplyNewAdmin,
     /// TODO: Docs
@@ -128,17 +126,16 @@ impl AdminInstruction {
             101 => Some(Self::StopRampA),
             102 => Some(Self::Pause),
             103 => Some(Self::Unpause),
-            104 => Some(Self::SetFeeAccountA),
-            105 => Some(Self::SetFeeAccountB),
-            106 => Some(Self::ApplyNewAdmin),
-            107 => Some(Self::CommitNewAdmin),
-            108 => Some(Self::RevertNewAdmin),
-            109 => Some(Self::ApplyNewFees),
-            110 => {
+            104 => Some(Self::SetFeeAccount),
+            105 => Some(Self::ApplyNewAdmin),
+            106 => Some(Self::CommitNewAdmin),
+            107 => Some(Self::RevertNewAdmin),
+            108 => Some(Self::ApplyNewFees),
+            109 => {
                 let fees = Fees::unpack_unchecked(rest)?;
                 Some(Self::CommitNewFees(fees))
             }
-            111 => Some(Self::RevertNewFees),
+            110 => Some(Self::RevertNewFees),
             _ => None,
         })
     }
@@ -158,19 +155,18 @@ impl AdminInstruction {
             Self::StopRampA => buf.push(101),
             Self::Pause => buf.push(102),
             Self::Unpause => buf.push(103),
-            Self::SetFeeAccountA => buf.push(104),
-            Self::SetFeeAccountB => buf.push(105),
-            Self::ApplyNewAdmin => buf.push(106),
-            Self::CommitNewAdmin => buf.push(107),
-            Self::RevertNewAdmin => buf.push(108),
-            Self::ApplyNewFees => buf.push(109),
+            Self::SetFeeAccount => buf.push(104),
+            Self::ApplyNewAdmin => buf.push(105),
+            Self::CommitNewAdmin => buf.push(106),
+            Self::RevertNewAdmin => buf.push(107),
+            Self::ApplyNewFees => buf.push(108),
             Self::CommitNewFees(fees) => {
-                buf.push(110);
+                buf.push(109);
                 let mut fees_slice = [0u8; Fees::LEN];
                 Pack::pack_into_slice(&fees, &mut fees_slice[..]);
                 buf.extend_from_slice(&fees_slice);
             }
-            Self::RevertNewFees => buf.push(111),
+            Self::RevertNewFees => buf.push(110),
         }
         buf
     }
@@ -229,44 +225,20 @@ pub fn stop_ramp_a(
 }
 
 /// Creates a 'set_fee_account_a' instruction
-pub fn set_fee_account_a(
+pub fn set_fee_account(
     program_id: &Pubkey,
     swap_pubkey: &Pubkey,
     authority_pubkey: &Pubkey,
     admin_pubkey: &Pubkey,
-    new_fee_account_a_pubkey: &Pubkey,
+    new_fee_account_pubkey: &Pubkey,
 ) -> Result<Instruction, ProgramError> {
-    let data = AdminInstruction::SetFeeAccountA.pack();
+    let data = AdminInstruction::SetFeeAccount.pack();
 
     let accounts = vec![
         AccountMeta::new(*swap_pubkey, true),
         AccountMeta::new(*authority_pubkey, false),
         AccountMeta::new(*admin_pubkey, true),
-        AccountMeta::new(*new_fee_account_a_pubkey, false),
-    ];
-
-    Ok(Instruction {
-        program_id: *program_id,
-        accounts,
-        data,
-    })
-}
-
-/// Creates a 'set_fee_account_b' instruction
-pub fn set_fee_account_b(
-    program_id: &Pubkey,
-    swap_pubkey: &Pubkey,
-    authority_pubkey: &Pubkey,
-    admin_pubkey: &Pubkey,
-    new_fee_account_b_pubkey: &Pubkey,
-) -> Result<Instruction, ProgramError> {
-    let data = AdminInstruction::SetFeeAccountB.pack();
-
-    let accounts = vec![
-        AccountMeta::new(*swap_pubkey, true),
-        AccountMeta::new(*authority_pubkey, false),
-        AccountMeta::new(*admin_pubkey, true),
-        AccountMeta::new(*new_fee_account_b_pubkey, false),
+        AccountMeta::new(*new_fee_account_pubkey, false),
     ];
 
     Ok(Instruction {
@@ -759,7 +731,7 @@ mod tests {
         let unpacked = AdminInstruction::unpack(&expect).unwrap();
         assert_eq!(unpacked, Some(check));
 
-        let check = AdminInstruction::SetFeeAccountA;
+        let check = AdminInstruction::SetFeeAccount;
         let packed = check.pack();
         let mut expect = vec![];
         expect.push(104 as u8);
@@ -767,7 +739,7 @@ mod tests {
         let unpacked = AdminInstruction::unpack(&expect).unwrap();
         assert_eq!(unpacked, Some(check));
 
-        let check = AdminInstruction::SetFeeAccountB;
+        let check = AdminInstruction::ApplyNewAdmin;
         let packed = check.pack();
         let mut expect = vec![];
         expect.push(105 as u8);
@@ -775,7 +747,7 @@ mod tests {
         let unpacked = AdminInstruction::unpack(&expect).unwrap();
         assert_eq!(unpacked, Some(check));
 
-        let check = AdminInstruction::ApplyNewAdmin;
+        let check = AdminInstruction::CommitNewAdmin;
         let packed = check.pack();
         let mut expect = vec![];
         expect.push(106 as u8);
@@ -783,7 +755,7 @@ mod tests {
         let unpacked = AdminInstruction::unpack(&expect).unwrap();
         assert_eq!(unpacked, Some(check));
 
-        let check = AdminInstruction::CommitNewAdmin;
+        let check = AdminInstruction::RevertNewAdmin;
         let packed = check.pack();
         let mut expect = vec![];
         expect.push(107 as u8);
@@ -791,18 +763,10 @@ mod tests {
         let unpacked = AdminInstruction::unpack(&expect).unwrap();
         assert_eq!(unpacked, Some(check));
 
-        let check = AdminInstruction::RevertNewAdmin;
-        let packed = check.pack();
-        let mut expect = vec![];
-        expect.push(108 as u8);
-        assert_eq!(packed, expect);
-        let unpacked = AdminInstruction::unpack(&expect).unwrap();
-        assert_eq!(unpacked, Some(check));
-
         let check = AdminInstruction::ApplyNewFees;
         let packed = check.pack();
         let mut expect = vec![];
-        expect.push(109 as u8);
+        expect.push(108 as u8);
         assert_eq!(packed, expect);
         let unpacked = AdminInstruction::unpack(&expect).unwrap();
         assert_eq!(unpacked, Some(check));
@@ -820,7 +784,7 @@ mod tests {
         let check = AdminInstruction::CommitNewFees(new_fees);
         let packed = check.pack();
         let mut expect = vec![];
-        expect.push(110 as u8);
+        expect.push(109 as u8);
         let mut new_fees_slice = [0u8; Fees::LEN];
         new_fees.pack_into_slice(&mut new_fees_slice[..]);
         expect.extend_from_slice(&new_fees_slice);
@@ -831,7 +795,7 @@ mod tests {
         let check = AdminInstruction::RevertNewFees;
         let packed = check.pack();
         let mut expect = vec![];
-        expect.push(111 as u8);
+        expect.push(110 as u8);
         assert_eq!(packed, expect);
         let unpacked = AdminInstruction::unpack(&expect).unwrap();
         assert_eq!(unpacked, Some(check));

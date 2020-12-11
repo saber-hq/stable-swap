@@ -322,7 +322,7 @@ pub mod test_utils {
             panic!("Could not find matching admin fee account");
         }
 
-        fn set_admin_fee_account(&mut self, account_key: &Pubkey, account: Account) {
+        fn set_admin_fee_account_(&mut self, account_key: &Pubkey, account: Account) {
             if *account_key == self.admin_fee_a_key {
                 self.admin_fee_a_account = account;
                 return;
@@ -419,7 +419,7 @@ pub mod test_utils {
                 ],
             )?;
 
-            self.set_admin_fee_account(&admin_destination_key, admin_destination_account);
+            self.set_admin_fee_account_(&admin_destination_key, admin_destination_account);
             self.set_token_account(swap_source_key, swap_source_account);
             self.set_token_account(swap_destination_key, swap_destination_account);
 
@@ -684,48 +684,25 @@ pub mod test_utils {
             )
         }
 
-        pub fn set_admin_fee_account_a(
+        pub fn set_admin_fee_account(
             &mut self,
-            new_admin_fee_account_a_key: &Pubkey,
-            new_admin_fee_account_a: &Account,
+            new_admin_fee_key: &Pubkey,
+            new_admin_fee_account: &Account,
         ) -> ProgramResult {
             do_process_instruction(
-                set_fee_account_a(
+                set_fee_account(
                     &SWAP_PROGRAM_ID,
                     &self.swap_key,
                     &self.authority_key,
                     &self.admin_key,
-                    new_admin_fee_account_a_key,
+                    new_admin_fee_key,
                 )
                 .unwrap(),
                 vec![
                     &mut self.swap_account,
                     &mut Account::default(),
                     &mut self.admin_account,
-                    &mut new_admin_fee_account_a.clone(),
-                ],
-            )
-        }
-
-        pub fn set_admin_fee_account_b(
-            &mut self,
-            new_admin_fee_account_b_key: &Pubkey,
-            new_admin_fee_account_b: &Account,
-        ) -> ProgramResult {
-            do_process_instruction(
-                set_fee_account_b(
-                    &SWAP_PROGRAM_ID,
-                    &self.swap_key,
-                    &self.authority_key,
-                    &self.admin_key,
-                    new_admin_fee_account_b_key,
-                )
-                .unwrap(),
-                vec![
-                    &mut self.swap_account,
-                    &mut Account::default(),
-                    &mut self.admin_account,
-                    &mut new_admin_fee_account_b.clone(),
+                    &mut new_admin_fee_account.clone(),
                 ],
             )
         }

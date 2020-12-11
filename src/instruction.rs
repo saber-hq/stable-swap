@@ -224,7 +224,7 @@ pub fn stop_ramp_a(
     })
 }
 
-/// Creates a 'set_fee_account_a' instruction
+/// Creates a 'set_fee_account' instruction
 pub fn set_fee_account(
     program_id: &Pubkey,
     swap_pubkey: &Pubkey,

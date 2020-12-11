@@ -9,7 +9,7 @@ use crate::{
     fees::Fees,
     instruction::{AdminInstruction, RampAData},
     state::SwapInfo,
-    utils::authority_id,
+    utils,
 };
 use solana_sdk::{
     account_info::{next_account_info, AccountInfo},
@@ -111,7 +111,7 @@ fn ramp_a(
     }
     let mut token_swap = SwapInfo::unpack(&swap_info.data.borrow())?;
     is_admin(&token_swap.admin_key, admin_info)?;
-    if *authority_info.key != authority_id(program_id, swap_info.key, token_swap.nonce)? {
+    if *authority_info.key != utils::authority_id(program_id, swap_info.key, token_swap.nonce)? {
         return Err(SwapError::InvalidProgramAddress.into());
     }
 
@@ -172,7 +172,7 @@ fn stop_ramp_a(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
 
     let mut token_swap = SwapInfo::unpack(&swap_info.data.borrow())?;
     is_admin(&token_swap.admin_key, admin_info)?;
-    if *authority_info.key != authority_id(program_id, swap_info.key, token_swap.nonce)? {
+    if *authority_info.key != utils::authority_id(program_id, swap_info.key, token_swap.nonce)? {
         return Err(SwapError::InvalidProgramAddress.into());
     }
 
@@ -210,8 +210,27 @@ fn unpause(_program_id: &Pubkey, _accounts: &[AccountInfo]) -> ProgramResult {
 }
 
 /// Set fee account a
-fn set_fee_account_a(_program_id: &Pubkey, _accounts: &[AccountInfo]) -> ProgramResult {
-    unimplemented!("set_fee_account_a not implemented")
+fn set_fee_account_a(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
+    let account_info_iter = &mut accounts.iter();
+    let swap_info = next_account_info(account_info_iter)?;
+    let authority_info = next_account_info(account_info_iter)?;
+    let admin_info = next_account_info(account_info_iter)?;
+    let new_fee_account_a_info = next_account_info(account_info_iter)?;
+
+    let mut token_swap = SwapInfo::unpack(&swap_info.data.borrow())?;
+    is_admin(&token_swap.admin_key, admin_info)?;
+    if *authority_info.key != utils::authority_id(program_id, swap_info.key, token_swap.nonce)? {
+        return Err(SwapError::InvalidProgramAddress.into());
+    }
+    let new_admin_fee_account_a =
+        utils::unpack_token_account(&new_fee_account_a_info.data.borrow())?;
+    if new_admin_fee_account_a.mint != token_swap.token_a_mint {
+        return Err(SwapError::InvalidAdmin.into());
+    }
+
+    token_swap.admin_fee_account_a = *new_fee_account_a_info.key;
+    SwapInfo::pack(token_swap, &mut swap_info.data.borrow_mut())?;
+    Ok(())
 }
 
 /// Set fee account a

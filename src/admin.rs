@@ -412,4 +412,66 @@ mod tests {
             assert_eq!(swap_info.stop_ramp_ts, stop_ramp_ts);
         }
     }
+
+    #[test]
+    fn test_stop_ramp_a() {
+        let user_key = pubkey_rand();
+        let amp_factor = MIN_AMP * 100;
+        let mut accounts = SwapAccountInfo::new(
+            &user_key,
+            amp_factor,
+            DEFAULT_TOKEN_A_AMOUNT,
+            DEFAULT_TOKEN_B_AMOUNT,
+            DEFAULT_TEST_FEES,
+        );
+
+        // swap not initialized
+        {
+            assert_eq!(
+                Err(ProgramError::UninitializedAccount),
+                accounts.ramp_a(MIN_AMP, ZERO_TS, MIN_RAMP_DURATION)
+            );
+        }
+
+        accounts.initialize_swap().unwrap();
+
+        // wrong nonce for authority_key
+        {
+            let old_authority = accounts.authority_key;
+            let (bad_authority_key, _nonce) = Pubkey::find_program_address(
+                &[&accounts.swap_key.to_bytes()[..]],
+                &TOKEN_PROGRAM_ID,
+            );
+            accounts.authority_key = bad_authority_key;
+            assert_eq!(
+                Err(SwapError::InvalidProgramAddress.into()),
+                accounts.stop_ramp_a(ZERO_TS)
+            );
+            accounts.authority_key = old_authority;
+        }
+
+        // unauthorized account
+        {
+            let old_admin_key = accounts.admin_key;
+            let fake_admin_key = pubkey_rand();
+            accounts.admin_key = fake_admin_key;
+            assert_eq!(
+                Err(SwapError::Unauthorized.into()),
+                accounts.stop_ramp_a(ZERO_TS)
+            );
+            accounts.admin_key = old_admin_key;
+        }
+
+        // valid call
+        {
+            let expected_ts = MIN_RAMP_DURATION;
+            accounts.stop_ramp_a(expected_ts).unwrap();
+
+            let swap_info = SwapInfo::unpack(&accounts.swap_account.data).unwrap();
+            assert_eq!(swap_info.initial_amp_factor, amp_factor);
+            assert_eq!(swap_info.target_amp_factor, amp_factor);
+            assert_eq!(swap_info.start_ramp_ts, expected_ts);
+            assert_eq!(swap_info.stop_ramp_ts, expected_ts);
+        }
+    }
 }

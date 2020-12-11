@@ -3,20 +3,25 @@
 #![cfg(feature = "program")]
 
 use crate::error::SwapError;
-#[cfg(target_arch = "bpf")]
 use solana_sdk::pubkey::Pubkey;
 #[cfg(not(target_arch = "bpf"))]
 use solana_sdk::{
     account_info::AccountInfo, entrypoint::ProgramResult, instruction::Instruction,
-    program_error::ProgramError, pubkey::Pubkey,
+    program_error::ProgramError,
 };
 #[cfg(not(target_arch = "bpf"))]
 use spl_token::processor::Processor as SplProcessor;
+use spl_token::{pack::Pack as TokenPack, state::Account};
 
 /// Calculates the authority id by generating a program address.
 pub fn authority_id(program_id: &Pubkey, my_info: &Pubkey, nonce: u8) -> Result<Pubkey, SwapError> {
     Pubkey::create_program_address(&[&my_info.to_bytes()[..32], &[nonce]], program_id)
         .or(Err(SwapError::InvalidProgramAddress))
+}
+
+/// Unpacks a spl_token `Account`.
+pub fn unpack_token_account(data: &[u8]) -> Result<Account, SwapError> {
+    TokenPack::unpack(data).map_err(|_| SwapError::ExpectedAccount)
 }
 
 /// Test program id for the swap program.
@@ -317,7 +322,7 @@ pub mod test_utils {
             panic!("Could not find matching admin fee account");
         }
 
-        fn set_admin_fee_account(&mut self, account_key: &Pubkey, account: Account) {
+        fn set_admin_fee_account_(&mut self, account_key: &Pubkey, account: Account) {
             if *account_key == self.admin_fee_a_key {
                 self.admin_fee_a_account = account;
                 return;
@@ -414,7 +419,7 @@ pub mod test_utils {
                 ],
             )?;
 
-            self.set_admin_fee_account(&admin_destination_key, admin_destination_account);
+            self.set_admin_fee_account_(&admin_destination_key, admin_destination_account);
             self.set_token_account(swap_source_key, swap_source_account);
             self.set_token_account(swap_destination_key, swap_destination_account);
 
@@ -675,6 +680,29 @@ pub mod test_utils {
                     &mut Account::default(),
                     &mut self.admin_account,
                     &mut clock_account(current_ts),
+                ],
+            )
+        }
+
+        pub fn set_admin_fee_account(
+            &mut self,
+            new_admin_fee_key: &Pubkey,
+            new_admin_fee_account: &Account,
+        ) -> ProgramResult {
+            do_process_instruction(
+                set_fee_account(
+                    &SWAP_PROGRAM_ID,
+                    &self.swap_key,
+                    &self.authority_key,
+                    &self.admin_key,
+                    new_admin_fee_key,
+                )
+                .unwrap(),
+                vec![
+                    &mut self.swap_account,
+                    &mut Account::default(),
+                    &mut self.admin_account,
+                    &mut new_admin_fee_account.clone(),
                 ],
             )
         }

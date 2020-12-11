@@ -43,12 +43,12 @@ pub struct SwapInfo {
     /// Mint information for token B
     pub token_b_mint: Pubkey,
 
-    /// Admin key to execute admin instructions
+    /// Public key of admin account to execute admin instructions
     pub admin_key: Pubkey,
-    /// Admin token account to receive trading and / or withdrawal fees for token a
-    pub admin_fee_account_a: Pubkey,
-    /// Admin token account to receive trading and / or withdrawal fees for token b
-    pub admin_fee_account_b: Pubkey,
+    /// Public key of the admin token account to receive trading and / or withdrawal fees for token a
+    pub admin_fee_key_a: Pubkey,
+    /// Public key of the admin token account to receive trading and / or withdrawal fees for token b
+    pub admin_fee_key_b: Pubkey,
     /// Fees
     pub fees: Fees,
 }
@@ -80,8 +80,8 @@ impl Pack for SwapInfo {
             token_a_mint,
             token_b_mint,
             admin_key,
-            admin_fee_account_a,
-            admin_fee_account_b,
+            admin_fee_key_a,
+            admin_fee_key_b,
             fees,
         ) = array_refs![input, 1, 1, 8, 8, 8, 8, 32, 32, 32, 32, 32, 32, 32, 32, 64];
         Ok(Self {
@@ -101,8 +101,8 @@ impl Pack for SwapInfo {
             token_a_mint: Pubkey::new_from_array(*token_a_mint),
             token_b_mint: Pubkey::new_from_array(*token_b_mint),
             admin_key: Pubkey::new_from_array(*admin_key),
-            admin_fee_account_a: Pubkey::new_from_array(*admin_fee_account_a),
-            admin_fee_account_b: Pubkey::new_from_array(*admin_fee_account_b),
+            admin_fee_key_a: Pubkey::new_from_array(*admin_fee_key_a),
+            admin_fee_key_b: Pubkey::new_from_array(*admin_fee_key_b),
             fees: Fees::unpack_from_slice(fees)?,
         })
     }
@@ -122,8 +122,8 @@ impl Pack for SwapInfo {
             token_a_mint,
             token_b_mint,
             admin_key,
-            admin_fee_account_a,
-            admin_fee_account_b,
+            admin_fee_key_a,
+            admin_fee_key_b,
             fees,
         ) = mut_array_refs![output, 1, 1, 8, 8, 8, 8, 32, 32, 32, 32, 32, 32, 32, 32, 64];
         is_initialized[0] = self.is_initialized as u8;
@@ -138,8 +138,8 @@ impl Pack for SwapInfo {
         token_a_mint.copy_from_slice(self.token_a_mint.as_ref());
         token_b_mint.copy_from_slice(self.token_b_mint.as_ref());
         admin_key.copy_from_slice(self.admin_key.as_ref());
-        admin_fee_account_a.copy_from_slice(self.admin_fee_account_a.as_ref());
-        admin_fee_account_b.copy_from_slice(self.admin_fee_account_b.as_ref());
+        admin_fee_key_a.copy_from_slice(self.admin_fee_key_a.as_ref());
+        admin_fee_key_b.copy_from_slice(self.admin_fee_key_b.as_ref());
         self.fees.pack_into_slice(&mut fees[..]);
     }
 }
@@ -161,16 +161,16 @@ mod tests {
         let token_a_mint_raw = [4u8; 32];
         let token_b_mint_raw = [5u8; 32];
         let admin_key_raw = [6u8; 32];
-        let admin_fee_account_raw_a = [7u8; 32];
-        let admin_fee_account_raw_b = [8u8; 32];
+        let admin_fee_key_a_raw = [7u8; 32];
+        let admin_fee_key_b_raw = [8u8; 32];
         let token_a = Pubkey::new_from_array(token_a_raw);
         let token_b = Pubkey::new_from_array(token_b_raw);
         let pool_mint = Pubkey::new_from_array(pool_mint_raw);
         let token_a_mint = Pubkey::new_from_array(token_a_mint_raw);
         let token_b_mint = Pubkey::new_from_array(token_b_mint_raw);
         let admin_key = Pubkey::new_from_array(admin_key_raw);
-        let admin_fee_account_a = Pubkey::new_from_array(admin_fee_account_raw_a);
-        let admin_fee_account_b = Pubkey::new_from_array(admin_fee_account_raw_b);
+        let admin_fee_key_a = Pubkey::new_from_array(admin_fee_key_a_raw);
+        let admin_fee_key_b = Pubkey::new_from_array(admin_fee_key_b_raw);
         let admin_trade_fee_numerator = 1;
         let admin_trade_fee_denominator = 2;
         let admin_withdraw_fee_numerator = 3;
@@ -204,8 +204,8 @@ mod tests {
             token_a_mint,
             token_b_mint,
             admin_key,
-            admin_fee_account_a,
-            admin_fee_account_b,
+            admin_fee_key_a,
+            admin_fee_key_b,
             fees,
         };
 
@@ -227,8 +227,8 @@ mod tests {
         packed.extend_from_slice(&token_a_mint_raw);
         packed.extend_from_slice(&token_b_mint_raw);
         packed.extend_from_slice(&admin_key_raw);
-        packed.extend_from_slice(&admin_fee_account_raw_a);
-        packed.extend_from_slice(&admin_fee_account_raw_b);
+        packed.extend_from_slice(&admin_fee_key_a_raw);
+        packed.extend_from_slice(&admin_fee_key_b_raw);
         packed.extend_from_slice(&admin_trade_fee_numerator.to_le_bytes());
         packed.extend_from_slice(&admin_trade_fee_denominator.to_le_bytes());
         packed.extend_from_slice(&admin_withdraw_fee_numerator.to_le_bytes());

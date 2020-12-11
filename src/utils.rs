@@ -660,6 +660,24 @@ pub mod test_utils {
                 ],
             )
         }
+
+        pub fn stop_ramp_a(&mut self, current_ts: i64) -> ProgramResult {
+            do_process_instruction(
+                stop_ramp_a(
+                    &SWAP_PROGRAM_ID,
+                    &self.swap_key,
+                    &self.authority_key,
+                    &self.admin_key,
+                )
+                .unwrap(),
+                vec![
+                    &mut self.swap_account,
+                    &mut Account::default(),
+                    &mut self.admin_account,
+                    &mut clock_account(current_ts),
+                ],
+            )
+        }
     }
 
     pub fn do_process_instruction(

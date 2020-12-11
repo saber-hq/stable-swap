@@ -163,8 +163,40 @@ fn ramp_a(
 }
 
 /// Stop ramp a
-fn stop_ramp_a(_program_id: &Pubkey, _accounts: &[AccountInfo]) -> ProgramResult {
-    unimplemented!("stop_ramp_a not implemented");
+fn stop_ramp_a(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
+    let account_info_iter = &mut accounts.iter();
+    let swap_info = next_account_info(account_info_iter)?;
+    let authority_info = next_account_info(account_info_iter)?;
+    let admin_info = next_account_info(account_info_iter)?;
+    let clock_sysvar_info = next_account_info(account_info_iter)?;
+
+    let mut token_swap = SwapInfo::unpack(&swap_info.data.borrow())?;
+    is_admin(&token_swap.admin_key, admin_info)?;
+    if *authority_info.key != authority_id(program_id, swap_info.key, token_swap.nonce)? {
+        return Err(SwapError::InvalidProgramAddress.into());
+    }
+
+    let clock = Clock::from_account_info(clock_sysvar_info)?;
+    let invariant = StableSwap::new(
+        token_swap.initial_amp_factor,
+        token_swap.target_amp_factor,
+        clock.unix_timestamp,
+        token_swap.start_ramp_ts,
+        token_swap.stop_ramp_ts,
+    );
+    let current_amp = U256::to_u64(
+        invariant
+            .compute_amp_factor()
+            .ok_or(SwapError::CalculationFailure)?,
+    )?;
+
+    token_swap.initial_amp_factor = current_amp;
+    token_swap.target_amp_factor = current_amp;
+    token_swap.start_ramp_ts = clock.unix_timestamp;
+    token_swap.stop_ramp_ts = clock.unix_timestamp;
+    // now (current_ts < stop_ramp_ts) is always False, compute_amp_factor should return target_amp
+    SwapInfo::pack(token_swap, &mut swap_info.data.borrow_mut())?;
+    Ok(())
 }
 
 /// Pause swap
@@ -378,6 +410,68 @@ mod tests {
             assert_eq!(swap_info.target_amp_factor, target_amp);
             assert_eq!(swap_info.start_ramp_ts, current_ts);
             assert_eq!(swap_info.stop_ramp_ts, stop_ramp_ts);
+        }
+    }
+
+    #[test]
+    fn test_stop_ramp_a() {
+        let user_key = pubkey_rand();
+        let amp_factor = MIN_AMP * 100;
+        let mut accounts = SwapAccountInfo::new(
+            &user_key,
+            amp_factor,
+            DEFAULT_TOKEN_A_AMOUNT,
+            DEFAULT_TOKEN_B_AMOUNT,
+            DEFAULT_TEST_FEES,
+        );
+
+        // swap not initialized
+        {
+            assert_eq!(
+                Err(ProgramError::UninitializedAccount),
+                accounts.ramp_a(MIN_AMP, ZERO_TS, MIN_RAMP_DURATION)
+            );
+        }
+
+        accounts.initialize_swap().unwrap();
+
+        // wrong nonce for authority_key
+        {
+            let old_authority = accounts.authority_key;
+            let (bad_authority_key, _nonce) = Pubkey::find_program_address(
+                &[&accounts.swap_key.to_bytes()[..]],
+                &TOKEN_PROGRAM_ID,
+            );
+            accounts.authority_key = bad_authority_key;
+            assert_eq!(
+                Err(SwapError::InvalidProgramAddress.into()),
+                accounts.stop_ramp_a(ZERO_TS)
+            );
+            accounts.authority_key = old_authority;
+        }
+
+        // unauthorized account
+        {
+            let old_admin_key = accounts.admin_key;
+            let fake_admin_key = pubkey_rand();
+            accounts.admin_key = fake_admin_key;
+            assert_eq!(
+                Err(SwapError::Unauthorized.into()),
+                accounts.stop_ramp_a(ZERO_TS)
+            );
+            accounts.admin_key = old_admin_key;
+        }
+
+        // valid call
+        {
+            let expected_ts = MIN_RAMP_DURATION;
+            accounts.stop_ramp_a(expected_ts).unwrap();
+
+            let swap_info = SwapInfo::unpack(&accounts.swap_account.data).unwrap();
+            assert_eq!(swap_info.initial_amp_factor, amp_factor);
+            assert_eq!(swap_info.target_amp_factor, amp_factor);
+            assert_eq!(swap_info.start_ramp_ts, expected_ts);
+            assert_eq!(swap_info.stop_ramp_ts, expected_ts);
         }
     }
 }

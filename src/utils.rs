@@ -706,6 +706,29 @@ pub mod test_utils {
                 ],
             )
         }
+
+        pub fn set_admin_fee_account_b(
+            &mut self,
+            new_admin_fee_account_b_key: &Pubkey,
+            new_admin_fee_account_b: &Account,
+        ) -> ProgramResult {
+            do_process_instruction(
+                set_fee_account_b(
+                    &SWAP_PROGRAM_ID,
+                    &self.swap_key,
+                    &self.authority_key,
+                    &self.admin_key,
+                    new_admin_fee_account_b_key,
+                )
+                .unwrap(),
+                vec![
+                    &mut self.swap_account,
+                    &mut Account::default(),
+                    &mut self.admin_account,
+                    &mut new_admin_fee_account_b.clone(),
+                ],
+            )
+        }
     }
 
     pub fn do_process_instruction(

@@ -234,8 +234,27 @@ fn set_fee_account_a(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramRe
 }
 
 /// Set fee account a
-fn set_fee_account_b(_program_id: &Pubkey, _accounts: &[AccountInfo]) -> ProgramResult {
-    unimplemented!("set_fee_account_b not implemented")
+fn set_fee_account_b(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
+    let account_info_iter = &mut accounts.iter();
+    let swap_info = next_account_info(account_info_iter)?;
+    let authority_info = next_account_info(account_info_iter)?;
+    let admin_info = next_account_info(account_info_iter)?;
+    let new_fee_account_b_info = next_account_info(account_info_iter)?;
+
+    let mut token_swap = SwapInfo::unpack(&swap_info.data.borrow())?;
+    is_admin(&token_swap.admin_key, admin_info)?;
+    if *authority_info.key != utils::authority_id(program_id, swap_info.key, token_swap.nonce)? {
+        return Err(SwapError::InvalidProgramAddress.into());
+    }
+    let new_admin_fee_account_b =
+        utils::unpack_token_account(&new_fee_account_b_info.data.borrow())?;
+    if new_admin_fee_account_b.mint != token_swap.token_b_mint {
+        return Err(SwapError::InvalidAdmin.into());
+    }
+
+    token_swap.admin_fee_account_b = *new_fee_account_b_info.key;
+    SwapInfo::pack(token_swap, &mut swap_info.data.borrow_mut())?;
+    Ok(())
 }
 
 /// Apply new admin
@@ -283,6 +302,7 @@ mod tests {
 
     const DEFAULT_TOKEN_A_AMOUNT: u64 = 1_000_000_000;
     const DEFAULT_TOKEN_B_AMOUNT: u64 = 1_000_000_000;
+    const DEFAULT_POOL_TOKEN_AMOUNT: u64 = 0;
 
     #[test]
     fn test_is_admin() {
@@ -518,7 +538,7 @@ mod tests {
             &owner_key,
             DEFAULT_TOKEN_A_AMOUNT,
             DEFAULT_TOKEN_B_AMOUNT,
-            0,
+            DEFAULT_POOL_TOKEN_AMOUNT,
         );
 
         // swap not initialized
@@ -574,6 +594,89 @@ mod tests {
 
             let swap_info = SwapInfo::unpack(&accounts.swap_account.data).unwrap();
             assert_eq!(swap_info.admin_fee_account_a, admin_fee_key_a);
+        }
+    }
+
+    #[test]
+    fn test_set_fee_account_b() {
+        let user_key = pubkey_rand();
+        let owner_key = pubkey_rand();
+        let amp_factor = MIN_AMP * 100;
+        let mut accounts = SwapAccountInfo::new(
+            &user_key,
+            amp_factor,
+            DEFAULT_TOKEN_A_AMOUNT,
+            DEFAULT_TOKEN_B_AMOUNT,
+            DEFAULT_TEST_FEES,
+        );
+        let (
+            wrong_admin_fee_key,
+            wrong_admin_fee_account,
+            admin_fee_key_b,
+            admin_fee_account_b,
+            _pool_key,
+            _pool_account,
+        ) = accounts.setup_token_accounts(
+            &user_key,
+            &owner_key,
+            DEFAULT_TOKEN_A_AMOUNT,
+            DEFAULT_TOKEN_B_AMOUNT,
+            DEFAULT_POOL_TOKEN_AMOUNT,
+        );
+
+        // swap not initialized
+        {
+            assert_eq!(
+                Err(ProgramError::UninitializedAccount),
+                accounts.set_admin_fee_account_b(&admin_fee_key_b, &admin_fee_account_b)
+            );
+        }
+
+        accounts.initialize_swap().unwrap();
+
+        // wrong nonce for authority_key
+        {
+            let old_authority = accounts.authority_key;
+            let (bad_authority_key, _nonce) = Pubkey::find_program_address(
+                &[&accounts.swap_key.to_bytes()[..]],
+                &TOKEN_PROGRAM_ID,
+            );
+            accounts.authority_key = bad_authority_key;
+            assert_eq!(
+                Err(SwapError::InvalidProgramAddress.into()),
+                accounts.set_admin_fee_account_b(&admin_fee_key_b, &admin_fee_account_b)
+            );
+            accounts.authority_key = old_authority;
+        }
+
+        // unauthorized account
+        {
+            let old_admin_key = accounts.admin_key;
+            let fake_admin_key = pubkey_rand();
+            accounts.admin_key = fake_admin_key;
+            assert_eq!(
+                Err(SwapError::Unauthorized.into()),
+                accounts.set_admin_fee_account_b(&admin_fee_key_b, &admin_fee_account_b)
+            );
+            accounts.admin_key = old_admin_key;
+        }
+
+        // wrong admin account
+        {
+            assert_eq!(
+                Err(SwapError::InvalidAdmin.into()),
+                accounts.set_admin_fee_account_b(&wrong_admin_fee_key, &wrong_admin_fee_account)
+            );
+        }
+
+        // valid call
+        {
+            accounts
+                .set_admin_fee_account_b(&admin_fee_key_b, &admin_fee_account_b)
+                .unwrap();
+
+            let swap_info = SwapInfo::unpack(&accounts.swap_account.data).unwrap();
+            assert_eq!(swap_info.admin_fee_account_b, admin_fee_key_b);
         }
     }
 }

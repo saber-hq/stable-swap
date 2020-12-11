@@ -3,20 +3,25 @@
 #![cfg(feature = "program")]
 
 use crate::error::SwapError;
-#[cfg(target_arch = "bpf")]
 use solana_sdk::pubkey::Pubkey;
 #[cfg(not(target_arch = "bpf"))]
 use solana_sdk::{
     account_info::AccountInfo, entrypoint::ProgramResult, instruction::Instruction,
-    program_error::ProgramError, pubkey::Pubkey,
+    program_error::ProgramError,
 };
 #[cfg(not(target_arch = "bpf"))]
 use spl_token::processor::Processor as SplProcessor;
+use spl_token::{pack::Pack as TokenPack, state::Account};
 
 /// Calculates the authority id by generating a program address.
 pub fn authority_id(program_id: &Pubkey, my_info: &Pubkey, nonce: u8) -> Result<Pubkey, SwapError> {
     Pubkey::create_program_address(&[&my_info.to_bytes()[..32], &[nonce]], program_id)
         .or(Err(SwapError::InvalidProgramAddress))
+}
+
+/// Unpacks a spl_token `Account`.
+pub fn unpack_token_account(data: &[u8]) -> Result<Account, SwapError> {
+    TokenPack::unpack(data).map_err(|_| SwapError::ExpectedAccount)
 }
 
 /// Test program id for the swap program.

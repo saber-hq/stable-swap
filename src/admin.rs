@@ -65,7 +65,7 @@ pub fn process_admin_instruction(
         }
         AdminInstruction::SetNewFees(new_fees) => {
             info!("Instruction: CommitNewAdmin");
-            set_new_fees(program_id, new_fees, accounts)
+            set_new_fees(program_id, &new_fees, accounts)
         }
     }
 }
@@ -239,8 +239,21 @@ fn revert_new_admin(_program_id: &Pubkey, _accounts: &[AccountInfo]) -> ProgramR
 }
 
 /// Set new fees
-fn set_new_fees(_program_id: &Pubkey, _new_fees: Fees, _accounts: &[AccountInfo]) -> ProgramResult {
-    unimplemented!("set_new_fees not implemented");
+fn set_new_fees(program_id: &Pubkey, new_fees: &Fees, accounts: &[AccountInfo]) -> ProgramResult {
+    let account_info_iter = &mut accounts.iter();
+    let swap_info = next_account_info(account_info_iter)?;
+    let authority_info = next_account_info(account_info_iter)?;
+    let admin_info = next_account_info(account_info_iter)?;
+
+    let mut token_swap = SwapInfo::unpack(&swap_info.data.borrow())?;
+    is_admin(&token_swap.admin_key, admin_info)?;
+    if *authority_info.key != utils::authority_id(program_id, swap_info.key, token_swap.nonce)? {
+        return Err(SwapError::InvalidProgramAddress.into());
+    }
+
+    token_swap.fees = *new_fees;
+    SwapInfo::pack(token_swap, &mut swap_info.data.borrow_mut())?;
+    Ok(())
 }
 
 #[cfg(test)]

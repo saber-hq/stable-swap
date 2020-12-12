@@ -64,7 +64,7 @@ pub fn process_admin_instruction(
             revert_new_admin(program_id, accounts)
         }
         AdminInstruction::SetNewFees(new_fees) => {
-            info!("Instruction: CommitNewAdmin");
+            info!("Instruction: SetNewFees");
             set_new_fees(program_id, &new_fees, accounts)
         }
     }

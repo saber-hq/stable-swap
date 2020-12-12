@@ -63,17 +63,9 @@ pub fn process_admin_instruction(
             info!("Instruction: RevertNewAdmin");
             revert_new_admin(program_id, accounts)
         }
-        AdminInstruction::ApplyNewFees => {
-            info!("Instruction: ApplyNewFees");
-            apply_new_fees(program_id, accounts)
-        }
-        AdminInstruction::CommitNewFees(fees) => {
+        AdminInstruction::SetNewFees(new_fees) => {
             info!("Instruction: CommitNewAdmin");
-            commit_new_fees(program_id, fees, accounts)
-        }
-        AdminInstruction::RevertNewFees => {
-            info!("Instruction: ReverNewFees");
-            revert_new_fees(program_id, accounts)
+            set_new_fees(program_id, new_fees, accounts)
         }
     }
 }
@@ -246,22 +238,8 @@ fn revert_new_admin(_program_id: &Pubkey, _accounts: &[AccountInfo]) -> ProgramR
     unimplemented!("revert_new_admin not implemented");
 }
 
-/// Apply new fees
-fn apply_new_fees(_program_id: &Pubkey, _accounts: &[AccountInfo]) -> ProgramResult {
-    unimplemented!("apply_new_fees not implemented");
-}
-
-/// Commit new fees
-fn commit_new_fees(
-    _program_id: &Pubkey,
-    _new_fees: Fees,
-    _accounts: &[AccountInfo],
-) -> ProgramResult {
-    unimplemented!("set_new_fees not implemented");
-}
-
-/// Revert new fees
-fn revert_new_fees(_program_id: &Pubkey, _accounts: &[AccountInfo]) -> ProgramResult {
+/// Set new fees
+fn set_new_fees(_program_id: &Pubkey, _new_fees: Fees, _accounts: &[AccountInfo]) -> ProgramResult {
     unimplemented!("set_new_fees not implemented");
 }
 

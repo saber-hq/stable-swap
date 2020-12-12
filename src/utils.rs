@@ -706,6 +706,24 @@ pub mod test_utils {
                 ],
             )
         }
+
+        pub fn set_new_fees(&mut self, new_fees: Fees) -> ProgramResult {
+            do_process_instruction(
+                set_new_fees(
+                    &SWAP_PROGRAM_ID,
+                    &self.swap_key,
+                    &self.authority_key,
+                    &self.admin_key,
+                    new_fees,
+                )
+                .unwrap(),
+                vec![
+                    &mut self.swap_account,
+                    &mut Account::default(),
+                    &mut self.admin_account,
+                ],
+            )
+        }
     }
 
     pub fn do_process_instruction(

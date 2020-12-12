@@ -240,6 +240,29 @@ pub fn set_fee_account(
     })
 }
 
+/// Creates a 'set_new_fees' instruction
+pub fn set_new_fees(
+    program_id: &Pubkey,
+    swap_pubkey: &Pubkey,
+    authority_pubkey: &Pubkey,
+    admin_pubkey: &Pubkey,
+    new_fees: Fees,
+) -> Result<Instruction, ProgramError> {
+    let data = AdminInstruction::SetNewFees(new_fees).pack();
+
+    let accounts = vec![
+        AccountMeta::new(*swap_pubkey, true),
+        AccountMeta::new(*authority_pubkey, false),
+        AccountMeta::new(*admin_pubkey, true),
+    ];
+
+    Ok(Instruction {
+        program_id: *program_id,
+        accounts,
+        data,
+    })
+}
+
 /// Instructions supported by the SwapInfo program.
 #[repr(C)]
 #[derive(Debug, PartialEq)]

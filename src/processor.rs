@@ -816,6 +816,9 @@ impl PrintProgramError for SwapError {
             }
             SwapError::RampLocked => info!("Error: Ramp is locked in this time period"),
             SwapError::InsufficientRampTime => info!("Error: Insufficient ramp time"),
+            SwapError::ActiveTransfer => info!("Error: Active admin transfer in progress"),
+            SwapError::NoActiveTransfer => info!("Error: No active admin transfer in progress"),
+            SwapError::AdminDeadlineExceeded => info!("Error: Admin transfer deadline exceeded"),
         }
     }
 }

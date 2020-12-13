@@ -212,6 +212,28 @@ pub fn stop_ramp_a(
     })
 }
 
+/// Creates a 'pause' instruction
+pub fn pause(
+    program_id: &Pubkey,
+    swap_pubkey: &Pubkey,
+    authority_pubkey: &Pubkey,
+    admin_pubkey: &Pubkey,
+) -> Result<Instruction, ProgramError> {
+    let data = AdminInstruction::Pause.pack();
+
+    let accounts = vec![
+        AccountMeta::new(*swap_pubkey, true),
+        AccountMeta::new(*authority_pubkey, false),
+        AccountMeta::new(*admin_pubkey, true),
+    ];
+
+    Ok(Instruction {
+        program_id: *program_id,
+        accounts,
+        data,
+    })
+}
+
 /// Creates a 'apply_new_admin' instruction
 pub fn apply_new_admin(
     program_id: &Pubkey,

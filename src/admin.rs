@@ -184,8 +184,21 @@ fn stop_ramp_a(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
 }
 
 /// Pause swap
-fn pause(_program_id: &Pubkey, _accounts: &[AccountInfo]) -> ProgramResult {
-    unimplemented!("pause not implemented")
+fn pause(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
+    let account_info_iter = &mut accounts.iter();
+    let swap_info = next_account_info(account_info_iter)?;
+    let authority_info = next_account_info(account_info_iter)?;
+    let admin_info = next_account_info(account_info_iter)?;
+
+    let mut token_swap = SwapInfo::unpack(&swap_info.data.borrow())?;
+    is_admin(&token_swap.admin_key, admin_info)?;
+    if *authority_info.key != utils::authority_id(program_id, swap_info.key, token_swap.nonce)? {
+        return Err(SwapError::InvalidProgramAddress.into());
+    }
+
+    token_swap.is_paused = true;
+    SwapInfo::pack(token_swap, &mut swap_info.data.borrow_mut())?;
+    Ok(())
 }
 
 /// Unpause swap
@@ -515,6 +528,57 @@ mod tests {
             assert_eq!(swap_info.target_amp_factor, amp_factor);
             assert_eq!(swap_info.start_ramp_ts, expected_ts);
             assert_eq!(swap_info.stop_ramp_ts, expected_ts);
+        }
+    }
+
+    #[test]
+    fn test_pause() {
+        let user_key = pubkey_rand();
+        let mut accounts = SwapAccountInfo::new(
+            &user_key,
+            MIN_AMP,
+            DEFAULT_TOKEN_A_AMOUNT,
+            DEFAULT_TOKEN_B_AMOUNT,
+            DEFAULT_TEST_FEES,
+        );
+
+        // swap not initialized
+        {
+            assert_eq!(Err(ProgramError::UninitializedAccount), accounts.pause());
+        }
+
+        accounts.initialize_swap().unwrap();
+
+        // wrong nonce for authority_key
+        {
+            let old_authority = accounts.authority_key;
+            let (bad_authority_key, _nonce) = Pubkey::find_program_address(
+                &[&accounts.swap_key.to_bytes()[..]],
+                &TOKEN_PROGRAM_ID,
+            );
+            accounts.authority_key = bad_authority_key;
+            assert_eq!(
+                Err(SwapError::InvalidProgramAddress.into()),
+                accounts.pause()
+            );
+            accounts.authority_key = old_authority;
+        }
+
+        // unauthorized account
+        {
+            let old_admin_key = accounts.admin_key;
+            let fake_admin_key = pubkey_rand();
+            accounts.admin_key = fake_admin_key;
+            assert_eq!(Err(SwapError::Unauthorized.into()), accounts.pause());
+            accounts.admin_key = old_admin_key;
+        }
+
+        // valid call
+        {
+            accounts.pause().unwrap();
+
+            let swap_info = SwapInfo::unpack(&accounts.swap_account.data).unwrap();
+            assert!(swap_info.is_paused);
         }
     }
 

@@ -212,6 +212,54 @@ pub fn stop_ramp_a(
     })
 }
 
+/// Creates a 'apply_new_admin' instruction
+pub fn apply_new_admin(
+    program_id: &Pubkey,
+    swap_pubkey: &Pubkey,
+    authority_pubkey: &Pubkey,
+    admin_pubkey: &Pubkey,
+) -> Result<Instruction, ProgramError> {
+    let data = AdminInstruction::ApplyNewAdmin.pack();
+
+    let accounts = vec![
+        AccountMeta::new(*swap_pubkey, true),
+        AccountMeta::new(*authority_pubkey, false),
+        AccountMeta::new(*admin_pubkey, true),
+        AccountMeta::new(clock::id(), false),
+    ];
+
+    Ok(Instruction {
+        program_id: *program_id,
+        accounts,
+        data,
+    })
+}
+
+/// Creates a 'commit_new_admin' instruction
+pub fn commit_new_admin(
+    program_id: &Pubkey,
+    swap_pubkey: &Pubkey,
+    authority_pubkey: &Pubkey,
+    admin_pubkey: &Pubkey,
+    new_admin_pubkey: &Pubkey,
+) -> Result<Instruction, ProgramError> {
+    let data = AdminInstruction::CommitNewAdmin.pack();
+
+    let accounts = vec![
+        AccountMeta::new(*swap_pubkey, true),
+        AccountMeta::new(*authority_pubkey, false),
+        AccountMeta::new(*admin_pubkey, true),
+        AccountMeta::new(*new_admin_pubkey, false),
+        AccountMeta::new(clock::id(), false),
+    ];
+
+    Ok(Instruction {
+        program_id: *program_id,
+        accounts,
+        data,
+    })
+}
+
 /// Creates a 'set_fee_account' instruction
 pub fn set_fee_account(
     program_id: &Pubkey,

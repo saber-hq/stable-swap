@@ -264,6 +264,9 @@ impl Processor {
         let clock_sysvar_info = next_account_info(account_info_iter)?;
 
         let token_swap = SwapInfo::unpack(&swap_info.data.borrow())?;
+        if token_swap.is_paused {
+            return Err(SwapError::IsPaused.into());
+        }
         if *authority_info.key != utils::authority_id(program_id, swap_info.key, token_swap.nonce)?
         {
             return Err(SwapError::InvalidProgramAddress.into());
@@ -368,6 +371,9 @@ impl Processor {
         let clock_sysvar_info = next_account_info(account_info_iter)?;
 
         let token_swap = SwapInfo::unpack(&swap_info.data.borrow())?;
+        if token_swap.is_paused {
+            return Err(SwapError::IsPaused.into());
+        }
         if *authority_info.key != utils::authority_id(program_id, swap_info.key, token_swap.nonce)?
         {
             return Err(SwapError::InvalidProgramAddress.into());
@@ -461,6 +467,9 @@ impl Processor {
         let token_program_info = next_account_info(account_info_iter)?;
 
         let token_swap = SwapInfo::unpack(&swap_info.data.borrow())?;
+        if token_swap.is_paused {
+            return Err(SwapError::IsPaused.into());
+        }
         if *authority_info.key != utils::authority_id(program_id, swap_info.key, token_swap.nonce)?
         {
             return Err(SwapError::InvalidProgramAddress.into());
@@ -587,6 +596,9 @@ impl Processor {
             return Err(SwapError::InvalidInput.into());
         }
         let token_swap = SwapInfo::unpack(&swap_info.data.borrow())?;
+        if token_swap.is_paused {
+            return Err(SwapError::IsPaused.into());
+        }
         if *authority_info.key != utils::authority_id(program_id, swap_info.key, token_swap.nonce)?
         {
             return Err(SwapError::InvalidProgramAddress.into());
@@ -815,6 +827,7 @@ impl PrintProgramError for SwapError {
             SwapError::Unauthorized => {
                 info!("Error: Account is not authorized to execute this instruction")
             }
+            SwapError::IsPaused => info!("Error: Swap pool is paused"),
             SwapError::RampLocked => info!("Error: Ramp is locked in this time period"),
             SwapError::InsufficientRampTime => info!("Error: Insufficient ramp time"),
             SwapError::ActiveTransfer => info!("Error: Active admin transfer in progress"),
@@ -1729,6 +1742,36 @@ mod tests {
             assert_eq!(
                 pool_mint.supply,
                 pool_account.amount + swap_pool_account.amount
+            );
+        }
+
+        // Pool is paused
+        {
+            let (
+                token_a_key,
+                mut token_a_account,
+                token_b_key,
+                mut token_b_account,
+                pool_key,
+                mut pool_account,
+            ) = accounts.setup_token_accounts(&user_key, &depositor_key, deposit_a, deposit_b, 0);
+            // Pause pool
+            accounts.pause().unwrap();
+
+            assert_eq!(
+                Err(SwapError::IsPaused.into()),
+                accounts.deposit(
+                    &depositor_key,
+                    &pool_key,
+                    &mut pool_account,
+                    &token_a_key,
+                    &mut token_a_account,
+                    &token_b_key,
+                    &mut token_b_account,
+                    deposit_a,
+                    deposit_b,
+                    min_mint_amount,
+                )
             );
         }
     }
@@ -2844,6 +2887,35 @@ mod tests {
                 U256::to_u64(result.admin_fee).unwrap()
             );
         }
+
+        // Pool is paused
+        {
+            let (
+                token_a_key,
+                mut token_a_account,
+                token_b_key,
+                mut token_b_account,
+                _pool_key,
+                _pool_account,
+            ) = accounts.setup_token_accounts(&user_key, &swapper_key, initial_a, initial_b, 0);
+            // Pause pool
+            accounts.pause().unwrap();
+
+            assert_eq!(
+                Err(SwapError::IsPaused.into()),
+                accounts.swap(
+                    &swapper_key,
+                    &token_a_key,
+                    &mut token_a_account,
+                    &swap_token_a_key,
+                    &swap_token_b_key,
+                    &token_b_key,
+                    &mut token_b_account,
+                    initial_a,
+                    minimum_b_amount,
+                )
+            );
+        }
     }
 
     #[test]
@@ -3332,79 +3404,116 @@ mod tests {
         }
 
         // correct withdraw
-        let (
-            token_a_key,
-            mut token_a_account,
-            _token_b_key,
-            _token_b_account,
-            pool_key,
-            mut pool_account,
-        ) = accounts.setup_token_accounts(
-            &user_key,
-            &withdrawer_key,
-            initial_a,
-            initial_b,
-            initial_pool,
-        );
-
-        let old_swap_token_a = utils::unpack_token_account(&accounts.token_a_account.data).unwrap();
-        let old_swap_token_b = utils::unpack_token_account(&accounts.token_b_account.data).unwrap();
-        let old_pool_mint = Processor::unpack_mint(&accounts.pool_mint_account.data).unwrap();
-
-        let invariant = StableSwap::new(
-            accounts.initial_amp_factor,
-            accounts.target_amp_factor,
-            ZERO_TS,
-            ZERO_TS,
-            ZERO_TS,
-        );
-        let (withdraw_one_amount_before_fees, withdraw_one_trade_fee) = invariant
-            .compute_withdraw_one(
-                withdraw_amount.into(),
-                old_pool_mint.supply.into(),
-                old_swap_token_a.amount.into(),
-                old_swap_token_b.amount.into(),
-                &DEFAULT_TEST_FEES,
-            )
-            .unwrap();
-        let withdraw_one_withdraw_fee = DEFAULT_TEST_FEES
-            .withdraw_fee(withdraw_one_amount_before_fees)
-            .unwrap();
-        let expected_withdraw_one_amount =
-            withdraw_one_amount_before_fees - withdraw_one_withdraw_fee;
-        let expected_admin_fee = U256::to_u64(
-            DEFAULT_TEST_FEES
-                .admin_trade_fee(withdraw_one_trade_fee)
-                .unwrap()
-                + DEFAULT_TEST_FEES
-                    .admin_withdraw_fee(withdraw_one_withdraw_fee)
-                    .unwrap(),
-        )
-        .unwrap();
-
-        accounts
-            .withdraw_one(
+        {
+            let (
+                token_a_key,
+                mut token_a_account,
+                _token_b_key,
+                _token_b_account,
+                pool_key,
+                mut pool_account,
+            ) = accounts.setup_token_accounts(
+                &user_key,
                 &withdrawer_key,
-                &pool_key,
-                &mut pool_account,
-                &token_a_key,
-                &mut token_a_account,
-                withdraw_amount,
-                minimum_amount,
+                initial_a,
+                initial_b,
+                initial_pool,
+            );
+
+            let old_swap_token_a =
+                utils::unpack_token_account(&accounts.token_a_account.data).unwrap();
+            let old_swap_token_b =
+                utils::unpack_token_account(&accounts.token_b_account.data).unwrap();
+            let old_pool_mint = Processor::unpack_mint(&accounts.pool_mint_account.data).unwrap();
+
+            let invariant = StableSwap::new(
+                accounts.initial_amp_factor,
+                accounts.target_amp_factor,
+                ZERO_TS,
+                ZERO_TS,
+                ZERO_TS,
+            );
+            let (withdraw_one_amount_before_fees, withdraw_one_trade_fee) = invariant
+                .compute_withdraw_one(
+                    withdraw_amount.into(),
+                    old_pool_mint.supply.into(),
+                    old_swap_token_a.amount.into(),
+                    old_swap_token_b.amount.into(),
+                    &DEFAULT_TEST_FEES,
+                )
+                .unwrap();
+            let withdraw_one_withdraw_fee = DEFAULT_TEST_FEES
+                .withdraw_fee(withdraw_one_amount_before_fees)
+                .unwrap();
+            let expected_withdraw_one_amount =
+                withdraw_one_amount_before_fees - withdraw_one_withdraw_fee;
+            let expected_admin_fee = U256::to_u64(
+                DEFAULT_TEST_FEES
+                    .admin_trade_fee(withdraw_one_trade_fee)
+                    .unwrap()
+                    + DEFAULT_TEST_FEES
+                        .admin_withdraw_fee(withdraw_one_withdraw_fee)
+                        .unwrap(),
             )
             .unwrap();
 
-        let swap_token_a = utils::unpack_token_account(&accounts.token_a_account.data).unwrap();
-        assert_eq!(
-            old_swap_token_a.amount - swap_token_a.amount - expected_admin_fee,
-            U256::to_u64(expected_withdraw_one_amount).unwrap()
-        );
-        let admin_fee_key_a =
-            utils::unpack_token_account(&accounts.admin_fee_a_account.data).unwrap();
-        assert_eq!(admin_fee_key_a.amount, expected_admin_fee);
-        let swap_token_b = utils::unpack_token_account(&accounts.token_b_account.data).unwrap();
-        assert_eq!(swap_token_b.amount, old_swap_token_b.amount);
-        let pool_mint = Processor::unpack_mint(&accounts.pool_mint_account.data).unwrap();
-        assert_eq!(pool_mint.supply, old_pool_mint.supply - withdraw_amount);
+            accounts
+                .withdraw_one(
+                    &withdrawer_key,
+                    &pool_key,
+                    &mut pool_account,
+                    &token_a_key,
+                    &mut token_a_account,
+                    withdraw_amount,
+                    minimum_amount,
+                )
+                .unwrap();
+
+            let swap_token_a = utils::unpack_token_account(&accounts.token_a_account.data).unwrap();
+            assert_eq!(
+                old_swap_token_a.amount - swap_token_a.amount - expected_admin_fee,
+                U256::to_u64(expected_withdraw_one_amount).unwrap()
+            );
+            let admin_fee_key_a =
+                utils::unpack_token_account(&accounts.admin_fee_a_account.data).unwrap();
+            assert_eq!(admin_fee_key_a.amount, expected_admin_fee);
+            let swap_token_b = utils::unpack_token_account(&accounts.token_b_account.data).unwrap();
+            assert_eq!(swap_token_b.amount, old_swap_token_b.amount);
+            let pool_mint = Processor::unpack_mint(&accounts.pool_mint_account.data).unwrap();
+            assert_eq!(pool_mint.supply, old_pool_mint.supply - withdraw_amount);
+        }
+
+        // pool is paused
+        {
+            let (
+                token_a_key,
+                mut token_a_account,
+                _token_b_key,
+                _token_b_account,
+                pool_key,
+                mut pool_account,
+            ) = accounts.setup_token_accounts(
+                &user_key,
+                &withdrawer_key,
+                initial_a,
+                initial_b,
+                initial_pool,
+            );
+            // pause pool
+            accounts.pause().unwrap();
+
+            assert_eq!(
+                Err(SwapError::IsPaused.into()),
+                accounts.withdraw_one(
+                    &withdrawer_key,
+                    &pool_key,
+                    &mut pool_account,
+                    &token_a_key,
+                    &mut token_a_account,
+                    withdraw_amount,
+                    minimum_amount,
+                )
+            );
+        }
     }
 }

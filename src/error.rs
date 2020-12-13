@@ -67,6 +67,9 @@ pub enum SwapError {
     /// Unauthorized
     #[error("Account is not authorized to execute this instruction")]
     Unauthorized,
+    /// Swap pool is paused
+    #[error("Swap pool is paused")]
+    IsPaused,
     /// Amp. coefficient change is within min ramp duration
     #[error("Ramp is locked in this time period")]
     RampLocked,

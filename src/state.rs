@@ -30,6 +30,13 @@ pub struct SwapInfo {
     /// Ramp A stop timestamp
     pub stop_ramp_ts: i64,
 
+    /// Deadline to transfer admin control to future_admin_key
+    pub future_admin_deadline: i64,
+    /// Public key of the admin account to be applied
+    pub future_admin_key: Pubkey,
+    /// Public key of admin account to execute admin instructions
+    pub admin_key: Pubkey,
+
     /// Token A
     pub token_a: Pubkey,
     /// Token B
@@ -43,8 +50,6 @@ pub struct SwapInfo {
     /// Mint information for token B
     pub token_b_mint: Pubkey,
 
-    /// Public key of admin account to execute admin instructions
-    pub admin_key: Pubkey,
     /// Public key of the admin token account to receive trading and / or withdrawal fees for token a
     pub admin_fee_key_a: Pubkey,
     /// Public key of the admin token account to receive trading and / or withdrawal fees for token b
@@ -61,11 +66,11 @@ impl IsInitialized for SwapInfo {
 }
 
 impl Pack for SwapInfo {
-    const LEN: usize = 354;
+    const LEN: usize = 394;
 
     /// Unpacks a byte buffer into a [SwapInfo](struct.SwapInfo.html).
     fn unpack_from_slice(input: &[u8]) -> Result<Self, ProgramError> {
-        let input = array_ref![input, 0, 354];
+        let input = array_ref![input, 0, 394];
         #[allow(clippy::ptr_offset_with_cast)]
         let (
             is_initialized,
@@ -74,16 +79,18 @@ impl Pack for SwapInfo {
             target_amp_factor,
             start_ramp_ts,
             stop_ramp_ts,
+            future_admin_deadline,
+            future_admin_key,
+            admin_key,
             token_a,
             token_b,
             pool_mint,
             token_a_mint,
             token_b_mint,
-            admin_key,
             admin_fee_key_a,
             admin_fee_key_b,
             fees,
-        ) = array_refs![input, 1, 1, 8, 8, 8, 8, 32, 32, 32, 32, 32, 32, 32, 32, 64];
+        ) = array_refs![input, 1, 1, 8, 8, 8, 8, 8, 32, 32, 32, 32, 32, 32, 32, 32, 32, 64];
         Ok(Self {
             is_initialized: match is_initialized {
                 [0] => false,
@@ -95,12 +102,14 @@ impl Pack for SwapInfo {
             target_amp_factor: u64::from_le_bytes(*target_amp_factor),
             start_ramp_ts: i64::from_le_bytes(*start_ramp_ts),
             stop_ramp_ts: i64::from_le_bytes(*stop_ramp_ts),
+            future_admin_deadline: i64::from_le_bytes(*future_admin_deadline),
+            future_admin_key: Pubkey::new_from_array(*future_admin_key),
+            admin_key: Pubkey::new_from_array(*admin_key),
             token_a: Pubkey::new_from_array(*token_a),
             token_b: Pubkey::new_from_array(*token_b),
             pool_mint: Pubkey::new_from_array(*pool_mint),
             token_a_mint: Pubkey::new_from_array(*token_a_mint),
             token_b_mint: Pubkey::new_from_array(*token_b_mint),
-            admin_key: Pubkey::new_from_array(*admin_key),
             admin_fee_key_a: Pubkey::new_from_array(*admin_fee_key_a),
             admin_fee_key_b: Pubkey::new_from_array(*admin_fee_key_b),
             fees: Fees::unpack_from_slice(fees)?,
@@ -108,7 +117,7 @@ impl Pack for SwapInfo {
     }
 
     fn pack_into_slice(&self, output: &mut [u8]) {
-        let output = array_mut_ref![output, 0, 354];
+        let output = array_mut_ref![output, 0, 394];
         let (
             is_initialized,
             nonce,
@@ -116,28 +125,32 @@ impl Pack for SwapInfo {
             target_amp_factor,
             start_ramp_ts,
             stop_ramp_ts,
+            future_admin_deadline,
+            future_admin_key,
+            admin_key,
             token_a,
             token_b,
             pool_mint,
             token_a_mint,
             token_b_mint,
-            admin_key,
             admin_fee_key_a,
             admin_fee_key_b,
             fees,
-        ) = mut_array_refs![output, 1, 1, 8, 8, 8, 8, 32, 32, 32, 32, 32, 32, 32, 32, 64];
+        ) = mut_array_refs![output, 1, 1, 8, 8, 8, 8, 8, 32, 32, 32, 32, 32, 32, 32, 32, 32, 64];
         is_initialized[0] = self.is_initialized as u8;
         nonce[0] = self.nonce;
         *initial_amp_factor = self.initial_amp_factor.to_le_bytes();
         *target_amp_factor = self.target_amp_factor.to_le_bytes();
         *start_ramp_ts = self.start_ramp_ts.to_le_bytes();
         *stop_ramp_ts = self.stop_ramp_ts.to_le_bytes();
+        *future_admin_deadline = self.future_admin_deadline.to_le_bytes();
+        future_admin_key.copy_from_slice(self.future_admin_key.as_ref());
+        admin_key.copy_from_slice(self.admin_key.as_ref());
         token_a.copy_from_slice(self.token_a.as_ref());
         token_b.copy_from_slice(self.token_b.as_ref());
         pool_mint.copy_from_slice(self.pool_mint.as_ref());
         token_a_mint.copy_from_slice(self.token_a_mint.as_ref());
         token_b_mint.copy_from_slice(self.token_b_mint.as_ref());
-        admin_key.copy_from_slice(self.admin_key.as_ref());
         admin_fee_key_a.copy_from_slice(self.admin_fee_key_a.as_ref());
         admin_fee_key_b.copy_from_slice(self.admin_fee_key_b.as_ref());
         self.fees.pack_into_slice(&mut fees[..]);
@@ -155,20 +168,23 @@ mod tests {
         let target_amp_factor: u64 = 1;
         let start_ramp_ts: i64 = i64::MAX;
         let stop_ramp_ts: i64 = i64::MAX;
-        let token_a_raw = [1u8; 32];
-        let token_b_raw = [2u8; 32];
-        let pool_mint_raw = [3u8; 32];
-        let token_a_mint_raw = [4u8; 32];
-        let token_b_mint_raw = [5u8; 32];
-        let admin_key_raw = [6u8; 32];
-        let admin_fee_key_a_raw = [7u8; 32];
-        let admin_fee_key_b_raw = [8u8; 32];
+        let future_admin_deadline: i64 = i64::MAX;
+        let future_admin_key_raw = [1u8; 32];
+        let admin_key_raw = [2u8; 32];
+        let token_a_raw = [3u8; 32];
+        let token_b_raw = [4u8; 32];
+        let pool_mint_raw = [5u8; 32];
+        let token_a_mint_raw = [6u8; 32];
+        let token_b_mint_raw = [7u8; 32];
+        let admin_fee_key_a_raw = [8u8; 32];
+        let admin_fee_key_b_raw = [9u8; 32];
+        let admin_key = Pubkey::new_from_array(admin_key_raw);
+        let future_admin_key = Pubkey::new_from_array(future_admin_key_raw);
         let token_a = Pubkey::new_from_array(token_a_raw);
         let token_b = Pubkey::new_from_array(token_b_raw);
         let pool_mint = Pubkey::new_from_array(pool_mint_raw);
         let token_a_mint = Pubkey::new_from_array(token_a_mint_raw);
         let token_b_mint = Pubkey::new_from_array(token_b_mint_raw);
-        let admin_key = Pubkey::new_from_array(admin_key_raw);
         let admin_fee_key_a = Pubkey::new_from_array(admin_fee_key_a_raw);
         let admin_fee_key_b = Pubkey::new_from_array(admin_fee_key_b_raw);
         let admin_trade_fee_numerator = 1;
@@ -198,12 +214,14 @@ mod tests {
             target_amp_factor,
             start_ramp_ts,
             stop_ramp_ts,
+            future_admin_deadline,
+            future_admin_key,
+            admin_key,
             token_a,
             token_b,
             pool_mint,
             token_a_mint,
             token_b_mint,
-            admin_key,
             admin_fee_key_a,
             admin_fee_key_b,
             fees,
@@ -221,12 +239,14 @@ mod tests {
         packed.extend_from_slice(&target_amp_factor.to_le_bytes());
         packed.extend_from_slice(&start_ramp_ts.to_le_bytes());
         packed.extend_from_slice(&stop_ramp_ts.to_le_bytes());
+        packed.extend_from_slice(&future_admin_deadline.to_le_bytes());
+        packed.extend_from_slice(&future_admin_key_raw);
+        packed.extend_from_slice(&admin_key_raw);
         packed.extend_from_slice(&token_a_raw);
         packed.extend_from_slice(&token_b_raw);
         packed.extend_from_slice(&pool_mint_raw);
         packed.extend_from_slice(&token_a_mint_raw);
         packed.extend_from_slice(&token_b_mint_raw);
-        packed.extend_from_slice(&admin_key_raw);
         packed.extend_from_slice(&admin_fee_key_a_raw);
         packed.extend_from_slice(&admin_fee_key_b_raw);
         packed.extend_from_slice(&admin_trade_fee_numerator.to_le_bytes());

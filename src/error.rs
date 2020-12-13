@@ -73,6 +73,15 @@ pub enum SwapError {
     /// Insufficient ramp time for the ramp operation
     #[error("Insufficient ramp time")]
     InsufficientRampTime,
+    /// Active admin transfer in progress
+    #[error("Active admin transfer in progress")]
+    ActiveTransfer,
+    /// No active admin transfer in progress
+    #[error("No active admin transfer in progress")]
+    NoActiveTransfer,
+    /// Admin transfer deadline exceeded
+    #[error("Admin transfer deadline exceeded")]
+    AdminDeadlineExceeded,
 }
 impl From<SwapError> for ProgramError {
     fn from(e: SwapError) -> Self {

@@ -228,12 +228,14 @@ impl Processor {
             target_amp_factor: amp_factor,
             start_ramp_ts: ZERO_TS,
             stop_ramp_ts: ZERO_TS,
+            future_admin_deadline: ZERO_TS,
+            future_admin_key: Pubkey::default(),
+            admin_key: *admin_key_info.key,
             token_a: *token_a_info.key,
             token_b: *token_b_info.key,
             pool_mint: *pool_mint_info.key,
             token_a_mint: token_a.mint,
             token_b_mint: token_b.mint,
-            admin_key: *admin_key_info.key,
             admin_fee_key_a: *admin_fee_a_info.key,
             admin_fee_key_b: *admin_fee_b_info.key,
             fees,
@@ -814,6 +816,9 @@ impl PrintProgramError for SwapError {
             }
             SwapError::RampLocked => info!("Error: Ramp is locked in this time period"),
             SwapError::InsufficientRampTime => info!("Error: Insufficient ramp time"),
+            SwapError::ActiveTransfer => info!("Error: Active admin transfer in progress"),
+            SwapError::NoActiveTransfer => info!("Error: No active admin transfer in progress"),
+            SwapError::AdminDeadlineExceeded => info!("Error: Admin transfer deadline exceeded"),
         }
     }
 }

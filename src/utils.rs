@@ -707,6 +707,48 @@ pub mod test_utils {
             )
         }
 
+        pub fn apply_new_admin(&mut self, current_ts: i64) -> ProgramResult {
+            do_process_instruction(
+                apply_new_admin(
+                    &SWAP_PROGRAM_ID,
+                    &self.swap_key,
+                    &self.authority_key,
+                    &self.admin_key,
+                )
+                .unwrap(),
+                vec![
+                    &mut self.swap_account,
+                    &mut Account::default(),
+                    &mut self.admin_account,
+                    &mut clock_account(current_ts),
+                ],
+            )
+        }
+
+        pub fn commit_new_admin(
+            &mut self,
+            new_admin_key: &Pubkey,
+            current_ts: i64,
+        ) -> ProgramResult {
+            do_process_instruction(
+                commit_new_admin(
+                    &SWAP_PROGRAM_ID,
+                    &self.swap_key,
+                    &self.authority_key,
+                    &self.admin_key,
+                    new_admin_key,
+                )
+                .unwrap(),
+                vec![
+                    &mut self.swap_account,
+                    &mut Account::default(),
+                    &mut self.admin_account,
+                    &mut Account::default(),
+                    &mut clock_account(current_ts),
+                ],
+            )
+        }
+
         pub fn set_new_fees(&mut self, new_fees: Fees) -> ProgramResult {
             do_process_instruction(
                 set_new_fees(

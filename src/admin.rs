@@ -4,7 +4,7 @@
 
 use crate::{
     bn::U256,
-    curve::{StableSwap, MAX_AMP, MIN_AMP, MIN_RAMP_DURATION},
+    curve::{StableSwap, MAX_AMP, MIN_AMP, MIN_RAMP_DURATION, ZERO_TS},
     error::SwapError,
     fees::Fees,
     instruction::{AdminInstruction, RampAData},
@@ -58,10 +58,6 @@ pub fn process_admin_instruction(
         AdminInstruction::CommitNewAdmin => {
             info!("Instruction: CommitNewAdmin");
             commit_new_admin(program_id, accounts)
-        }
-        AdminInstruction::RevertNewAdmin => {
-            info!("Instruction: RevertNewAdmin");
-            revert_new_admin(program_id, accounts)
         }
         AdminInstruction::SetNewFees(new_fees) => {
             info!("Instruction: SetNewFees");
@@ -223,19 +219,62 @@ fn set_fee_account(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResu
     Ok(())
 }
 
-/// Apply new admin
-fn apply_new_admin(_program_id: &Pubkey, _accounts: &[AccountInfo]) -> ProgramResult {
-    unimplemented!("apply_new_admin not implemented");
+/// Apply new admin (finalize admin transfer)
+fn apply_new_admin(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
+    let account_info_iter = &mut accounts.iter();
+    let swap_info = next_account_info(account_info_iter)?;
+    let authority_info = next_account_info(account_info_iter)?;
+    let admin_info = next_account_info(account_info_iter)?;
+    let clock_sysvar_info = next_account_info(account_info_iter)?;
+
+    let mut token_swap = SwapInfo::unpack(&swap_info.data.borrow())?;
+    is_admin(&token_swap.admin_key, admin_info)?;
+    if *authority_info.key != utils::authority_id(program_id, swap_info.key, token_swap.nonce)? {
+        return Err(SwapError::InvalidProgramAddress.into());
+    }
+    if token_swap.future_admin_deadline == ZERO_TS {
+        return Err(SwapError::NoActiveTransfer.into());
+    }
+    let clock = Clock::from_account_info(clock_sysvar_info)?;
+    if clock.unix_timestamp > token_swap.future_admin_deadline {
+        return Err(SwapError::AdminDeadlineExceeded.into());
+    }
+
+    token_swap.admin_key = token_swap.future_admin_key;
+    token_swap.future_admin_key = Pubkey::default();
+    token_swap.future_admin_deadline = ZERO_TS;
+    SwapInfo::pack(token_swap, &mut swap_info.data.borrow_mut())?;
+    Ok(())
 }
 
-/// Commit new admin
-fn commit_new_admin(_program_id: &Pubkey, _accounts: &[AccountInfo]) -> ProgramResult {
-    unimplemented!("set_new_admin not implemented");
-}
+/// Commit new admin (initiate admin transfer)
+fn commit_new_admin(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
+    let account_info_iter = &mut accounts.iter();
+    let swap_info = next_account_info(account_info_iter)?;
+    let authority_info = next_account_info(account_info_iter)?;
+    let admin_info = next_account_info(account_info_iter)?;
+    let new_admin_info = next_account_info(account_info_iter)?;
+    let clock_sysvar_info = next_account_info(account_info_iter)?;
 
-/// Revert new admin
-fn revert_new_admin(_program_id: &Pubkey, _accounts: &[AccountInfo]) -> ProgramResult {
-    unimplemented!("revert_new_admin not implemented");
+    let mut token_swap = SwapInfo::unpack(&swap_info.data.borrow())?;
+    is_admin(&token_swap.admin_key, admin_info)?;
+    if *authority_info.key != utils::authority_id(program_id, swap_info.key, token_swap.nonce)? {
+        return Err(SwapError::InvalidProgramAddress.into());
+    }
+
+    let clock = Clock::from_account_info(clock_sysvar_info)?;
+    const ADMIN_TRANSFER_DELAY: i64 = 259200;
+    if clock.unix_timestamp < token_swap.future_admin_deadline {
+        return Err(SwapError::ActiveTransfer.into());
+    }
+
+    token_swap.future_admin_key = *new_admin_info.key;
+    token_swap.future_admin_deadline = clock
+        .unix_timestamp
+        .checked_add(ADMIN_TRANSFER_DELAY)
+        .ok_or(SwapError::CalculationFailure)?;
+    SwapInfo::pack(token_swap, &mut swap_info.data.borrow_mut())?;
+    Ok(())
 }
 
 /// Set new fees
@@ -565,6 +604,171 @@ mod tests {
                 .unwrap();
             let swap_info = SwapInfo::unpack(&accounts.swap_account.data).unwrap();
             assert_eq!(swap_info.admin_fee_key_b, admin_fee_key_b);
+        }
+    }
+
+    #[test]
+    fn test_apply_new_admin() {
+        let user_key = pubkey_rand();
+        let amp_factor = MIN_AMP * 100;
+        let mut accounts = SwapAccountInfo::new(
+            &user_key,
+            amp_factor,
+            DEFAULT_TOKEN_A_AMOUNT,
+            DEFAULT_TOKEN_B_AMOUNT,
+            DEFAULT_TEST_FEES,
+        );
+
+        // swap not initialized
+        {
+            assert_eq!(
+                Err(ProgramError::UninitializedAccount),
+                accounts.apply_new_admin(ZERO_TS)
+            );
+        }
+
+        accounts.initialize_swap().unwrap();
+
+        // wrong nonce for authority_key
+        {
+            let old_authority = accounts.authority_key;
+            let (bad_authority_key, _nonce) = Pubkey::find_program_address(
+                &[&accounts.swap_key.to_bytes()[..]],
+                &TOKEN_PROGRAM_ID,
+            );
+            accounts.authority_key = bad_authority_key;
+            assert_eq!(
+                Err(SwapError::InvalidProgramAddress.into()),
+                accounts.apply_new_admin(ZERO_TS)
+            );
+            accounts.authority_key = old_authority;
+        }
+
+        // unauthorized account
+        {
+            let old_admin_key = accounts.admin_key;
+            let fake_admin_key = pubkey_rand();
+            accounts.admin_key = fake_admin_key;
+            assert_eq!(
+                Err(SwapError::Unauthorized.into()),
+                accounts.apply_new_admin(ZERO_TS)
+            );
+            accounts.admin_key = old_admin_key;
+        }
+
+        // no active transfer
+        {
+            assert_eq!(
+                Err(SwapError::NoActiveTransfer.into()),
+                accounts.apply_new_admin(ZERO_TS)
+            );
+        }
+
+        // apply new admin
+        {
+            let new_admin_key = pubkey_rand();
+            let current_ts = MIN_RAMP_DURATION;
+
+            // Commit to initiate admin transfer
+            accounts
+                .commit_new_admin(&new_admin_key, current_ts)
+                .unwrap();
+
+            // Applying transfer past deadline should fail
+            let apply_deadline = current_ts + MIN_RAMP_DURATION * 3;
+            assert_eq!(
+                Err(SwapError::AdminDeadlineExceeded.into()),
+                accounts.apply_new_admin(apply_deadline + 1)
+            );
+
+            // Apply to finalize admin transfer
+            accounts.apply_new_admin(current_ts + 1).unwrap();
+            let swap_info = SwapInfo::unpack(&accounts.swap_account.data).unwrap();
+            assert_eq!(swap_info.admin_key, new_admin_key);
+            assert_eq!(swap_info.future_admin_key, Pubkey::default());
+            assert_eq!(swap_info.future_admin_deadline, ZERO_TS);
+        }
+    }
+
+    #[test]
+    fn test_commit_new_admin() {
+        let user_key = pubkey_rand();
+        let new_admin_key = pubkey_rand();
+        let current_ts = ZERO_TS;
+        let amp_factor = MIN_AMP * 100;
+        let mut accounts = SwapAccountInfo::new(
+            &user_key,
+            amp_factor,
+            DEFAULT_TOKEN_A_AMOUNT,
+            DEFAULT_TOKEN_B_AMOUNT,
+            DEFAULT_TEST_FEES,
+        );
+
+        // swap not initialized
+        {
+            assert_eq!(
+                Err(ProgramError::UninitializedAccount),
+                accounts.commit_new_admin(&new_admin_key, current_ts)
+            );
+        }
+
+        accounts.initialize_swap().unwrap();
+
+        // wrong nonce for authority_key
+        {
+            let old_authority = accounts.authority_key;
+            let (bad_authority_key, _nonce) = Pubkey::find_program_address(
+                &[&accounts.swap_key.to_bytes()[..]],
+                &TOKEN_PROGRAM_ID,
+            );
+            accounts.authority_key = bad_authority_key;
+            assert_eq!(
+                Err(SwapError::InvalidProgramAddress.into()),
+                accounts.commit_new_admin(&new_admin_key, current_ts)
+            );
+            accounts.authority_key = old_authority;
+        }
+
+        // unauthorized account
+        {
+            let old_admin_key = accounts.admin_key;
+            let fake_admin_key = pubkey_rand();
+            accounts.admin_key = fake_admin_key;
+            assert_eq!(
+                Err(SwapError::Unauthorized.into()),
+                accounts.commit_new_admin(&new_admin_key, current_ts)
+            );
+            accounts.admin_key = old_admin_key;
+        }
+
+        // commit new admin
+        {
+            // valid call
+            accounts
+                .commit_new_admin(&new_admin_key, current_ts)
+                .unwrap();
+
+            let swap_info = SwapInfo::unpack(&accounts.swap_account.data).unwrap();
+            assert_eq!(swap_info.future_admin_key, new_admin_key);
+            let expected_future_ts = current_ts + MIN_RAMP_DURATION * 3;
+            assert_eq!(swap_info.future_admin_deadline, expected_future_ts);
+
+            // new commit within deadline should fail
+            assert_eq!(
+                Err(SwapError::ActiveTransfer.into()),
+                accounts.commit_new_admin(&new_admin_key, current_ts + 1),
+            );
+
+            // new commit after deadline should be valid
+            let new_admin_key = pubkey_rand();
+            let current_ts = expected_future_ts + 1;
+            accounts
+                .commit_new_admin(&new_admin_key, current_ts)
+                .unwrap();
+            let swap_info = SwapInfo::unpack(&accounts.swap_account.data).unwrap();
+            assert_eq!(swap_info.future_admin_key, new_admin_key);
+            let expected_future_ts = current_ts + MIN_RAMP_DURATION * 3;
+            assert_eq!(swap_info.future_admin_deadline, expected_future_ts);
         }
     }
 

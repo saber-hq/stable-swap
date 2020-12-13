@@ -101,8 +101,6 @@ pub enum AdminInstruction {
     /// TODO: Docs
     CommitNewAdmin,
     /// TODO: Docs
-    RevertNewAdmin,
-    /// TODO: Docs
     SetNewFees(Fees),
 }
 
@@ -125,8 +123,7 @@ impl AdminInstruction {
             104 => Some(Self::SetFeeAccount),
             105 => Some(Self::ApplyNewAdmin),
             106 => Some(Self::CommitNewAdmin),
-            107 => Some(Self::RevertNewAdmin),
-            108 => {
+            107 => {
                 let fees = Fees::unpack_unchecked(rest)?;
                 Some(Self::SetNewFees(fees))
             }
@@ -152,9 +149,8 @@ impl AdminInstruction {
             Self::SetFeeAccount => buf.push(104),
             Self::ApplyNewAdmin => buf.push(105),
             Self::CommitNewAdmin => buf.push(106),
-            Self::RevertNewAdmin => buf.push(107),
             Self::SetNewFees(fees) => {
-                buf.push(108);
+                buf.push(107);
                 let mut fees_slice = [0u8; Fees::LEN];
                 Pack::pack_into_slice(&fees, &mut fees_slice[..]);
                 buf.extend_from_slice(&fees_slice);
@@ -770,14 +766,6 @@ mod tests {
         let unpacked = AdminInstruction::unpack(&expect).unwrap();
         assert_eq!(unpacked, Some(check));
 
-        let check = AdminInstruction::RevertNewAdmin;
-        let packed = check.pack();
-        let mut expect = vec![];
-        expect.push(107 as u8);
-        assert_eq!(packed, expect);
-        let unpacked = AdminInstruction::unpack(&expect).unwrap();
-        assert_eq!(unpacked, Some(check));
-
         let new_fees = Fees {
             admin_trade_fee_numerator: 1,
             admin_trade_fee_denominator: 2,
@@ -791,7 +779,7 @@ mod tests {
         let check = AdminInstruction::SetNewFees(new_fees);
         let packed = check.pack();
         let mut expect = vec![];
-        expect.push(108 as u8);
+        expect.push(107 as u8);
         let mut new_fees_slice = [0u8; Fees::LEN];
         new_fees.pack_into_slice(&mut new_fees_slice[..]);
         expect.extend_from_slice(&new_fees_slice);

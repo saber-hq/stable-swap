@@ -59,10 +59,6 @@ pub fn process_admin_instruction(
             info!("Instruction: CommitNewAdmin");
             commit_new_admin(program_id, accounts)
         }
-        AdminInstruction::RevertNewAdmin => {
-            info!("Instruction: RevertNewAdmin");
-            revert_new_admin(program_id, accounts)
-        }
         AdminInstruction::SetNewFees(new_fees) => {
             info!("Instruction: SetNewFees");
             set_new_fees(program_id, &new_fees, accounts)
@@ -231,11 +227,6 @@ fn apply_new_admin(_program_id: &Pubkey, _accounts: &[AccountInfo]) -> ProgramRe
 /// Commit new admin
 fn commit_new_admin(_program_id: &Pubkey, _accounts: &[AccountInfo]) -> ProgramResult {
     unimplemented!("set_new_admin not implemented");
-}
-
-/// Revert new admin
-fn revert_new_admin(_program_id: &Pubkey, _accounts: &[AccountInfo]) -> ProgramResult {
-    unimplemented!("revert_new_admin not implemented");
 }
 
 /// Set new fees

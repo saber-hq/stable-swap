@@ -223,6 +223,7 @@ impl Processor {
 
         let obj = SwapInfo {
             is_initialized: true,
+            is_paused: false,
             nonce,
             initial_amp_factor: amp_factor,
             target_amp_factor: amp_factor,

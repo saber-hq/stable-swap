@@ -63,17 +63,9 @@ pub fn process_admin_instruction(
             info!("Instruction: RevertNewAdmin");
             revert_new_admin(program_id, accounts)
         }
-        AdminInstruction::ApplyNewFees => {
-            info!("Instruction: ApplyNewFees");
-            apply_new_fees(program_id, accounts)
-        }
-        AdminInstruction::CommitNewFees(fees) => {
-            info!("Instruction: CommitNewAdmin");
-            commit_new_fees(program_id, fees, accounts)
-        }
-        AdminInstruction::RevertNewFees => {
-            info!("Instruction: ReverNewFees");
-            revert_new_fees(program_id, accounts)
+        AdminInstruction::SetNewFees(new_fees) => {
+            info!("Instruction: SetNewFees");
+            set_new_fees(program_id, &new_fees, accounts)
         }
     }
 }
@@ -246,23 +238,22 @@ fn revert_new_admin(_program_id: &Pubkey, _accounts: &[AccountInfo]) -> ProgramR
     unimplemented!("revert_new_admin not implemented");
 }
 
-/// Apply new fees
-fn apply_new_fees(_program_id: &Pubkey, _accounts: &[AccountInfo]) -> ProgramResult {
-    unimplemented!("apply_new_fees not implemented");
-}
+/// Set new fees
+fn set_new_fees(program_id: &Pubkey, new_fees: &Fees, accounts: &[AccountInfo]) -> ProgramResult {
+    let account_info_iter = &mut accounts.iter();
+    let swap_info = next_account_info(account_info_iter)?;
+    let authority_info = next_account_info(account_info_iter)?;
+    let admin_info = next_account_info(account_info_iter)?;
 
-/// Commit new fees
-fn commit_new_fees(
-    _program_id: &Pubkey,
-    _new_fees: Fees,
-    _accounts: &[AccountInfo],
-) -> ProgramResult {
-    unimplemented!("set_new_fees not implemented");
-}
+    let mut token_swap = SwapInfo::unpack(&swap_info.data.borrow())?;
+    is_admin(&token_swap.admin_key, admin_info)?;
+    if *authority_info.key != utils::authority_id(program_id, swap_info.key, token_swap.nonce)? {
+        return Err(SwapError::InvalidProgramAddress.into());
+    }
 
-/// Revert new fees
-fn revert_new_fees(_program_id: &Pubkey, _accounts: &[AccountInfo]) -> ProgramResult {
-    unimplemented!("set_new_fees not implemented");
+    token_swap.fees = *new_fees;
+    SwapInfo::pack(token_swap, &mut swap_info.data.borrow_mut())?;
+    Ok(())
 }
 
 #[cfg(test)]
@@ -574,6 +565,75 @@ mod tests {
                 .unwrap();
             let swap_info = SwapInfo::unpack(&accounts.swap_account.data).unwrap();
             assert_eq!(swap_info.admin_fee_key_b, admin_fee_key_b);
+        }
+    }
+
+    #[test]
+    fn test_set_new_fees() {
+        let user_key = pubkey_rand();
+        let amp_factor = MIN_AMP * 100;
+        let mut accounts = SwapAccountInfo::new(
+            &user_key,
+            amp_factor,
+            DEFAULT_TOKEN_A_AMOUNT,
+            DEFAULT_TOKEN_B_AMOUNT,
+            DEFAULT_TEST_FEES,
+        );
+
+        let new_fees: Fees = Fees {
+            admin_trade_fee_numerator: 0,
+            admin_trade_fee_denominator: 0,
+            admin_withdraw_fee_numerator: 0,
+            admin_withdraw_fee_denominator: 0,
+            trade_fee_numerator: 0,
+            trade_fee_denominator: 0,
+            withdraw_fee_numerator: 0,
+            withdraw_fee_denominator: 0,
+        };
+
+        // swap not initialized
+        {
+            assert_eq!(
+                Err(ProgramError::UninitializedAccount),
+                accounts.set_new_fees(new_fees)
+            );
+        }
+
+        accounts.initialize_swap().unwrap();
+
+        // wrong nonce for authority_key
+        {
+            let old_authority = accounts.authority_key;
+            let (bad_authority_key, _nonce) = Pubkey::find_program_address(
+                &[&accounts.swap_key.to_bytes()[..]],
+                &TOKEN_PROGRAM_ID,
+            );
+            accounts.authority_key = bad_authority_key;
+            assert_eq!(
+                Err(SwapError::InvalidProgramAddress.into()),
+                accounts.set_new_fees(new_fees)
+            );
+            accounts.authority_key = old_authority;
+        }
+
+        // unauthorized account
+        {
+            let old_admin_key = accounts.admin_key;
+            let fake_admin_key = pubkey_rand();
+            accounts.admin_key = fake_admin_key;
+            assert_eq!(
+                Err(SwapError::Unauthorized.into()),
+                accounts.set_new_fees(new_fees)
+            );
+            accounts.admin_key = old_admin_key;
+        }
+
+        // valid call
+        {
+            accounts.set_new_fees(new_fees).unwrap();
+
+            let swap_info = SwapInfo::unpack(&accounts.swap_account.data).unwrap();
+            assert_eq!(swap_info.fees, new_fees);
         }
     }
 }

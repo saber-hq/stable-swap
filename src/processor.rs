@@ -142,7 +142,9 @@ impl Processor {
         let admin_fee_a_info = next_account_info(account_info_iter)?;
         let admin_fee_b_info = next_account_info(account_info_iter)?;
         let token_a_info = next_account_info(account_info_iter)?;
+        let token_a_mint_info = next_account_info(account_info_iter)?;
         let token_b_info = next_account_info(account_info_iter)?;
+        let token_b_mint_info = next_account_info(account_info_iter)?;
         let pool_mint_info = next_account_info(account_info_iter)?;
         let destination_info = next_account_info(account_info_iter)?; // Destination account to mint LP tokens to
         let token_program_info = next_account_info(account_info_iter)?;
@@ -161,16 +163,10 @@ impl Processor {
         let destination = utils::unpack_token_account(&destination_info.data.borrow())?;
         let token_a = utils::unpack_token_account(&token_a_info.data.borrow())?;
         let token_b = utils::unpack_token_account(&token_b_info.data.borrow())?;
-        let pool_mint = Self::unpack_mint(&pool_mint_info.data.borrow())?;
         if *authority_info.key != token_a.owner {
             return Err(SwapError::InvalidOwner.into());
         }
         if *authority_info.key != token_b.owner {
-            return Err(SwapError::InvalidOwner.into());
-        }
-        if pool_mint.mint_authority.is_some()
-            && *authority_info.key != pool_mint.mint_authority.unwrap()
-        {
             return Err(SwapError::InvalidOwner.into());
         }
         if *authority_info.key == destination.owner {
@@ -191,8 +187,25 @@ impl Processor {
         if token_b.delegate.is_some() {
             return Err(SwapError::InvalidDelegate.into());
         }
+        if token_a.mint != *token_a_mint_info.key {
+            return Err(SwapError::IncorrectMint.into());
+        }
+        if token_b.mint != *token_b_mint_info.key {
+            return Err(SwapError::IncorrectMint.into());
+        }
+        let pool_mint = Self::unpack_mint(&pool_mint_info.data.borrow())?;
+        if pool_mint.mint_authority.is_some()
+            && *authority_info.key != pool_mint.mint_authority.unwrap()
+        {
+            return Err(SwapError::InvalidOwner.into());
+        }
         if pool_mint.supply != 0 {
             return Err(SwapError::InvalidSupply.into());
+        }
+        let token_a_mint = Self::unpack_mint(&token_a_mint_info.data.borrow())?;
+        let token_b_mint = Self::unpack_mint(&token_b_mint_info.data.borrow())?;
+        if token_a_mint.decimals != token_b_mint.decimals {
+            return Err(SwapError::MismatchedDecimals.into());
         }
         let admin_fee_key_a = utils::unpack_token_account(&admin_fee_a_info.data.borrow())?;
         let admin_fee_key_b = utils::unpack_token_account(&admin_fee_b_info.data.borrow())?;
@@ -383,7 +396,7 @@ impl Processor {
             return Err(SwapError::IncorrectSwapAccount.into());
         }
         if *pool_mint_info.key != token_swap.pool_mint {
-            return Err(SwapError::IncorrectPoolMint.into());
+            return Err(SwapError::IncorrectMint.into());
         }
 
         let clock = Clock::from_account_info(clock_sysvar_info)?;
@@ -476,7 +489,7 @@ impl Processor {
             return Err(SwapError::IncorrectSwapAccount.into());
         }
         if *pool_mint_info.key != token_swap.pool_mint {
-            return Err(SwapError::IncorrectPoolMint.into());
+            return Err(SwapError::IncorrectMint.into());
         }
         if *admin_fee_dest_a_info.key != token_swap.admin_fee_key_a {
             return Err(SwapError::InvalidAdmin.into());
@@ -618,7 +631,7 @@ impl Processor {
             return Err(SwapError::InvalidAdmin.into());
         }
         if *pool_mint_info.key != token_swap.pool_mint {
-            return Err(SwapError::IncorrectPoolMint.into());
+            return Err(SwapError::IncorrectMint.into());
         }
         let pool_mint = Self::unpack_mint(&pool_mint_info.data.borrow())?;
         if pool_token_amount > pool_mint.supply {
@@ -810,8 +823,8 @@ impl PrintProgramError for SwapError {
             SwapError::IncorrectSwapAccount => {
                 info!("Error: Address of the provided swap token account is incorrect")
             }
-            SwapError::IncorrectPoolMint => {
-                info!("Error: Address of the provided pool token mint is incorrect")
+            SwapError::IncorrectMint => {
+                info!("Error: Address of the provided token mint is incorrect")
             }
             SwapError::CalculationFailure => info!("Error: CalculationFailure"),
             SwapError::InvalidInstruction => info!("Error: InvalidInstruction"),
@@ -828,6 +841,7 @@ impl PrintProgramError for SwapError {
             SwapError::ActiveTransfer => info!("Error: Active admin transfer in progress"),
             SwapError::NoActiveTransfer => info!("Error: No active admin transfer in progress"),
             SwapError::AdminDeadlineExceeded => info!("Error: Admin transfer deadline exceeded"),
+            SwapError::MismatchedDecimals => info!("Error: Token mints must have same decimals"),
         }
     }
 }
@@ -1666,7 +1680,7 @@ mod tests {
             accounts.pool_mint_account = pool_mint_account;
 
             assert_eq!(
-                Err(SwapError::IncorrectPoolMint.into()),
+                Err(SwapError::IncorrectMint.into()),
                 accounts.deposit(
                     &depositor_key,
                     &token_a_key,
@@ -2263,7 +2277,7 @@ mod tests {
             accounts.pool_mint_account = pool_mint_account;
 
             assert_eq!(
-                Err(SwapError::IncorrectPoolMint.into()),
+                Err(SwapError::IncorrectMint.into()),
                 accounts.withdraw(
                     &withdrawer_key,
                     &pool_key,
@@ -3298,7 +3312,7 @@ mod tests {
             accounts.pool_mint_account = pool_mint_account;
 
             assert_eq!(
-                Err(SwapError::IncorrectPoolMint.into()),
+                Err(SwapError::IncorrectMint.into()),
                 accounts.withdraw_one(
                     &withdrawer_key,
                     &pool_key,

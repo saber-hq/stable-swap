@@ -1251,6 +1251,22 @@ mod tests {
         {
             let (bad_mint_key, mut bad_mint_account) =
                 create_mint(&TOKEN_PROGRAM_ID, &accounts.authority_key, 2);
+
+            // Pool mint decimal does not match
+            let old_pool_mint_key = accounts.pool_mint_key;
+            let old_pool_mint_account = accounts.pool_mint_account;
+            accounts.pool_mint_key = bad_mint_key;
+            accounts.pool_mint_account = bad_mint_account.clone();
+
+            assert_eq!(
+                Err(SwapError::MismatchedDecimals.into()),
+                accounts.initialize_swap()
+            );
+
+            accounts.pool_mint_key = old_pool_mint_key;
+            accounts.pool_mint_account = old_pool_mint_account;
+
+            // Token a mint decimal does not match token b decimals
             let (bad_token_key, bad_token_account) = mint_token(
                 &TOKEN_PROGRAM_ID,
                 &bad_mint_key,
@@ -1267,7 +1283,7 @@ mod tests {
             accounts.token_a_key = bad_token_key;
             accounts.token_a_account = bad_token_account;
             accounts.token_a_mint_key = bad_mint_key;
-            accounts.token_a_mint_account = bad_mint_account;
+            accounts.token_a_mint_account = bad_mint_account.clone();
 
             assert_eq!(
                 Err(SwapError::MismatchedDecimals.into()),

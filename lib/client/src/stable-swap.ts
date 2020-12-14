@@ -44,7 +44,7 @@ export class StableSwap {
   /**
    * The public key for the liquidity pool token mint
    */
-  poolToken: PublicKey;
+  poolTokenMint: PublicKey;
 
   /**
    * Authority
@@ -117,7 +117,7 @@ export class StableSwap {
    * @param stableSwap
    * @param swapProgramId
    * @param tokenProgramId
-   * @param poolToken
+   * @param poolTokenMint
    * @param authority
    * @param adminAccount
    * @param adminFeeAccountA
@@ -137,7 +137,7 @@ export class StableSwap {
     stableSwap: PublicKey,
     swapProgramId: PublicKey,
     tokenProgramId: PublicKey,
-    poolToken: PublicKey,
+    poolTokenMint: PublicKey,
     authority: PublicKey,
     adminAccount: PublicKey,
     adminFeeAccountA: PublicKey,
@@ -156,7 +156,7 @@ export class StableSwap {
     this.stableSwap = stableSwap;
     this.swapProgramId = swapProgramId;
     this.tokenProgramId = tokenProgramId;
-    this.poolToken = poolToken;
+    this.poolTokenMint = poolTokenMint;
     this.authority = authority;
     this.adminAccount = adminAccount;
     this.adminFeeAccountA = adminFeeAccountA;
@@ -212,7 +212,7 @@ export class StableSwap {
     const adminFeeAccountB = new PublicKey(stableSwapData.adminFeeAccountB);
     const tokenAccountA = new PublicKey(stableSwapData.tokenAccountA);
     const tokenAccountB = new PublicKey(stableSwapData.tokenAccountB);
-    const poolToken = new PublicKey(stableSwapData.tokenPool);
+    const poolTokenMint = new PublicKey(stableSwapData.tokenPool);
     const mintA = new PublicKey(stableSwapData.mintA);
     const mintB = new PublicKey(stableSwapData.mintB);
     const tokenProgramId = TOKEN_PROGRAM_ID;
@@ -236,7 +236,7 @@ export class StableSwap {
       address,
       programId,
       tokenProgramId,
-      poolToken,
+      poolTokenMint,
       authority,
       adminAccount,
       adminFeeAccountA,
@@ -264,7 +264,7 @@ export class StableSwap {
    * @param adminFeeAccountB
    * @param tokenAccountA
    * @param tokenAccountB
-   * @param poolToken
+   * @param poolTokenMint
    * @param poolTokenAccount
    * @param mintA
    * @param mintB
@@ -380,7 +380,7 @@ export class StableSwap {
       );
       poolMintData = await loadAccount(
         this.connection,
-        this.poolToken,
+        this.poolTokenMint,
         this.tokenProgramId
       );
     } catch (e) {
@@ -462,7 +462,7 @@ export class StableSwap {
         userAccountB,
         this.tokenAccountA,
         this.tokenAccountB,
-        this.poolToken,
+        this.poolTokenMint,
         poolTokenAccount,
         this.swapProgramId,
         this.tokenProgramId,
@@ -494,7 +494,7 @@ export class StableSwap {
       instructions.withdrawInstruction(
         this.stableSwap,
         this.authority,
-        this.poolToken,
+        this.poolTokenMint,
         poolAccount,
         this.tokenAccountA,
         this.tokenAccountB,

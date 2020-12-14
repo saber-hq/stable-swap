@@ -467,9 +467,6 @@ impl Processor {
         let token_program_info = next_account_info(account_info_iter)?;
 
         let token_swap = SwapInfo::unpack(&swap_info.data.borrow())?;
-        if token_swap.is_paused {
-            return Err(SwapError::IsPaused.into());
-        }
         if *authority_info.key != utils::authority_id(program_id, swap_info.key, token_swap.nonce)?
         {
             return Err(SwapError::InvalidProgramAddress.into());

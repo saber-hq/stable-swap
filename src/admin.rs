@@ -202,8 +202,21 @@ fn pause(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
 }
 
 /// Unpause swap
-fn unpause(_program_id: &Pubkey, _accounts: &[AccountInfo]) -> ProgramResult {
-    unimplemented!("unpause not implemented")
+fn unpause(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
+    let account_info_iter = &mut accounts.iter();
+    let swap_info = next_account_info(account_info_iter)?;
+    let authority_info = next_account_info(account_info_iter)?;
+    let admin_info = next_account_info(account_info_iter)?;
+
+    let mut token_swap = SwapInfo::unpack(&swap_info.data.borrow())?;
+    is_admin(&token_swap.admin_key, admin_info)?;
+    if *authority_info.key != utils::authority_id(program_id, swap_info.key, token_swap.nonce)? {
+        return Err(SwapError::InvalidProgramAddress.into());
+    }
+
+    token_swap.is_paused = false;
+    SwapInfo::pack(token_swap, &mut swap_info.data.borrow_mut())?;
+    Ok(())
 }
 
 /// Set fee account

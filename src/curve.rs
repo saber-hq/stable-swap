@@ -148,7 +148,6 @@ impl StableSwap {
         pool_token_supply: U256,
         fees: &Fees,
     ) -> Option<U256> {
-        // TODO: Add test
         // Initial invariant
         let d_0 = self.compute_d(swap_amount_a, swap_amount_b)?;
         let old_balances = [swap_amount_a, swap_amount_b];
@@ -550,6 +549,40 @@ mod tests {
             start_ramp_ts,
             stop_ramp_ts,
         );
+    }
+
+    #[test]
+    fn test_compute_mint_amount_for_deposit() {
+        let initial_amp_factor = MIN_AMP;
+        let target_amp_factor = MAX_AMP;
+        let current_ts = MIN_RAMP_DURATION / 2;
+        let start_ramp_ts = ZERO_TS;
+        let stop_ramp_ts = MIN_RAMP_DURATION;
+        let invariant = StableSwap::new(
+            initial_amp_factor,
+            target_amp_factor,
+            current_ts,
+            start_ramp_ts,
+            stop_ramp_ts,
+        );
+
+        let deposit_amount_a = U256::from(u64::MAX);
+        let deposit_amount_b = U256::from(u64::MAX);
+        let swap_amount_a = U256::from(u64::MAX);
+        let swap_amount_b = U256::from(u64::MAX);
+        let pool_token_supply = U256::from(u64::MAX);
+        let actual_mint_amount = invariant
+            .compute_mint_amount_for_deposit(
+                deposit_amount_a,
+                deposit_amount_b,
+                swap_amount_a,
+                swap_amount_b,
+                pool_token_supply,
+                &MODEL_FEES,
+            )
+            .unwrap();
+        let expected_mint_amount = U256::from(u64::MAX);
+        assert_eq!(actual_mint_amount, expected_mint_amount);
     }
 
     #[test]

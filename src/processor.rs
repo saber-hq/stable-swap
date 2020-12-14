@@ -141,10 +141,10 @@ impl Processor {
         let admin_key_info = next_account_info(account_info_iter)?;
         let admin_fee_a_info = next_account_info(account_info_iter)?;
         let admin_fee_b_info = next_account_info(account_info_iter)?;
-        let token_a_info = next_account_info(account_info_iter)?;
         let token_a_mint_info = next_account_info(account_info_iter)?;
-        let token_b_info = next_account_info(account_info_iter)?;
+        let token_a_info = next_account_info(account_info_iter)?;
         let token_b_mint_info = next_account_info(account_info_iter)?;
+        let token_b_info = next_account_info(account_info_iter)?;
         let pool_mint_info = next_account_info(account_info_iter)?;
         let destination_info = next_account_info(account_info_iter)?; // Destination account to mint LP tokens to
         let token_program_info = next_account_info(account_info_iter)?;

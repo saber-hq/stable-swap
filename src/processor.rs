@@ -207,6 +207,9 @@ impl Processor {
         if token_a_mint.decimals != token_b_mint.decimals {
             return Err(SwapError::MismatchedDecimals.into());
         }
+        if pool_mint.decimals != token_a_mint.decimals {
+            return Err(SwapError::MismatchedDecimals.into());
+        }
         let admin_fee_key_a = utils::unpack_token_account(&admin_fee_a_info.data.borrow())?;
         let admin_fee_key_b = utils::unpack_token_account(&admin_fee_b_info.data.borrow())?;
         if token_a.mint != admin_fee_key_a.mint {
@@ -1033,7 +1036,8 @@ mod tests {
 
         // pool mint authority is not swap authority
         {
-            let (_pool_mint_key, pool_mint_account) = create_mint(&TOKEN_PROGRAM_ID, &user_key);
+            let (_pool_mint_key, pool_mint_account) =
+                create_mint(&TOKEN_PROGRAM_ID, &user_key, DEFAULT_TOKEN_DECIMALS);
             let old_mint = accounts.pool_mint_account;
             accounts.pool_mint_account = pool_mint_account;
             assert_eq!(
@@ -1086,8 +1090,11 @@ mod tests {
             let old_mint = accounts.pool_mint_account;
             let old_pool_account = accounts.pool_token_account;
 
-            let (_pool_mint_key, pool_mint_account) =
-                create_mint(&TOKEN_PROGRAM_ID, &accounts.authority_key);
+            let (_pool_mint_key, pool_mint_account) = create_mint(
+                &TOKEN_PROGRAM_ID,
+                &accounts.authority_key,
+                DEFAULT_TOKEN_DECIMALS,
+            );
             accounts.pool_mint_account = pool_mint_account;
 
             let (_empty_pool_token_key, empty_pool_token_account) = mint_token(
@@ -1238,6 +1245,39 @@ mod tests {
 
             accounts.admin_fee_b_account = old_admin_fee_account_b;
             accounts.admin_fee_b_key = old_admin_fee_key_b;
+        }
+
+        // mimatched mint decimals
+        {
+            let (bad_mint_key, mut bad_mint_account) =
+                create_mint(&TOKEN_PROGRAM_ID, &accounts.authority_key, 2);
+            let (bad_token_key, bad_token_account) = mint_token(
+                &TOKEN_PROGRAM_ID,
+                &bad_mint_key,
+                &mut bad_mint_account,
+                &accounts.authority_key,
+                &accounts.authority_key,
+                10,
+            );
+
+            let old_token_a_key = accounts.token_a_key;
+            let old_token_a_account = accounts.token_a_account;
+            let old_token_a_mint_key = accounts.token_a_mint_key;
+            let old_token_a_mint_account = accounts.token_a_mint_account;
+            accounts.token_a_key = bad_token_key;
+            accounts.token_a_account = bad_token_account;
+            accounts.token_a_mint_key = bad_mint_key;
+            accounts.token_a_mint_account = bad_mint_account;
+
+            assert_eq!(
+                Err(SwapError::MismatchedDecimals.into()),
+                accounts.initialize_swap()
+            );
+
+            accounts.token_a_key = old_token_a_key;
+            accounts.token_a_account = old_token_a_account;
+            accounts.token_a_mint_key = old_token_a_mint_key;
+            accounts.token_a_mint_account = old_token_a_mint_account;
         }
 
         // create swap with same token A and B
@@ -1672,8 +1712,11 @@ mod tests {
                 pool_key,
                 mut pool_account,
             ) = accounts.setup_token_accounts(&user_key, &depositor_key, deposit_a, deposit_b, 0);
-            let (pool_mint_key, pool_mint_account) =
-                create_mint(&TOKEN_PROGRAM_ID, &accounts.authority_key);
+            let (pool_mint_key, pool_mint_account) = create_mint(
+                &TOKEN_PROGRAM_ID,
+                &accounts.authority_key,
+                DEFAULT_TOKEN_DECIMALS,
+            );
             let old_pool_key = accounts.pool_mint_key;
             let old_pool_account = accounts.pool_mint_account;
             accounts.pool_mint_key = pool_mint_key;
@@ -2269,8 +2312,11 @@ mod tests {
                 initial_b,
                 initial_pool,
             );
-            let (pool_mint_key, pool_mint_account) =
-                create_mint(&TOKEN_PROGRAM_ID, &accounts.authority_key);
+            let (pool_mint_key, pool_mint_account) = create_mint(
+                &TOKEN_PROGRAM_ID,
+                &accounts.authority_key,
+                DEFAULT_TOKEN_DECIMALS,
+            );
             let old_pool_key = accounts.pool_mint_key;
             let old_pool_account = accounts.pool_mint_account;
             accounts.pool_mint_key = pool_mint_key;
@@ -3109,8 +3155,11 @@ mod tests {
                 withdraw_amount,
             );
             let foreign_authority = pubkey_rand();
-            let (foreign_mint_key, mut foreign_mint_account) =
-                create_mint(&TOKEN_PROGRAM_ID, &foreign_authority);
+            let (foreign_mint_key, mut foreign_mint_account) = create_mint(
+                &TOKEN_PROGRAM_ID,
+                &foreign_authority,
+                DEFAULT_TOKEN_DECIMALS,
+            );
             let (foreign_token_key, foreign_token_account) = mint_token(
                 &TOKEN_PROGRAM_ID,
                 &foreign_mint_key,
@@ -3304,8 +3353,11 @@ mod tests {
                 initial_b,
                 initial_pool,
             );
-            let (pool_mint_key, pool_mint_account) =
-                create_mint(&TOKEN_PROGRAM_ID, &accounts.authority_key);
+            let (pool_mint_key, pool_mint_account) = create_mint(
+                &TOKEN_PROGRAM_ID,
+                &accounts.authority_key,
+                DEFAULT_TOKEN_DECIMALS,
+            );
             let old_pool_key = accounts.pool_mint_key;
             let old_pool_account = accounts.pool_mint_account;
             accounts.pool_mint_key = pool_mint_key;

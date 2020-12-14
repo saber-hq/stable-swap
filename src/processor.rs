@@ -193,6 +193,12 @@ impl Processor {
         if token_b.mint != *token_b_mint_info.key {
             return Err(SwapError::IncorrectMint.into());
         }
+        if token_a.close_authority.is_some() {
+            return Err(SwapError::InvalidCloseAuthority.into());
+        }
+        if token_b.close_authority.is_some() {
+            return Err(SwapError::InvalidCloseAuthority.into());
+        }
         let pool_mint = Self::unpack_mint(&pool_mint_info.data.borrow())?;
         if pool_mint.mint_authority.is_some()
             && *authority_info.key != pool_mint.mint_authority.unwrap()
@@ -867,7 +873,7 @@ mod tests {
     use solana_sdk::account::Account;
     use spl_token::{
         error::TokenError,
-        instruction::{approve, mint_to, revoke},
+        instruction::{approve, mint_to, revoke, set_authority, AuthorityType},
     };
 
     /// Initial amount of pool tokens for swap contract, hard-coded to something
@@ -1203,6 +1209,76 @@ mod tests {
                     &TOKEN_PROGRAM_ID,
                     &accounts.token_b_key,
                     &accounts.authority_key,
+                    &[],
+                )
+                .unwrap(),
+                vec![&mut accounts.token_b_account, &mut Account::default()],
+            )
+            .unwrap();
+        }
+
+        // token A account has close authority
+        {
+            do_process_instruction(
+                set_authority(
+                    &TOKEN_PROGRAM_ID,
+                    &accounts.token_a_key,
+                    Some(&user_key),
+                    AuthorityType::CloseAccount,
+                    &accounts.authority_key,
+                    &[],
+                )
+                .unwrap(),
+                vec![&mut accounts.token_a_account, &mut Account::default()],
+            )
+            .unwrap();
+            assert_eq!(
+                Err(SwapError::InvalidCloseAuthority.into()),
+                accounts.initialize_swap()
+            );
+
+            do_process_instruction(
+                set_authority(
+                    &TOKEN_PROGRAM_ID,
+                    &accounts.token_a_key,
+                    None,
+                    AuthorityType::CloseAccount,
+                    &user_key,
+                    &[],
+                )
+                .unwrap(),
+                vec![&mut accounts.token_a_account, &mut Account::default()],
+            )
+            .unwrap();
+        }
+
+        // token B account has close authority
+        {
+            do_process_instruction(
+                set_authority(
+                    &TOKEN_PROGRAM_ID,
+                    &accounts.token_b_key,
+                    Some(&user_key),
+                    AuthorityType::CloseAccount,
+                    &accounts.authority_key,
+                    &[],
+                )
+                .unwrap(),
+                vec![&mut accounts.token_b_account, &mut Account::default()],
+            )
+            .unwrap();
+            assert_eq!(
+                Err(SwapError::InvalidCloseAuthority.into()),
+                accounts.initialize_swap()
+            );
+
+            do_process_instruction(
+                set_authority(
+                    &TOKEN_PROGRAM_ID,
+                    &accounts.token_b_key,
+                    None,
+                    AuthorityType::CloseAccount,
+                    &user_key,
                     &[],
                 )
                 .unwrap(),

@@ -197,11 +197,9 @@ impl Processor {
         let admin_fee_key_a = utils::unpack_token_account(&admin_fee_a_info.data.borrow())?;
         let admin_fee_key_b = utils::unpack_token_account(&admin_fee_b_info.data.borrow())?;
         if token_a.mint != admin_fee_key_a.mint {
-            // TODO: Add test
             return Err(SwapError::InvalidAdmin.into());
         }
         if token_b.mint != admin_fee_key_b.mint {
-            // TODO: Add test
             return Err(SwapError::InvalidAdmin.into());
         }
 
@@ -1188,6 +1186,46 @@ mod tests {
             .unwrap();
         }
 
+        // mismatched admin mints
+        {
+            let (wrong_admin_fee_key, wrong_admin_fee_account) = mint_token(
+                &TOKEN_PROGRAM_ID,
+                &accounts.pool_mint_key,
+                &mut accounts.pool_mint_account,
+                &accounts.authority_key,
+                &user_key,
+                0,
+            );
+
+            // wrong admin_fee_key_a
+            let old_admin_fee_account_a = accounts.admin_fee_a_account;
+            let old_admin_fee_key_a = accounts.admin_fee_a_key;
+            accounts.admin_fee_a_account = wrong_admin_fee_account.clone();
+            accounts.admin_fee_a_key = wrong_admin_fee_key;
+
+            assert_eq!(
+                Err(SwapError::InvalidAdmin.into()),
+                accounts.initialize_swap()
+            );
+
+            accounts.admin_fee_a_account = old_admin_fee_account_a;
+            accounts.admin_fee_a_key = old_admin_fee_key_a;
+
+            // wrong admin_fee_key_b
+            let old_admin_fee_account_b = accounts.admin_fee_b_account;
+            let old_admin_fee_key_b = accounts.admin_fee_b_key;
+            accounts.admin_fee_b_account = wrong_admin_fee_account.clone();
+            accounts.admin_fee_b_key = wrong_admin_fee_key;
+
+            assert_eq!(
+                Err(SwapError::InvalidAdmin.into()),
+                accounts.initialize_swap()
+            );
+
+            accounts.admin_fee_b_account = old_admin_fee_account_b;
+            accounts.admin_fee_b_key = old_admin_fee_key_b;
+        }
+
         // create swap with same token A and B
         {
             let (_token_a_repeat_key, token_a_repeat_account) = mint_token(
@@ -1219,44 +1257,23 @@ mod tests {
         }
         let swap_info = SwapInfo::unpack(&accounts.swap_account.data).unwrap();
         assert_eq!(swap_info.is_initialized, true);
+        assert_eq!(swap_info.is_paused, false);
         assert_eq!(swap_info.nonce, accounts.nonce);
+        assert_eq!(swap_info.initial_amp_factor, amp_factor);
+        assert_eq!(swap_info.target_amp_factor, amp_factor);
+        assert_eq!(swap_info.start_ramp_ts, ZERO_TS);
+        assert_eq!(swap_info.stop_ramp_ts, ZERO_TS);
+        assert_eq!(swap_info.future_admin_deadline, ZERO_TS);
+        assert_eq!(swap_info.future_admin_key, Pubkey::default());
+        assert_eq!(swap_info.admin_key, accounts.admin_key);
         assert_eq!(swap_info.token_a, accounts.token_a_key);
         assert_eq!(swap_info.token_b, accounts.token_b_key);
         assert_eq!(swap_info.pool_mint, accounts.pool_mint_key);
         assert_eq!(swap_info.token_a_mint, accounts.token_a_mint_key);
         assert_eq!(swap_info.token_b_mint, accounts.token_b_mint_key);
-        assert_eq!(
-            swap_info.fees.admin_trade_fee_numerator,
-            DEFAULT_TEST_FEES.admin_trade_fee_numerator
-        );
-        assert_eq!(
-            swap_info.fees.admin_trade_fee_denominator,
-            DEFAULT_TEST_FEES.admin_trade_fee_denominator
-        );
-        assert_eq!(
-            swap_info.fees.admin_withdraw_fee_numerator,
-            DEFAULT_TEST_FEES.admin_withdraw_fee_numerator
-        );
-        assert_eq!(
-            swap_info.fees.admin_withdraw_fee_denominator,
-            DEFAULT_TEST_FEES.admin_withdraw_fee_denominator
-        );
-        assert_eq!(
-            swap_info.fees.trade_fee_numerator,
-            DEFAULT_TEST_FEES.trade_fee_numerator
-        );
-        assert_eq!(
-            swap_info.fees.trade_fee_denominator,
-            DEFAULT_TEST_FEES.trade_fee_denominator
-        );
-        assert_eq!(
-            swap_info.fees.withdraw_fee_numerator,
-            DEFAULT_TEST_FEES.withdraw_fee_numerator
-        );
-        assert_eq!(
-            swap_info.fees.withdraw_fee_denominator,
-            DEFAULT_TEST_FEES.withdraw_fee_denominator
-        );
+        assert_eq!(swap_info.admin_fee_key_a, accounts.admin_fee_a_key);
+        assert_eq!(swap_info.admin_fee_key_b, accounts.admin_fee_b_key);
+        assert_eq!(swap_info.fees, DEFAULT_TEST_FEES);
         let token_a = utils::unpack_token_account(&accounts.token_a_account.data).unwrap();
         assert_eq!(token_a.amount, token_a_amount);
         let token_b = utils::unpack_token_account(&accounts.token_b_account.data).unwrap();
@@ -1679,7 +1696,6 @@ mod tests {
                 mut pool_account,
             ) = accounts.setup_token_accounts(&user_key, &depositor_key, deposit_a, deposit_b, 0);
             // min mint_amount in too high
-            // XXX: Arbitary big number to pass test.
             let high_min_mint_amount = 10000000000000;
             assert_eq!(
                 Err(SwapError::ExceededSlippage.into()),

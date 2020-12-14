@@ -701,6 +701,23 @@ pub mod test_utils {
             )
         }
 
+        pub fn unpause(&mut self) -> ProgramResult {
+            do_process_instruction(
+                unpause(
+                    &SWAP_PROGRAM_ID,
+                    &self.swap_key,
+                    &self.authority_key,
+                    &self.admin_key,
+                )
+                .unwrap(),
+                vec![
+                    &mut self.swap_account,
+                    &mut Account::default(),
+                    &mut self.admin_account,
+                ],
+            )
+        }
+
         pub fn set_admin_fee_account(
             &mut self,
             new_admin_fee_key: &Pubkey,

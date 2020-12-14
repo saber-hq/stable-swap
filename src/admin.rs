@@ -596,6 +596,62 @@ mod tests {
     }
 
     #[test]
+    fn test_unpause() {
+        let user_key = pubkey_rand();
+        let mut accounts = SwapAccountInfo::new(
+            &user_key,
+            MIN_AMP,
+            DEFAULT_TOKEN_A_AMOUNT,
+            DEFAULT_TOKEN_B_AMOUNT,
+            DEFAULT_TEST_FEES,
+        );
+
+        // swap not initialized
+        {
+            assert_eq!(Err(ProgramError::UninitializedAccount), accounts.unpause());
+        }
+
+        accounts.initialize_swap().unwrap();
+
+        // wrong nonce for authority_key
+        {
+            let old_authority = accounts.authority_key;
+            let (bad_authority_key, _nonce) = Pubkey::find_program_address(
+                &[&accounts.swap_key.to_bytes()[..]],
+                &TOKEN_PROGRAM_ID,
+            );
+            accounts.authority_key = bad_authority_key;
+            assert_eq!(
+                Err(SwapError::InvalidProgramAddress.into()),
+                accounts.unpause()
+            );
+            accounts.authority_key = old_authority;
+        }
+
+        // unauthorized account
+        {
+            let old_admin_key = accounts.admin_key;
+            let fake_admin_key = pubkey_rand();
+            accounts.admin_key = fake_admin_key;
+            assert_eq!(Err(SwapError::Unauthorized.into()), accounts.unpause());
+            accounts.admin_key = old_admin_key;
+        }
+
+        // valid call
+        {
+            // Pause swap pool
+            accounts.pause().unwrap();
+            let swap_info = SwapInfo::unpack(&accounts.swap_account.data).unwrap();
+            assert!(swap_info.is_paused);
+
+            // Unpause swap pool
+            accounts.unpause().unwrap();
+            let swap_info = SwapInfo::unpack(&accounts.swap_account.data).unwrap();
+            assert!(!swap_info.is_paused);
+        }
+    }
+
+    #[test]
     fn test_set_fee_account() {
         let user_key = pubkey_rand();
         let owner_key = pubkey_rand();

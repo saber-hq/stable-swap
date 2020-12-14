@@ -12,9 +12,13 @@ use solana_sdk::{
 #[repr(C)]
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct SwapInfo {
-    /// Initialized state.
+    /// Initialized state
     pub is_initialized: bool,
-    /// Nonce used in program address.
+
+    /// Paused state
+    pub is_paused: bool,
+
+    /// Nonce used in program address
     /// The program address is created deterministically with the nonce,
     /// swap program id, and swap account pubkey.  This program address has
     /// authority over the swap's token A account, token B account, and pool
@@ -66,14 +70,15 @@ impl IsInitialized for SwapInfo {
 }
 
 impl Pack for SwapInfo {
-    const LEN: usize = 394;
+    const LEN: usize = 395;
 
     /// Unpacks a byte buffer into a [SwapInfo](struct.SwapInfo.html).
     fn unpack_from_slice(input: &[u8]) -> Result<Self, ProgramError> {
-        let input = array_ref![input, 0, 394];
+        let input = array_ref![input, 0, 395];
         #[allow(clippy::ptr_offset_with_cast)]
         let (
             is_initialized,
+            is_paused,
             nonce,
             initial_amp_factor,
             target_amp_factor,
@@ -90,9 +95,14 @@ impl Pack for SwapInfo {
             admin_fee_key_a,
             admin_fee_key_b,
             fees,
-        ) = array_refs![input, 1, 1, 8, 8, 8, 8, 8, 32, 32, 32, 32, 32, 32, 32, 32, 32, 64];
+        ) = array_refs![input, 1, 1, 1, 8, 8, 8, 8, 8, 32, 32, 32, 32, 32, 32, 32, 32, 32, 64];
         Ok(Self {
             is_initialized: match is_initialized {
+                [0] => false,
+                [1] => true,
+                _ => return Err(ProgramError::InvalidAccountData),
+            },
+            is_paused: match is_paused {
                 [0] => false,
                 [1] => true,
                 _ => return Err(ProgramError::InvalidAccountData),
@@ -117,9 +127,10 @@ impl Pack for SwapInfo {
     }
 
     fn pack_into_slice(&self, output: &mut [u8]) {
-        let output = array_mut_ref![output, 0, 394];
+        let output = array_mut_ref![output, 0, 395];
         let (
             is_initialized,
+            is_paused,
             nonce,
             initial_amp_factor,
             target_amp_factor,
@@ -136,8 +147,9 @@ impl Pack for SwapInfo {
             admin_fee_key_a,
             admin_fee_key_b,
             fees,
-        ) = mut_array_refs![output, 1, 1, 8, 8, 8, 8, 8, 32, 32, 32, 32, 32, 32, 32, 32, 32, 64];
+        ) = mut_array_refs![output, 1, 1, 1, 8, 8, 8, 8, 8, 32, 32, 32, 32, 32, 32, 32, 32, 32, 64];
         is_initialized[0] = self.is_initialized as u8;
+        is_paused[0] = self.is_paused as u8;
         nonce[0] = self.nonce;
         *initial_amp_factor = self.initial_amp_factor.to_le_bytes();
         *target_amp_factor = self.target_amp_factor.to_le_bytes();
@@ -207,8 +219,10 @@ mod tests {
         };
 
         let is_initialized = true;
+        let is_paused = false;
         let swap_info = SwapInfo {
             is_initialized,
+            is_paused,
             nonce,
             initial_amp_factor,
             target_amp_factor,
@@ -233,7 +247,8 @@ mod tests {
         assert_eq!(swap_info, unpacked);
 
         let mut packed = vec![];
-        packed.push(1 as u8);
+        packed.push(1 as u8); // is_initialized
+        packed.push(0 as u8); // is_paused
         packed.push(nonce);
         packed.extend_from_slice(&initial_amp_factor.to_le_bytes());
         packed.extend_from_slice(&target_amp_factor.to_le_bytes());

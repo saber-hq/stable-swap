@@ -20,6 +20,7 @@ export const Uint64Layout = (property: string = "uint64"): object => {
 export const StableSwapLayout: typeof BufferLayout.Structure = BufferLayout.struct(
   [
     BufferLayout.u8("isInitialized"),
+    BufferLayout.u8("isPaused"),
     BufferLayout.u8("nonce"),
     BufferLayout.nu64("initialAmpFactor"),
     BufferLayout.nu64("targetAmpFactor"),

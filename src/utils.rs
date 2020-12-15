@@ -99,6 +99,9 @@ pub mod test_utils {
         withdraw_fee_denominator: 100,
     };
 
+    /// Default token decimals
+    pub const DEFAULT_TOKEN_DECIMALS: u8 = 6;
+
     pub fn clock_account(ts: i64) -> Account {
         let mut clock = Clock::default();
         clock.unix_timestamp = ts;
@@ -151,7 +154,7 @@ pub mod test_utils {
                 Pubkey::find_program_address(&[&swap_key.to_bytes()[..]], &SWAP_PROGRAM_ID);
 
             let (pool_mint_key, mut pool_mint_account) =
-                create_mint(&TOKEN_PROGRAM_ID, &authority_key);
+                create_mint(&TOKEN_PROGRAM_ID, &authority_key, DEFAULT_TOKEN_DECIMALS);
             let (pool_token_key, pool_token_account) = mint_token(
                 &TOKEN_PROGRAM_ID,
                 &pool_mint_key,
@@ -161,7 +164,7 @@ pub mod test_utils {
                 0,
             );
             let (token_a_mint_key, mut token_a_mint_account) =
-                create_mint(&TOKEN_PROGRAM_ID, &user_key);
+                create_mint(&TOKEN_PROGRAM_ID, &user_key, DEFAULT_TOKEN_DECIMALS);
             let (token_a_key, token_a_account) = mint_token(
                 &TOKEN_PROGRAM_ID,
                 &token_a_mint_key,
@@ -179,7 +182,7 @@ pub mod test_utils {
                 0,
             );
             let (token_b_mint_key, mut token_b_mint_account) =
-                create_mint(&TOKEN_PROGRAM_ID, &user_key);
+                create_mint(&TOKEN_PROGRAM_ID, &user_key, DEFAULT_TOKEN_DECIMALS);
             let (token_b_key, token_b_account) = mint_token(
                 &TOKEN_PROGRAM_ID,
                 &token_b_mint_key,
@@ -210,14 +213,14 @@ pub mod test_utils {
                 pool_mint_account,
                 pool_token_key,
                 pool_token_account,
-                token_a_key,
-                token_a_account,
                 token_a_mint_key,
                 token_a_mint_account,
-                token_b_key,
-                token_b_account,
+                token_a_key,
+                token_a_account,
                 token_b_mint_key,
                 token_b_mint_account,
+                token_b_key,
+                token_b_account,
                 admin_key: admin_account.owner,
                 admin_account,
                 admin_fee_a_key,
@@ -238,7 +241,9 @@ pub mod test_utils {
                     &self.admin_key,
                     &self.admin_fee_a_key,
                     &self.admin_fee_b_key,
+                    &self.token_a_mint_key,
                     &self.token_a_key,
+                    &self.token_b_mint_key,
                     &self.token_b_key,
                     &self.pool_mint_key,
                     &self.pool_token_key,
@@ -253,7 +258,9 @@ pub mod test_utils {
                     &mut self.admin_account,
                     &mut self.admin_fee_a_account,
                     &mut self.admin_fee_b_account,
+                    &mut self.token_a_mint_account,
                     &mut self.token_a_account,
+                    &mut self.token_b_mint_account,
                     &mut self.token_b_account,
                     &mut self.pool_mint_account,
                     &mut self.pool_token_account,
@@ -902,7 +909,11 @@ pub mod test_utils {
         (account_key, account_account)
     }
 
-    pub fn create_mint(program_id: &Pubkey, authority_key: &Pubkey) -> (Pubkey, Account) {
+    pub fn create_mint(
+        program_id: &Pubkey,
+        authority_key: &Pubkey,
+        decimals: u8,
+    ) -> (Pubkey, Account) {
         let mint_key = pubkey_rand();
         let mut mint_account = Account::new(
             mint_minimum_balance(),
@@ -912,7 +923,7 @@ pub mod test_utils {
         let mut rent_sysvar_account = rent::create_account(1, &Rent::free());
 
         do_process_instruction(
-            initialize_mint(&program_id, &mint_key, authority_key, None, 2).unwrap(),
+            initialize_mint(&program_id, &mint_key, authority_key, None, decimals).unwrap(),
             vec![&mut mint_account, &mut rent_sysvar_account],
         )
         .unwrap();

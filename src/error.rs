@@ -61,6 +61,12 @@ pub enum SwapError {
     /// Swap instruction exceeds desired slippage limit
     #[error("Swap instruction exceeds desired slippage limit")]
     ExceededSlippage,
+    /// The provided token account has a close authority.
+    #[error("Token account has a close authority")]
+    InvalidCloseAuthority,
+    /// The pool token mint has a freeze authority.
+    #[error("Pool token mint has a freeze authority")]
+    InvalidFreezeAuthority,
     /// ConversionFailure
     #[error("Conversion to u64 failed with an overflow or underflow")]
     ConversionFailure,

@@ -153,8 +153,12 @@ pub mod test_utils {
             let (authority_key, nonce) =
                 Pubkey::find_program_address(&[&swap_key.to_bytes()[..]], &SWAP_PROGRAM_ID);
 
-            let (pool_mint_key, mut pool_mint_account) =
-                create_mint(&TOKEN_PROGRAM_ID, &authority_key, DEFAULT_TOKEN_DECIMALS);
+            let (pool_mint_key, mut pool_mint_account) = create_mint(
+                &TOKEN_PROGRAM_ID,
+                &authority_key,
+                DEFAULT_TOKEN_DECIMALS,
+                None,
+            );
             let (pool_token_key, pool_token_account) = mint_token(
                 &TOKEN_PROGRAM_ID,
                 &pool_mint_key,
@@ -164,7 +168,7 @@ pub mod test_utils {
                 0,
             );
             let (token_a_mint_key, mut token_a_mint_account) =
-                create_mint(&TOKEN_PROGRAM_ID, &user_key, DEFAULT_TOKEN_DECIMALS);
+                create_mint(&TOKEN_PROGRAM_ID, &user_key, DEFAULT_TOKEN_DECIMALS, None);
             let (token_a_key, token_a_account) = mint_token(
                 &TOKEN_PROGRAM_ID,
                 &token_a_mint_key,
@@ -182,7 +186,7 @@ pub mod test_utils {
                 0,
             );
             let (token_b_mint_key, mut token_b_mint_account) =
-                create_mint(&TOKEN_PROGRAM_ID, &user_key, DEFAULT_TOKEN_DECIMALS);
+                create_mint(&TOKEN_PROGRAM_ID, &user_key, DEFAULT_TOKEN_DECIMALS, None);
             let (token_b_key, token_b_account) = mint_token(
                 &TOKEN_PROGRAM_ID,
                 &token_b_mint_key,
@@ -913,6 +917,7 @@ pub mod test_utils {
         program_id: &Pubkey,
         authority_key: &Pubkey,
         decimals: u8,
+        freeze_authority: Option<&Pubkey>,
     ) -> (Pubkey, Account) {
         let mint_key = pubkey_rand();
         let mut mint_account = Account::new(
@@ -923,7 +928,14 @@ pub mod test_utils {
         let mut rent_sysvar_account = rent::create_account(1, &Rent::free());
 
         do_process_instruction(
-            initialize_mint(&program_id, &mint_key, authority_key, None, decimals).unwrap(),
+            initialize_mint(
+                &program_id,
+                &mint_key,
+                authority_key,
+                freeze_authority,
+                decimals,
+            )
+            .unwrap(),
             vec![&mut mint_account, &mut rent_sysvar_account],
         )
         .unwrap();

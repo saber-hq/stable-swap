@@ -21,6 +21,7 @@ enum Action {
         token_a_id: AccountId,
         token_b_id: AccountId,
         pool_token_id: AccountId,
+        deposit_type: DepositTokenType,
         instruction_data: DepositData,
     },
     Withdraw {
@@ -31,6 +32,13 @@ enum Action {
         pool_token_id: AccountId,
         instruction_data: WithdrawOneData,
     },
+}
+
+/// Helper enum to tell which token to deposit for DepositOne.
+#[derive(Debug, Arbitrary, Clone)]
+enum DepositTokenType {
+    TokenA,
+    TokenB,
 }
 
 /// Helper enum to tell which direction a swap is meant to go.

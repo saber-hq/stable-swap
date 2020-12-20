@@ -6,6 +6,9 @@ edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[package.metadata]
+cargo-fuzz = true
+
 [dependencies]
 libfuzzer-sys = "0.3"
 honggfuzz = { version = "0.5" }
@@ -13,3 +16,9 @@ arbitrary = "0.4.6"
 solana-sdk = { version = "1.3.14", default-features = false }
 spl-token = { version = "=2.0.3", features = [ "no-entrypoint" ] }
 stable-swap = { path = "..", features = ["fuzz", "no-entrypoint"] }
+
+[[bin]]
+name = "fuzz_test"
+path = "src/main.rs"
+test = false
+doc = false

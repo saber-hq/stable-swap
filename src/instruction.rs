@@ -17,6 +17,7 @@ use std::mem::size_of;
 /// Initialize instruction data
 #[repr(C)]
 #[derive(Debug, PartialEq)]
+#[cfg_attr(feature = "fuzz", derive(arbitrary::Arbitrary))]
 pub struct InitializeData {
     /// Nonce used to create valid program address
     pub nonce: u8,
@@ -29,6 +30,7 @@ pub struct InitializeData {
 /// Swap instruction data
 #[repr(C)]
 #[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "fuzz", derive(arbitrary::Arbitrary))]
 pub struct SwapData {
     /// SOURCE amount to transfer, output to DESTINATION is based on the exchange rate
     pub amount_in: u64,
@@ -39,6 +41,7 @@ pub struct SwapData {
 /// Deposit instruction data
 #[repr(C)]
 #[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "fuzz", derive(arbitrary::Arbitrary))]
 pub struct DepositData {
     /// Token A amount to deposit
     pub token_a_amount: u64,
@@ -51,6 +54,7 @@ pub struct DepositData {
 /// Withdraw instruction data
 #[repr(C)]
 #[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "fuzz", derive(arbitrary::Arbitrary))]
 pub struct WithdrawData {
     /// Amount of pool tokens to burn. User receives an output of token a
     /// and b based on the percentage of the pool tokens that are returned.
@@ -64,6 +68,7 @@ pub struct WithdrawData {
 /// Withdraw instruction data
 #[repr(C)]
 #[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "fuzz", derive(arbitrary::Arbitrary))]
 pub struct WithdrawOneData {
     /// Amount of pool tokens to burn. User receives an output of token a
     /// or b based on the percentage of the pool tokens that are returned.
@@ -354,6 +359,7 @@ pub fn set_new_fees(
 /// Instructions supported by the SwapInfo program.
 #[repr(C)]
 #[derive(Debug, PartialEq)]
+#[cfg_attr(feature = "fuzz", derive(arbitrary::Arbitrary))]
 pub enum SwapInstruction {
     ///   Initializes a new SwapInfo.
     ///

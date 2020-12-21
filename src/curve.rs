@@ -112,9 +112,9 @@ impl StableSwap {
             Some(0.into())
         } else {
             let amp_factor = self.compute_amp_factor()?;
-
             let amount_a_times_coins = amount_a.checked_mul(N_COINS.into())?;
             let amount_b_times_coins = amount_b.checked_mul(N_COINS.into())?;
+
             // Newton's method to approximate D
             let mut d_prev: U256;
             let mut d = sum_x;
@@ -133,6 +133,7 @@ impl StableSwap {
                     break;
                 }
             }
+
             Some(d)
         }
     }

@@ -529,6 +529,7 @@ dependencies = [
  "arbitrary",
  "honggfuzz",
  "libfuzzer-sys",
+ "rand",
  "solana-sdk",
  "spl-token",
  "stable-swap",

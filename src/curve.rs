@@ -297,8 +297,10 @@ impl StableSwap {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use proptest::prelude::*;
     use rand::Rng;
     use sim::{Model, MODEL_FEE_DENOMINATOR, MODEL_FEE_NUMERATOR};
+    use std::cmp;
 
     const MODEL_FEES: Fees = Fees {
         admin_trade_fee_numerator: 0,
@@ -417,8 +419,25 @@ mod tests {
         )
     }
 
+    proptest! {
+        #[test]
+        fn test_curve_math(
+            current_ts in ZERO_TS..i64::MAX,
+            amp_factor in MIN_AMP..MAX_AMP,
+            amount_a in 1..u64::MAX,    // Start at 1 to prevent divide by 0 when computing d
+            amount_b in 1..u64::MAX,    // Start at 1 to prevent divide by 0 when computing d
+        ) {
+            let start_ramp_ts = cmp::max(0, current_ts - MIN_RAMP_DURATION);
+            let stop_ramp_ts = cmp::min(i64::MAX, current_ts + MIN_RAMP_DURATION);
+            let model = Model::new(amp_factor.into(), vec![amount_a.into(), amount_b.into()], N_COINS.into());
+            let d = check_d(&model, amount_a, amount_b, current_ts, start_ramp_ts, stop_ramp_ts);
+            check_y(&model, amount_a, d, current_ts, start_ramp_ts, stop_ramp_ts);
+        }
+    }
+
     #[test]
-    fn test_curve_math() {
+    fn test_curve_math_specific() {
+        // Specific cases
         let current_ts = ZERO_TS;
         let start_ramp_ts = ZERO_TS;
         let stop_ramp_ts = ZERO_TS;
@@ -432,83 +451,6 @@ mod tests {
             stop_ramp_ts,
         );
 
-        let amount_a = u64::MAX;
-        let amount_b = u64::MAX;
-        let model_a1 = Model::new(1, vec![amount_a.into(), amount_b.into()], N_COINS.into());
-        let d = check_d(
-            &model_a1,
-            amount_a,
-            amount_b,
-            current_ts,
-            start_ramp_ts,
-            stop_ramp_ts,
-        );
-        check_y(&model_a1, 1, d, current_ts, start_ramp_ts, stop_ramp_ts);
-        check_y(&model_a1, 1000, d, current_ts, start_ramp_ts, stop_ramp_ts);
-        check_y(
-            &model_a1,
-            amount_a.into(),
-            d,
-            current_ts,
-            start_ramp_ts,
-            stop_ramp_ts,
-        );
-
-        let model_a100 = Model::new(100, vec![amount_a.into(), amount_b.into()], N_COINS.into());
-        let d = check_d(
-            &model_a100,
-            amount_a.into(),
-            amount_b.into(),
-            current_ts,
-            start_ramp_ts,
-            stop_ramp_ts,
-        );
-        check_y(&model_a100, 1, d, current_ts, start_ramp_ts, stop_ramp_ts);
-        check_y(
-            &model_a100,
-            1000,
-            d,
-            current_ts,
-            start_ramp_ts,
-            stop_ramp_ts,
-        );
-        check_y(
-            &model_a100,
-            amount_a.into(),
-            d,
-            current_ts,
-            start_ramp_ts,
-            stop_ramp_ts,
-        );
-
-        let model_a1000 = Model::new(1000, vec![amount_a.into(), amount_b.into()], N_COINS.into());
-        let d = check_d(
-            &model_a1000,
-            amount_a.into(),
-            amount_b.into(),
-            current_ts,
-            start_ramp_ts,
-            stop_ramp_ts,
-        );
-        check_y(&model_a1000, 1, d, current_ts, start_ramp_ts, stop_ramp_ts);
-        check_y(
-            &model_a1000,
-            1000,
-            d,
-            current_ts,
-            start_ramp_ts,
-            stop_ramp_ts,
-        );
-        check_y(
-            &model_a1000,
-            amount_a.into(),
-            d,
-            current_ts,
-            start_ramp_ts,
-            stop_ramp_ts,
-        );
-
-        // Specific cases:
         let amount_a: u64 = 10461290657254161082;
         let amount_b: u64 = 12507100355549196829;
         let model = Model::new(1188, vec![amount_a.into(), amount_b.into()], N_COINS.into());
@@ -529,6 +471,7 @@ mod tests {
             start_ramp_ts,
             stop_ramp_ts,
         );
+
         let amount_a: u64 = 8625384579714585493;
         let amount_b: u64 = 4925481879098236733;
         let model = Model::new(9, vec![amount_a.into(), amount_b.into()], N_COINS.into());
@@ -671,70 +614,28 @@ mod tests {
         );
     }
 
-    #[test]
-    fn test_swap_calculation() {
-        let current_ts: i64 = ZERO_TS;
-        let start_ramp_ts: i64 = ZERO_TS;
-        let stop_ramp_ts: i64 = ZERO_TS;
-        let source_amount: u64 = u64::MAX;
-        let swap_source_amount: u64 = u64::MAX;
-        let swap_destination_amount: u64 = u64::MAX;
-
-        let amp_factor = 1;
-        check_swap(
-            amp_factor,
-            amp_factor,
-            current_ts,
-            start_ramp_ts,
-            stop_ramp_ts,
-            source_amount,
-            swap_source_amount,
-            swap_destination_amount,
-        );
-        let amp_factor = 10;
-        check_swap(
-            amp_factor,
-            amp_factor,
-            current_ts,
-            start_ramp_ts,
-            stop_ramp_ts,
-            source_amount,
-            swap_source_amount,
-            swap_destination_amount,
-        );
-        let amp_factor = 100;
-        check_swap(
-            amp_factor,
-            amp_factor,
-            current_ts,
-            start_ramp_ts,
-            stop_ramp_ts,
-            source_amount,
-            swap_source_amount,
-            swap_destination_amount,
-        );
-        let amp_factor = 1000;
-        check_swap(
-            amp_factor,
-            amp_factor,
-            current_ts,
-            start_ramp_ts,
-            stop_ramp_ts,
-            source_amount,
-            swap_source_amount,
-            swap_destination_amount,
-        );
-        let amp_factor = 10_000;
-        check_swap(
-            amp_factor,
-            amp_factor,
-            current_ts,
-            start_ramp_ts,
-            stop_ramp_ts,
-            source_amount,
-            swap_source_amount,
-            swap_destination_amount,
-        );
+    proptest! {
+        #[test]
+        fn test_swap_calculation(
+            current_ts in ZERO_TS..i64::MAX,
+            amp_factor in MIN_AMP..MAX_AMP,
+            source_amount in 0..u64::MAX,
+            swap_source_amount in 0..u64::MAX,
+            swap_destination_amount in 0..u64::MAX,
+        ) {
+            let start_ramp_ts = cmp::max(0, current_ts - MIN_RAMP_DURATION);
+            let stop_ramp_ts = cmp::min(i64::MAX, current_ts + MIN_RAMP_DURATION);
+            check_swap(
+                amp_factor,
+                amp_factor,
+                current_ts,
+                start_ramp_ts,
+                stop_ramp_ts,
+                source_amount,
+                swap_source_amount,
+                swap_destination_amount,
+            );
+        }
     }
 
     #[test]
@@ -822,76 +723,30 @@ mod tests {
         );
     }
 
-    #[test]
-    fn test_compute_withdraw_one() {
-        let current_ts = ZERO_TS;
-        let start_ramp_ts = ZERO_TS;
-        let stop_ramp_ts = ZERO_TS;
-        let pool_token_supply = u64::MAX;
-        let pool_token_amount = pool_token_supply / 2;
-        let swap_base_amount = pool_token_supply / 2;
-        let swap_quote_amount = pool_token_supply / 2;
-
-        let amp_factor = 1;
-        check_withdraw_one(
-            amp_factor,
-            amp_factor,
-            current_ts,
-            start_ramp_ts,
-            stop_ramp_ts,
-            pool_token_amount,
-            pool_token_supply,
-            swap_base_amount,
-            swap_quote_amount,
-        );
-        let amp_factor = 10;
-        check_withdraw_one(
-            amp_factor,
-            amp_factor,
-            current_ts,
-            start_ramp_ts,
-            stop_ramp_ts,
-            pool_token_amount,
-            pool_token_supply,
-            swap_base_amount,
-            swap_quote_amount,
-        );
-        let amp_factor = 100;
-        check_withdraw_one(
-            amp_factor,
-            amp_factor,
-            current_ts,
-            start_ramp_ts,
-            stop_ramp_ts,
-            pool_token_amount,
-            pool_token_supply,
-            swap_base_amount,
-            swap_quote_amount,
-        );
-        let amp_factor = 1000;
-        check_withdraw_one(
-            amp_factor,
-            amp_factor,
-            current_ts,
-            start_ramp_ts,
-            stop_ramp_ts,
-            pool_token_amount,
-            pool_token_supply,
-            swap_base_amount,
-            swap_quote_amount,
-        );
-        let amp_factor = 10_000;
-        check_withdraw_one(
-            amp_factor,
-            amp_factor,
-            current_ts,
-            start_ramp_ts,
-            stop_ramp_ts,
-            pool_token_amount,
-            pool_token_supply,
-            swap_base_amount,
-            swap_quote_amount,
-        );
+    proptest! {
+        #[test]
+        fn test_compute_withdraw_one(
+            current_ts in ZERO_TS..i64::MAX,
+            amp_factor in MIN_AMP..MAX_AMP,
+            pool_token_amount in 1..u64::MAX / 2,
+            swap_base_amount in 1..u64::MAX / 2,
+            swap_quote_amount in 1..u64::MAX / 2,
+        ) {
+            let pool_token_supply = u64::MAX;
+            let start_ramp_ts = cmp::max(0, current_ts - MIN_RAMP_DURATION);
+            let stop_ramp_ts = cmp::min(i64::MAX, current_ts + MIN_RAMP_DURATION);
+            check_withdraw_one(
+                amp_factor,
+                amp_factor,
+                current_ts,
+                start_ramp_ts,
+                stop_ramp_ts,
+                pool_token_amount,
+                pool_token_supply,
+                swap_base_amount,
+                swap_quote_amount,
+            );
+        }
     }
 
     #[test]

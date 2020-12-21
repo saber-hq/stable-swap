@@ -1,7 +1,14 @@
 #![no_main]
-use arbitrary::{Arbitrary};
+
+use arbitrary::Arbitrary;
 use libfuzzer_sys::fuzz_target;
-use stable_swap::{fees::Fees, instruction::*};
+use rand::Rng;
+use stable_swap::{
+    curve::{MAX_AMP, MIN_AMP},
+    fees::Fees,
+    instruction::*,
+    utils::{invoke_signed},
+};
 
 #[derive(Debug, Arbitrary, Clone)]
 enum Action {
@@ -61,5 +68,22 @@ const INITIAL_USER_TOKEN_B_AMOUNT: u64 = 3_000_000_000;
 fuzz_target!(|actions: Vec<Action>| { run_actions(actions) });
 
 fn run_actions(actions: Vec<Action>) {
-    // TODO
+    let admin_trade_fee_numerator = 25;
+    let admin_trade_fee_denominator = 10000;
+    let admin_withdraw_fee_numerator = 30;
+    let admin_withdraw_fee_denominator = 10000;
+    let trade_fee_numerator = 25;
+    let trade_fee_denominator = 10000;
+    let withdraw_fee_numerator = 30;
+    let withdraw_fee_denominator = 10000;
+    let fees = Fees {
+        trade_fee_numerator,
+        trade_fee_denominator,
+        withdraw_fee_numerator,
+        withdraw_fee_denominator,
+        admin_trade_fee_numerator,
+        admin_trade_fee_denominator,
+        admin_withdraw_fee_numerator,
+        admin_withdraw_fee_denominator,
+    };
 }

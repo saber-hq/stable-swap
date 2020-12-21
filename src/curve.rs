@@ -111,27 +111,19 @@ impl StableSwap {
         if sum_x == 0.into() {
             Some(0.into())
         } else {
-            println!("hello??");
             let amp_factor = self.compute_amp_factor()?;
-            println!("amp_factor: {}", amp_factor);
 
             let amount_a_times_coins = amount_a.checked_mul(N_COINS.into())?;
             let amount_b_times_coins = amount_b.checked_mul(N_COINS.into())?;
-            println!("before loop");
             // Newton's method to approximate D
             let mut d_prev: U256;
             let mut d = sum_x;
             for _ in 0..256 {
                 let mut d_prod = d;
-                println!("d_prod1: {}", d_prod);
                 d_prod = d_prod.checked_mul(d)?.checked_div(amount_a_times_coins)?;
-                println!("d_prod2: {}", d_prod);
                 d_prod = d_prod.checked_mul(d)?.checked_div(amount_b_times_coins)?;
-                println!("d_prod3: {}", d_prod);
                 d_prev = d;
-                println!("before next d");
                 d = self.compute_next_d(amp_factor, d, d_prod, sum_x)?;
-                println!("after next d");
                 // Equality with the precision of 1
                 if d > d_prev {
                     if d.checked_sub(d_prev)? <= 1.into() {
@@ -141,7 +133,6 @@ impl StableSwap {
                     break;
                 }
             }
-            println!("after loop");
             Some(d)
         }
     }
@@ -458,20 +449,6 @@ mod tests {
             start_ramp_ts,
             stop_ramp_ts,
         );
-
-        let start_ramp_ts = 1;
-        let amount_a: u64 = 1;
-        let amount_b: u64 = 1;
-        let model = Model::new(1, vec![amount_a.into(), amount_b.into()], N_COINS.into());
-        let d = check_d(
-            &model,
-            amount_a,
-            amount_b,
-            current_ts,
-            start_ramp_ts,
-            stop_ramp_ts,
-        );
-        check_y(&model, amount_a, d, current_ts, start_ramp_ts, stop_ramp_ts);
 
         let amount_a: u64 = 10461290657254161082;
         let amount_b: u64 = 12507100355549196829;

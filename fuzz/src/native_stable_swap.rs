@@ -265,4 +265,83 @@ impl NativeStableSwap {
             ],
         )
     }
+
+    pub fn deposit(
+        &mut self,
+        current_ts: i64,
+        user_account: &mut NativeAccountData,
+        token_a_account: &mut NativeAccountData,
+        token_b_account: &mut NativeAccountData,
+        pool_token_account: &mut NativeAccountData,
+        instruction_data: DepositData,
+    ) -> ProgramResult {
+        do_process_instruction(
+            approve(
+                &self.token_program_account.key,
+                &token_a_account.key,
+                &self.authority_account.key,
+                &user_account.key,
+                &[],
+                instruction_data.token_a_amount,
+            )
+            .unwrap(),
+            &[
+                token_a_account.as_account_info(),
+                self.authority_account.as_account_info(),
+                user_account.as_account_info(),
+            ],
+        )
+        .unwrap();
+
+        do_process_instruction(
+            approve(
+                &self.token_program_account.key,
+                &token_b_account.key,
+                &self.authority_account.key,
+                &user_account.key,
+                &[],
+                instruction_data.token_b_amount,
+            )
+            .unwrap(),
+            &[
+                token_b_account.as_account_info(),
+                self.authority_account.as_account_info(),
+                user_account.as_account_info(),
+            ],
+        )
+        .unwrap();
+
+        let deposit_instruction = deposit(
+            &stable_swap::id(),
+            &spl_token::id(),
+            &self.swap_account.key,
+            &self.authority_account.key,
+            &token_a_account.key,
+            &token_b_account.key,
+            &self.token_a_account.key,
+            &self.token_b_account.key,
+            &self.pool_mint_account.key,
+            &pool_token_account.key,
+            instruction_data.token_a_amount,
+            instruction_data.token_b_amount,
+            instruction_data.min_mint_amount,
+        )
+        .unwrap();
+
+        do_process_instruction(
+            deposit_instruction,
+            &[
+                self.swap_account.as_account_info(),
+                self.authority_account.as_account_info(),
+                token_a_account.as_account_info(),
+                token_b_account.as_account_info(),
+                self.token_b_account.as_account_info(),
+                self.token_a_account.as_account_info(),
+                self.pool_mint_account.as_account_info(),
+                pool_token_account.as_account_info(),
+                self.token_program_account.as_account_info(),
+                NativeAccountData::new_clock(current_ts).as_account_info(),
+            ],
+        )
+    }
 }

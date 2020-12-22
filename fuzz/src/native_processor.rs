@@ -1,10 +1,5 @@
 use crate::native_account_data::NativeAccountData;
-use solana_sdk::{
-    account::Account,
-    account_info::AccountInfo,
-    entrypoint::ProgramResult,
-    instruction::Instruction,
-};
+use solana_sdk::{account_info::AccountInfo, entrypoint::ProgramResult, instruction::Instruction};
 
 pub fn do_process_instruction(instruction: Instruction, accounts: &[AccountInfo]) -> ProgramResult {
     // approximate the logic in the actual runtime which runs the instruction

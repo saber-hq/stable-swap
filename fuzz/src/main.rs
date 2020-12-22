@@ -7,7 +7,7 @@ use stable_swap::{
     curve::{MAX_AMP, MIN_AMP},
     fees::Fees,
     instruction::*,
-    utils::{invoke_signed},
+    utils::invoke_signed,
 };
 
 #[derive(Debug, Arbitrary, Clone)]

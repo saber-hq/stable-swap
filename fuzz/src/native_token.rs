@@ -1,9 +1,10 @@
 use crate::native_account_data::NativeAccountData;
-
 use solana_sdk::pubkey::Pubkey;
-
-use spl_token::{option::COption, pack::Pack as TokenPack, state::{Account as TokenAccount, AccountState as TokenAccountState, Mint}};
-
+use spl_token::{
+    option::COption,
+    pack::Pack as TokenPack,
+    state::{Account as TokenAccount, AccountState as TokenAccountState, Mint},
+};
 
 pub fn create_mint(owner: &Pubkey) -> NativeAccountData {
     let mut account_data = NativeAccountData::new(Mint::LEN, spl_token::id());

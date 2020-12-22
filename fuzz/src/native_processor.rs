@@ -1,31 +1,34 @@
 use crate::native_account_data::NativeAccountData;
-
-use stable_swap::{processor::Processor}
-
 use solana_sdk::{
-    account_info::AccountInfo, entrypoint::ProgramResult, instruction::Instruction,
+    account::Account,
+    account_info::AccountInfo,
+    entrypoint::ProgramResult,
+    instruction::Instruction,
 };
 
-use spl_token::processor::Processor as SplProcessor;
-
-pub fn do_process_instruction(
-    instruction: Instruction,
-    accounts: Vec<&mut Account>,
-) -> ProgramResult {
+pub fn do_process_instruction(instruction: Instruction, accounts: &[AccountInfo]) -> ProgramResult {
     // approximate the logic in the actual runtime which runs the instruction
     // and only updates accounts if the instruction is successful
-    let mut account_clones = accounts.iter().map(|x| (*x).clone()).collect::<Vec<_>>();
-    let mut meta = instruction
-        .accounts
+    let mut account_data = accounts
         .iter()
-        .zip(account_clones.iter_mut())
-        .map(|(account_meta, account)| (&account_meta.pubkey, account_meta.is_signer, account))
+        .map(NativeAccountData::new_from_account_info)
         .collect::<Vec<_>>();
-    let mut account_infos = create_is_signer_account_infos(&mut meta);
-    let res = if instruction.program_id == SWAP_PROGRAM_ID {
-        Processor::process(&instruction.program_id, &account_infos, &instruction.data)
+    let account_infos = account_data
+        .iter_mut()
+        .map(NativeAccountData::as_account_info)
+        .collect::<Vec<_>>();
+    let res = if instruction.program_id == stable_swap::id() {
+        stable_swap::processor::Processor::process(
+            &instruction.program_id,
+            &account_infos,
+            &instruction.data,
+        )
     } else {
-        SplProcessor::process(&instruction.program_id, &account_infos, &instruction.data)
+        spl_token::processor::Processor::process(
+            &instruction.program_id,
+            &account_infos,
+            &instruction.data,
+        )
     };
 
     if res.is_ok() {
@@ -35,13 +38,14 @@ pub fn do_process_instruction(
             .zip(accounts)
             .map(|(account_meta, account)| (&account_meta.pubkey, account))
             .collect::<Vec<_>>();
-        for account_info in account_infos.iter_mut() {
+        for account_info in account_infos.iter() {
             for account_meta in account_metas.iter_mut() {
                 if account_info.key == account_meta.0 {
                     let account = &mut account_meta.1;
-                    account.owner = *account_info.owner;
-                    account.lamports = **account_info.lamports.borrow();
-                    account.data = account_info.data.borrow().to_vec();
+                    let mut lamports = account.lamports.borrow_mut();
+                    **lamports = **account_info.lamports.borrow();
+                    let mut data = account.data.borrow_mut();
+                    data.clone_from_slice(*account_info.data.borrow());
                 }
             }
         }

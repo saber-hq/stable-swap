@@ -527,7 +527,6 @@ name = "fuzz"
 version = "0.1.0"
 dependencies = [
  "arbitrary",
- "honggfuzz",
  "libfuzzer-sys",
  "rand",
  "solana-sdk",
@@ -632,17 +631,6 @@ dependencies = [
  "digest 0.8.1",
  "generic-array 0.12.3",
  "hmac",
-]
-
-[[package]]
-name = "honggfuzz"
-version = "0.5.51"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6f085725a5828d7e959f014f624773094dfe20acc91be310ef106923c30594bc"
-dependencies = [
- "arbitrary",
- "lazy_static",
- "memmap",
 ]
 
 [[package]]
@@ -888,16 +876,6 @@ name = "memchr"
 version = "2.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0ee1c47aaa256ecabcaea351eae4a9b01ef39ed810004e298d2511ed284b1525"
-
-[[package]]
-name = "memmap"
-version = "0.7.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6585fd95e7bb50d6cc31e20d4cf9afb4e2ba16c5846fc76793f11218da9c475b"
-dependencies = [
- "libc",
- "winapi 0.3.9",
-]
 
 [[package]]
 name = "memmap2"

@@ -83,7 +83,6 @@ pub mod test_utils {
     };
     use spl_token::{
         instruction::{approve, initialize_account, initialize_mint, mint_to},
-        pack::Pack as TokenPack,
         state::{Account as SplAccount, Mint as SplMint},
     };
 

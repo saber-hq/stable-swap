@@ -208,4 +208,61 @@ impl NativeStableSwap {
             ],
         )
     }
+
+    pub fn swap_b_to_a(
+        &mut self,
+        current_ts: i64,
+        user_account: &mut NativeAccountData,
+        token_a_account: &mut NativeAccountData,
+        token_b_account: &mut NativeAccountData,
+        instruction_data: SwapData,
+    ) -> ProgramResult {
+        do_process_instruction(
+            approve(
+                &self.token_program_account.key,
+                &token_b_account.key,
+                &self.authority_account.key,
+                &user_account.key,
+                &[],
+                instruction_data.amount_in,
+            )
+            .unwrap(),
+            &[
+                token_b_account.as_account_info(),
+                self.authority_account.as_account_info(),
+                user_account.as_account_info(),
+            ],
+        )
+        .unwrap();
+
+        let swap_instruction = swap(
+            &stable_swap::id(),
+            &spl_token::id(),
+            &self.swap_account.key,
+            &self.authority_account.key,
+            &token_b_account.key,
+            &self.token_b_account.key,
+            &self.token_a_account.key,
+            &token_a_account.key,
+            &self.admin_fee_b_account.key,
+            instruction_data.amount_in,
+            instruction_data.minimum_amount_out,
+        )
+        .unwrap();
+
+        do_process_instruction(
+            swap_instruction,
+            &[
+                self.swap_account.as_account_info(),
+                self.authority_account.as_account_info(),
+                token_b_account.as_account_info(),
+                self.token_b_account.as_account_info(),
+                self.token_a_account.as_account_info(),
+                token_a_account.as_account_info(),
+                self.admin_fee_a_account.as_account_info(),
+                self.token_program_account.as_account_info(),
+                NativeAccountData::new_clock(current_ts).as_account_info(),
+            ],
+        )
+    }
 }

@@ -1,5 +1,6 @@
 #![no_main]
 
+use fuzz::native_stable_swap::TokenType;
 use arbitrary::Arbitrary;
 use libfuzzer_sys::fuzz_target;
 use rand::Rng;
@@ -28,26 +29,23 @@ enum Action {
         token_a_id: AccountId,
         token_b_id: AccountId,
         pool_token_id: AccountId,
-        deposit_type: DepositTokenType,
+        deposit_token_type: TokenType,
         instruction_data: DepositData,
     },
     Withdraw {
+        token_a_id: AccountId,
+        token_b_id: AccountId,
         pool_token_id: AccountId,
         instruction_data: WithdrawData,
     },
     WithdrawOne {
+        token_a_id: AccountId,
+        token_b_id: AccountId,
         pool_token_id: AccountId,
+        withdraw_token_type: TokenType,
         instruction_data: WithdrawOneData,
     },
 }
-
-/// Helper enum to tell which token to deposit for DepositOne.
-#[derive(Debug, Arbitrary, Clone)]
-enum DepositTokenType {
-    TokenA,
-    TokenB,
-}
-
 /// Helper enum to tell which direction a swap is meant to go.
 #[derive(Debug, Arbitrary, Clone)]
 enum TradeDirection {
@@ -86,4 +84,6 @@ fn run_actions(actions: Vec<Action>) {
         admin_withdraw_fee_numerator,
         admin_withdraw_fee_denominator,
     };
+
+    // TODO: Fuzz testing
 }

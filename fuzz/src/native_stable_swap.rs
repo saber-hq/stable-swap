@@ -1,11 +1,18 @@
 use crate::native_account_data::NativeAccountData;
 use crate::native_processor::do_process_instruction;
 use crate::native_token;
+use arbitrary::Arbitrary;
 use solana_sdk::{
     bpf_loader, entrypoint::ProgramResult, program_pack::Pack, pubkey::Pubkey, system_program,
 };
 use spl_token::instruction::approve;
 use stable_swap::{fees::Fees, instruction::*, state::SwapInfo};
+/// Helper enum to tell which token for DepositOne or WithdrawOne.
+#[derive(Arbitrary, Clone, Debug, PartialEq)]
+pub enum TokenType {
+    TokenA,
+    TokenB,
+}
 
 fn create_program_account(program_id: Pubkey) -> NativeAccountData {
     let mut account_data = NativeAccountData::new(0, bpf_loader::id());
@@ -45,8 +52,6 @@ impl NativeStableSwap {
 
         let mut pool_mint_account = native_token::create_mint(&authority_account.key);
         let mut pool_token_account =
-            native_token::create_token_account(&mut pool_mint_account, &user_account.key, 0);
-        let mut pool_fee_account =
             native_token::create_token_account(&mut pool_mint_account, &user_account.key, 0);
         let mut token_a_mint_account = native_token::create_mint(&user_account.key);
         let mut admin_fee_a_account =
@@ -404,6 +409,82 @@ impl NativeStableSwap {
                 self.admin_fee_a_account.as_account_info(),
                 self.admin_fee_b_account.as_account_info(),
                 self.token_program_account.as_account_info(),
+            ],
+        )
+    }
+
+    pub fn withdraw_one(
+        &mut self,
+        current_ts: i64,
+        user_account: &mut NativeAccountData,
+        token_account: &mut NativeAccountData,
+        pool_token_account: &mut NativeAccountData,
+        token_type: TokenType,
+        instruction_data: WithdrawOneData,
+    ) -> ProgramResult {
+        do_process_instruction(
+            approve(
+                &self.token_program_account.key,
+                &pool_token_account.key,
+                &self.authority_account.key,
+                &user_account.key,
+                &[],
+                instruction_data.pool_token_amount,
+            )
+            .unwrap(),
+            &[
+                pool_token_account.as_account_info(),
+                self.authority_account.as_account_info(),
+                user_account.as_account_info(),
+            ],
+        )
+        .unwrap();
+
+        let mut swap_base_token_account = if token_type == TokenType::TokenA {
+            self.token_a_account.clone()
+        } else {
+            self.token_b_account.clone()
+        };
+        let mut swap_quote_token_account = if token_type == TokenType::TokenA {
+            self.token_b_account.clone()
+        } else {
+            self.token_a_account.clone()
+        };
+        let mut admin_fee_destination_account = if token_type == TokenType::TokenA {
+            self.admin_fee_a_account.clone()
+        } else {
+            self.admin_fee_b_account.clone()
+        };
+
+        let withdraw_one_instruction = withdraw_one(
+            &stable_swap::id(),
+            &spl_token::id(),
+            &self.swap_account.key,
+            &self.authority_account.key,
+            &self.pool_mint_account.key,
+            &pool_token_account.key,
+            &swap_base_token_account.key,
+            &swap_quote_token_account.key,
+            &token_account.key,
+            &admin_fee_destination_account.key,
+            instruction_data.pool_token_amount,
+            instruction_data.minimum_token_amount,
+        )
+        .unwrap();
+
+        do_process_instruction(
+            withdraw_one_instruction,
+            &[
+                self.swap_account.as_account_info(),
+                self.authority_account.as_account_info(),
+                self.pool_mint_account.as_account_info(),
+                pool_token_account.as_account_info(),
+                swap_base_token_account.as_account_info(),
+                swap_quote_token_account.as_account_info(),
+                token_account.as_account_info(),
+                admin_fee_destination_account.as_account_info(),
+                self.token_program_account.as_account_info(),
+                NativeAccountData::new_clock(current_ts).as_account_info(),
             ],
         )
     }

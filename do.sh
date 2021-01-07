@@ -2,6 +2,8 @@
 
 cd "$(dirname "$0")"
 
+solana_version="1.5.1"
+
 usage() {
     cat <<EOF
 Usage: do.sh <action> <action specific arguments>
@@ -21,26 +23,15 @@ Supported actions:
 EOF
 }
 
-sdkParentDir=bin
-sdkDir="$sdkParentDir"/bpf-sdk
-profile=bpfel-unknown-unknown/release
-
 perform_action() {
     set -e
     projectDir="$PWD"
     targetDir=target
     case "$1" in
     build)
-        if [[ -f "$projectDir"/Xargo.toml ]]; then
-          "$sdkDir"/rust/build.sh "$projectDir"
-
-          so_path="$targetDir/$profile"
-          so_name="stable_swap"
-          cp "$so_path/${so_name}.so" "$so_path/${so_name}_debug.so"
-          "$sdkDir"/dependencies/llvm-native/bin/llvm-objcopy --strip-all "$so_path/${so_name}.so" "$so_path/$so_name.so"
-        else
-            echo "$projectDir does not contain a program, skipping"
-        fi
+        (
+            cargo build-bpf
+        )
         ;;
     build-lib)
         (
@@ -50,12 +41,14 @@ perform_action() {
         )
         ;;
     clean)
-            "$sdkDir"/rust/clean.sh $PWD
+        (
+            cargo clean
             rm -rf lib/client/lib
+        )
         ;;
     clippy)
         (
-            cargo +nightly clippy  --features=program ${@:2}
+            cargo +nightly clippy ${@:2}
         )
         ;;
     e2e-test)
@@ -81,45 +74,9 @@ perform_action() {
         ;;
     dump)
         # Dump depends on tools that are not installed by default and must be installed manually
-        # - greadelf
         # - rustfilt
         (
-            pwd
-            "$0" build "$2"
-
-            so_path="$targetDir/$profile"
-            so_name="${2//\-/_}"
-            so="$so_path/${so_name}_debug.so"
-            dump="$so_path/${so_name}_dump"
-
-            echo $so_path
-            echo $so_name
-            echo $so
-            echo $dump
-
-            if [ -f "$so" ]; then
-                ls \
-                    -la \
-                    "$so" \
-                    >"${dump}_mangled.txt"
-                greadelf \
-                    -aW \
-                    "$so" \
-                    >>"${dump}_mangled.txt"
-                "$sdkDir/dependencies/llvm-native/bin/llvm-objdump" \
-                    -print-imm-hex \
-                    --source \
-                    --disassemble \
-                    "$so" \
-                    >>"${dump}_mangled.txt"
-                sed \
-                    s/://g \
-                    <"${dump}_mangled.txt" |
-                    rustfilt \
-                        >"${dump}.txt"
-            else
-                echo "Warning: No dump created, cannot find: $so"
-            fi
+            cargo build-bpf --dump ${@:2}
         )
         ;;
     fmt)
@@ -137,12 +94,16 @@ perform_action() {
         ;;
     test)
         (
-            cargo test --features=program ${@:2}
+            cargo test-bpf ${@:2}
         )
         ;;
     update)
-            mkdir -p $sdkParentDir
-            ./scripts/bpf-sdk-install.sh $sdkParentDir
+            which solana-install
+            if [ $? -eq 1 ]; then
+                echo Installing Solana tool suite ...
+                sh -c "$(curl -sSfL https://release.solana.com/v${solana_version}/install)"
+            fi
+            solana-install update
         ;;
     *)
         echo "Error: Unknown command"

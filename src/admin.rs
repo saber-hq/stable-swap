@@ -1,7 +1,5 @@
 //! Module for processing admin-only instructions.
 
-#![cfg(feature = "program")]
-
 use crate::{
     bn::U256,
     curve::{StableSwap, MAX_AMP, MIN_AMP, MIN_RAMP_DURATION, ZERO_TS},
@@ -11,10 +9,10 @@ use crate::{
     state::SwapInfo,
     utils,
 };
-use solana_sdk::{
+use solana_program::{
     account_info::{next_account_info, AccountInfo},
     entrypoint::ProgramResult,
-    info,
+    msg,
     program_error::ProgramError,
     program_pack::Pack,
     pubkey::Pubkey,
@@ -32,35 +30,35 @@ pub fn process_admin_instruction(
             target_amp,
             stop_ramp_ts,
         }) => {
-            info!("Instruction : RampA");
+            msg!("Instruction : RampA");
             ramp_a(program_id, target_amp, stop_ramp_ts, accounts)
         }
         AdminInstruction::StopRampA => {
-            info!("Instruction: StopRampA");
+            msg!("Instruction: StopRampA");
             stop_ramp_a(program_id, accounts)
         }
         AdminInstruction::Pause => {
-            info!("Instruction: Pause");
+            msg!("Instruction: Pause");
             pause(program_id, accounts)
         }
         AdminInstruction::Unpause => {
-            info!("Instruction: Unpause");
+            msg!("Instruction: Unpause");
             unpause(program_id, accounts)
         }
         AdminInstruction::SetFeeAccount => {
-            info!("Instruction: SetFeeAccount");
+            msg!("Instruction: SetFeeAccount");
             set_fee_account(program_id, accounts)
         }
         AdminInstruction::ApplyNewAdmin => {
-            info!("Instruction: ApplyNewAdmin");
+            msg!("Instruction: ApplyNewAdmin");
             apply_new_admin(program_id, accounts)
         }
         AdminInstruction::CommitNewAdmin => {
-            info!("Instruction: CommitNewAdmin");
+            msg!("Instruction: CommitNewAdmin");
             commit_new_admin(program_id, accounts)
         }
         AdminInstruction::SetNewFees(new_fees) => {
-            info!("Instruction: SetNewFees");
+            msg!("Instruction: SetNewFees");
             set_new_fees(program_id, &new_fees, accounts)
         }
     }
@@ -326,7 +324,7 @@ mod tests {
     use super::*;
     use crate::{
         curve::ZERO_TS,
-        utils::{test_utils::*, TOKEN_PROGRAM_ID},
+        utils::test_utils::*,
     };
     use solana_sdk::clock::Epoch;
 

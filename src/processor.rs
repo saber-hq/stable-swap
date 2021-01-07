@@ -1,9 +1,5 @@
 //! Program state processor
 
-#![cfg(feature = "program")]
-
-#[cfg(not(target_arch = "bpf"))]
-use crate::utils::invoke_signed;
 use crate::{
     admin::process_admin_instruction,
     bn::U256,
@@ -19,13 +15,12 @@ use crate::{
     utils,
 };
 use num_traits::FromPrimitive;
-#[cfg(target_arch = "bpf")]
-use solana_sdk::program::invoke_signed;
-use solana_sdk::{
+use solana_program::{
     account_info::{next_account_info, AccountInfo},
     decode_error::DecodeError,
     entrypoint::ProgramResult,
-    info,
+    msg,
+    program::invoke_signed,
     program_error::PrintProgramError,
     program_error::ProgramError,
     // program_option::COption,
@@ -33,7 +28,7 @@ use solana_sdk::{
     pubkey::Pubkey,
     sysvar::{clock::Clock, Sysvar},
 };
-use spl_token::{pack::Pack as TokenPack, state::Mint};
+use spl_token::state::Mint;
 
 /// Program state handler. (and general curve params)
 pub struct Processor {}
@@ -41,7 +36,7 @@ pub struct Processor {}
 impl Processor {
     /// Unpacks a spl_token `Mint`.
     pub fn unpack_mint(data: &[u8]) -> Result<Mint, SwapError> {
-        TokenPack::unpack(data).map_err(|_| SwapError::ExpectedMint)
+        Mint::unpack(data).map_err(|_| SwapError::ExpectedMint)
     }
 
     /// Issue a spl_token `Burn` instruction.
@@ -747,14 +742,14 @@ impl Processor {
                 amp_factor,
                 fees,
             }) => {
-                info!("Instruction: Init");
+                msg!("Instruction: Init");
                 Self::process_initialize(program_id, nonce, amp_factor, fees, accounts)
             }
             SwapInstruction::Swap(SwapData {
                 amount_in,
                 minimum_amount_out,
             }) => {
-                info!("Instruction: Swap");
+                msg!("Instruction: Swap");
                 Self::process_swap(program_id, amount_in, minimum_amount_out, accounts)
             }
             SwapInstruction::Deposit(DepositData {
@@ -762,7 +757,7 @@ impl Processor {
                 token_b_amount,
                 min_mint_amount,
             }) => {
-                info!("Instruction: Deposit");
+                msg!("Instruction: Deposit");
                 Self::process_deposit(
                     program_id,
                     token_a_amount,
@@ -776,7 +771,7 @@ impl Processor {
                 minimum_token_a_amount,
                 minimum_token_b_amount,
             }) => {
-                info!("Instruction: Withdraw");
+                msg!("Instruction: Withdraw");
                 Self::process_withdraw(
                     program_id,
                     pool_token_amount,
@@ -789,7 +784,7 @@ impl Processor {
                 pool_token_amount,
                 minimum_token_amount,
             }) => {
-                info!("Instruction: Withdraw One");
+                msg!("Instruction: Withdraw One");
                 Self::process_withdraw_one(
                     program_id,
                     pool_token_amount,
@@ -807,71 +802,67 @@ impl PrintProgramError for SwapError {
         E: 'static + std::error::Error + DecodeError<E> + PrintProgramError + FromPrimitive,
     {
         match self {
-            SwapError::AlreadyInUse => info!("Error: Swap account already in use"),
+            SwapError::AlreadyInUse => msg!("Error: Swap account already in use"),
             SwapError::InvalidAdmin => {
-                info!("Error: Address of the admin fee account is incorrect")
+                msg!("Error: Address of the admin fee account is incorrect")
             }
             SwapError::InvalidOwner => {
-                info!("Error: The input account owner is not the program address")
+                msg!("Error: The input account owner is not the program address")
             }
             SwapError::InvalidOutputOwner => {
-                info!("Error: Output pool account owner cannot be the program address")
+                msg!("Error: Output pool account owner cannot be the program address")
             }
             SwapError::InvalidProgramAddress => {
-                info!("Error: Invalid program address generated from nonce and key")
+                msg!("Error: Invalid program address generated from nonce and key")
             }
             SwapError::ExpectedMint => {
-                info!("Error: Deserialized account is not an SPL Token mint")
+                msg!("Error: Deserialized account is not an SPL Token mint")
             }
             SwapError::ExpectedAccount => {
-                info!("Error: Deserialized account is not an SPL Token account")
+                msg!("Error: Deserialized account is not an SPL Token account")
             }
-            SwapError::EmptySupply => info!("Error: Input token account empty"),
-            SwapError::EmptyPool => info!("Error: Pool token supply is 0"),
-            SwapError::InvalidSupply => info!("Error: Pool token mint has a non-zero supply"),
-            SwapError::RepeatedMint => info!("Error: Swap input token accounts have the same mint"),
-            SwapError::InvalidDelegate => info!("Error: Token account has a delegate"),
-            SwapError::InvalidInput => info!("Error: InvalidInput"),
+            SwapError::EmptySupply => msg!("Error: Input token account empty"),
+            SwapError::EmptyPool => msg!("Error: Pool token supply is 0"),
+            SwapError::InvalidSupply => msg!("Error: Pool token mint has a non-zero supply"),
+            SwapError::RepeatedMint => msg!("Error: Swap input token accounts have the same mint"),
+            SwapError::InvalidDelegate => msg!("Error: Token account has a delegate"),
+            SwapError::InvalidInput => msg!("Error: InvalidInput"),
             SwapError::IncorrectSwapAccount => {
-                info!("Error: Address of the provided swap token account is incorrect")
+                msg!("Error: Address of the provided swap token account is incorrect")
             }
             SwapError::IncorrectMint => {
-                info!("Error: Address of the provided token mint is incorrect")
+                msg!("Error: Address of the provided token mint is incorrect")
             }
-            SwapError::CalculationFailure => info!("Error: CalculationFailure"),
-            SwapError::InvalidInstruction => info!("Error: InvalidInstruction"),
+            SwapError::CalculationFailure => msg!("Error: CalculationFailure"),
+            SwapError::InvalidInstruction => msg!("Error: InvalidInstruction"),
             SwapError::ExceededSlippage => {
-                info!("Error: Swap instruction exceeds desired slippage limit")
+                msg!("Error: Swap instruction exceeds desired slippage limit")
             }
-            SwapError::InvalidCloseAuthority => info!("Error: Token account has a close authority"),
+            SwapError::InvalidCloseAuthority => msg!("Error: Token account has a close authority"),
             SwapError::InvalidFreezeAuthority => {
-                info!("Error: Pool token mint has a freeze authority")
+                msg!("Error: Pool token mint has a freeze authority")
             }
-            SwapError::ConversionFailure => info!("Error: Conversion to or from u64 failed"),
+            SwapError::ConversionFailure => msg!("Error: Conversion to or from u64 failed"),
             SwapError::Unauthorized => {
-                info!("Error: Account is not authorized to execute this instruction")
+                msg!("Error: Account is not authorized to execute this instruction")
             }
-            SwapError::IsPaused => info!("Error: Swap pool is paused"),
-            SwapError::RampLocked => info!("Error: Ramp is locked in this time period"),
-            SwapError::InsufficientRampTime => info!("Error: Insufficient ramp time"),
-            SwapError::ActiveTransfer => info!("Error: Active admin transfer in progress"),
-            SwapError::NoActiveTransfer => info!("Error: No active admin transfer in progress"),
-            SwapError::AdminDeadlineExceeded => info!("Error: Admin transfer deadline exceeded"),
-            SwapError::MismatchedDecimals => info!("Error: Token mints must have same decimals"),
+            SwapError::IsPaused => msg!("Error: Swap pool is paused"),
+            SwapError::RampLocked => msg!("Error: Ramp is locked in this time period"),
+            SwapError::InsufficientRampTime => msg!("Error: Insufficient ramp time"),
+            SwapError::ActiveTransfer => msg!("Error: Active admin transfer in progress"),
+            SwapError::NoActiveTransfer => msg!("Error: No active admin transfer in progress"),
+            SwapError::AdminDeadlineExceeded => msg!("Error: Admin transfer deadline exceeded"),
+            SwapError::MismatchedDecimals => msg!("Error: Token mints must have same decimals"),
         }
     }
 }
-
-// Pull in syscall stubs when building for non-BPF targets
-#[cfg(not(target_arch = "bpf"))]
-solana_sdk::program_stubs!();
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::{
         instruction::{deposit, swap, withdraw, withdraw_one},
-        utils::{test_utils::*, SWAP_PROGRAM_ID, TOKEN_PROGRAM_ID},
+        utils::test_utils::*,
     };
     use solana_sdk::account::Account;
     use spl_token::{
@@ -3345,7 +3336,7 @@ mod tests {
                 &user_key,
                 &withdrawer_key,
                 initial_a,
-                initial_b,
+                withdraw_amount,
                 withdraw_amount,
             );
             assert_eq!(

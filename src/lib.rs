@@ -14,8 +14,8 @@ pub mod processor;
 pub mod state;
 pub mod utils;
 
-// Export current solana-sdk types for downstream users who may also be building with a different
-// solana-sdk version
-pub use solana_sdk;
+// Export current solana-program types for downstream users who may also be
+// building with a different solana-program version
+pub use solana_program;
 
-solana_sdk::declare_id!("TokenSwap1111111111111111111111111111111111");
+solana_program::declare_id!("TokenSwap1111111111111111111111111111111111");

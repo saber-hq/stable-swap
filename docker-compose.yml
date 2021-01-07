@@ -8,3 +8,7 @@ services:
       - "9900:9900"
     environment:
       - RUST_LOG=solana_runtime::system_instruction_processor=trace,solana_runtime::message_processor=info,solana_bpf_loader=debug,solana_rbpf=debug
+    ulimits:
+      nofile:
+        soft: 500000
+        hard: 500000

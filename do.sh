@@ -75,14 +75,10 @@ perform_action() {
     dump)
         # Dump depends on tools that are not installed by default and must be installed manually
         # - rustfilt
-        (
             cargo build-bpf --dump ${@:2}
-        )
         ;;
     fmt)
-        (
             cargo fmt ${@:2}
-        )
         ;;
     help)
             usage
@@ -93,17 +89,17 @@ perform_action() {
             yarn --cwd lib/client new-swap
         ;;
     test)
-        (
             cargo test-bpf ${@:2}
-        )
         ;;
     update)
+        (
             which solana-install
             if [ $? -eq 1 ]; then
                 echo Installing Solana tool suite ...
                 sh -c "$(curl -sSfL https://release.solana.com/v${solana_version}/install)"
             fi
             solana-install update
+        )
         ;;
     *)
         echo "Error: Unknown command"

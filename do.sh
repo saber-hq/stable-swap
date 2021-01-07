@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 
+set -ex
 cd "$(dirname "$0")"
 
 solana_version="1.5.1"
@@ -24,9 +25,7 @@ EOF
 }
 
 perform_action() {
-    set -e
-    projectDir="$PWD"
-    targetDir=target
+    set -ex
     case "$1" in
     build)
         (
@@ -35,7 +34,6 @@ perform_action() {
         ;;
     build-lib)
         (
-            echo "build $projectDir"
             export RUSTFLAGS="${@:2}"
             cargo build
         )
@@ -109,7 +107,6 @@ perform_action() {
     esac
 }
 
-set -e
 if [[ $1 == "update" ]]; then
     perform_action "$1"
     exit

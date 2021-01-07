@@ -1,8 +1,8 @@
 //! Utility methods
 
 use crate::error::SwapError;
-use solana_program::pubkey::Pubkey;
 use solana_program::program_pack::Pack;
+use solana_program::pubkey::Pubkey;
 use spl_token::state::Account;
 
 /// Calculates the authority id by generating a program address.
@@ -22,17 +22,12 @@ pub mod test_utils {
         curve::ZERO_TS, fees::Fees, instruction::*, processor::Processor, state::SwapInfo,
     };
     use solana_program::{
-        clock::Clock,
-        msg,
-        program_pack::Pack,
-        program_stubs,
-        pubkey::Pubkey,
-        rent::Rent,
-        sysvar::id,
-    };
-    use solana_program::{
         account_info::AccountInfo, entrypoint::ProgramResult, instruction::Instruction,
         program_error::ProgramError,
+    };
+    use solana_program::{
+        clock::Clock, msg, program_pack::Pack, program_stubs, pubkey::Pubkey, rent::Rent,
+        sysvar::id,
     };
     use solana_sdk::account::{create_account, create_is_signer_account_infos, Account};
     use spl_token::{
@@ -840,7 +835,11 @@ pub mod test_utils {
         let res = if instruction.program_id == SWAP_PROGRAM_ID {
             Processor::process(&instruction.program_id, &account_infos, &instruction.data)
         } else {
-            spl_token::processor::Processor::process(&instruction.program_id, &account_infos, &instruction.data)
+            spl_token::processor::Processor::process(
+                &instruction.program_id,
+                &account_infos,
+                &instruction.data,
+            )
         };
 
         if res.is_ok() {

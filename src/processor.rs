@@ -144,7 +144,7 @@ impl Processor {
         let destination_info = next_account_info(account_info_iter)?; // Destination account to mint LP tokens to
         let token_program_info = next_account_info(account_info_iter)?;
 
-        if amp_factor < MIN_AMP || amp_factor > MAX_AMP {
+        if !(MIN_AMP..=MAX_AMP).contains(&amp_factor) {
             return Err(SwapError::InvalidInput.into());
         }
 

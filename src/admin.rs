@@ -88,7 +88,7 @@ fn ramp_a(
     let admin_info = next_account_info(account_info_iter)?;
     let clock_sysvar_info = next_account_info(account_info_iter)?;
 
-    if target_amp < MIN_AMP || target_amp > MAX_AMP {
+    if !(MIN_AMP..=MAX_AMP).contains(&target_amp) {
         return Err(SwapError::InvalidInput.into());
     }
     let mut token_swap = SwapInfo::unpack(&swap_info.data.borrow())?;
@@ -322,10 +322,7 @@ fn set_new_fees(program_id: &Pubkey, new_fees: &Fees, accounts: &[AccountInfo]) 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{
-        curve::ZERO_TS,
-        utils::test_utils::*,
-    };
+    use crate::{curve::ZERO_TS, utils::test_utils::*};
     use solana_sdk::clock::Epoch;
 
     const DEFAULT_TOKEN_A_AMOUNT: u64 = 1_000_000_000;

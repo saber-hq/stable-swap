@@ -1,4 +1,4 @@
-set -e
+set -ex
 
 if [ ! -d "./target/deploy" ]; then
     ./do.sh build
@@ -10,8 +10,12 @@ if ! hash solana 2>/dev/null; then
     echo Installing Solana tool suite ...
     sh -c "$(curl -sSfL https://release.solana.com/v${solana_version}/install)"
     export PATH="/home/runner/.local/share/solana/install/active_release/bin:$PATH"
+fi
+
+keypair="~/.config/solana/id.json"
+if [ ! -f "$keypair" ]; then
     echo Generating keypair ...
-    solana-keygen new -o ~/.config/solana/id.json --no-passphrase --silent
+    solana-keygen new -o "$keypair" --no-passphrase --silent
 fi
 
 CLUSTER_URL=""

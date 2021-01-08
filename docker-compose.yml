@@ -1,7 +1,7 @@
 version: "3"
 services:
   localnet:
-    image: "solanalabs/solana:v1.4.18"
+    image: "solanalabs/solana:v1.4.21"
     ports:
       - "8899:8899"
       - "8900:8900"
@@ -10,5 +10,5 @@ services:
       - RUST_LOG=solana_runtime::system_instruction_processor=trace,solana_runtime::message_processor=info,solana_bpf_loader=debug,solana_rbpf=debug
     ulimits:
       nofile:
-        soft: 500000
-        hard: 500000
+        soft: 1000000
+        hard: 1000000

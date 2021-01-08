@@ -91,8 +91,8 @@ perform_action() {
         ;;
     update)
         (
-            which solana-install
-            if [ $? -eq 1 ]; then
+            which solana-install || exit_code=$?
+            if [ $exit_code -eq 1 ]; then
                 echo Installing Solana tool suite ...
                 sh -c "$(curl -sSfL https://release.solana.com/v${solana_version}/install)"
             fi

@@ -9,10 +9,10 @@ solana_version="1.5.1"
 if ! hash solana 2>/dev/null; then
     echo Installing Solana tool suite ...
     sh -c "$(curl -sSfL https://release.solana.com/v${solana_version}/install)"
-    export PATH="/home/runner/.local/share/solana/install/active_release/bin:$PATH"
+    export PATH="$HOME/.local/share/solana/install/active_release/bin:$PATH"
 fi
 
-keypair="~/.config/solana/id.json"
+keypair="$HOME"/.config/solana/id.json
 if [ ! -f "$keypair" ]; then
     echo Generating keypair ...
     solana-keygen new -o "$keypair" --no-passphrase --silent

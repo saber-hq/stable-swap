@@ -96,6 +96,7 @@ perform_action() {
                 echo Installing Solana tool suite ...
                 sh -c "$(curl -sSfL https://release.solana.com/v${solana_version}/install)"
             fi
+            export PATH="$HOME"/.local/share/solana/install/active_release/bin:"$PATH"
             solana-install update
         )
         ;;

@@ -1,11 +1,24 @@
 version: "3"
 services:
   localnet:
-    image: "solanalabs/solana:v1.4.21"
+    image: "solanalabs/solana:v1.4.22"
     ports:
-      - "8899:8899"
-      - "8900:8900"
-      - "9900:9900"
+      - "8001:8001/tcp" # entrypoint
+      - "8899:8899/tcp" # rpc http
+      - "8900:8900/tcp" # rpc pubsub
+      - "8901:8901/tcp" # (future) bank service
+      - "8902:8902/tcp" # bank service
+      - "9900:9900/tcp" # faucet
+      - "8000:8000/udp" # tvu
+      - "8001:8001/udp" # gossip
+      - "8002:8002/udp" # tvu_forwards
+      - "8003:8003/udp" # tpu
+      - "8004:8004/udp" # tpu_forwards
+      - "8005:8005/udp" # retransmit
+      - "8006:8006/udp" # repair
+      - "8007:8007/udp" # serve_repair
+      - "8008:8008/udp" # broadcast
+
     environment:
       - RUST_LOG=solana_runtime::system_instruction_processor=trace,solana_runtime::message_processor=info,solana_bpf_loader=debug,solana_rbpf=debug
     ulimits:

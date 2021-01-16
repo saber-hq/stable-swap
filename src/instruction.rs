@@ -4,7 +4,7 @@
 
 use crate::error::SwapError;
 use crate::fees::Fees;
-use solana_sdk::{
+use solana_program::{
     instruction::{AccountMeta, Instruction},
     program_error::ProgramError,
     program_pack::Pack,

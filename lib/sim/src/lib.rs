@@ -26,8 +26,10 @@ impl Model {
         let src_file = File::open(FILE_PATH);
         let mut src_file = match src_file {
             Ok(file) => file,
-            Err(error) => {panic!("{:?}\n Please run `curl -L
-            https://raw.githubusercontent.com/curvefi/curve-contract/master/tests/simulation.py > sim/lib/simulation.py`", error)}
+            Err(error) => {
+                panic!("{:?}\n Please run `curl -L
+            https://raw.githubusercontent.com/curvefi/curve-contract/master/tests/simulation.py > sim/lib/simulation.py`", error)
+            }
         };
         let mut src_content = String::new();
         let _ = src_file.read_to_string(&mut src_content);
@@ -51,8 +53,10 @@ impl Model {
         let src_file = File::open(FILE_PATH);
         let mut src_file = match src_file {
             Ok(file) => file,
-            Err(error) => {panic!("{:?}\n Please run `curl -L
-            https://raw.githubusercontent.com/curvefi/curve-contract/master/tests/simulation.py > sim/lib/simulation.py`", error)}
+            Err(error) => {
+                panic!("{:?}\n Please run `curl -L
+            https://raw.githubusercontent.com/curvefi/curve-contract/master/tests/simulation.py > sim/lib/simulation.py`", error)
+            }
         };
         let mut src_content = String::new();
         let _ = src_file.read_to_string(&mut src_content);

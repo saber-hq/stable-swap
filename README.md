@@ -32,6 +32,13 @@ Running end-to-end tests:
 $ ./do.sh e2e-test
 ```
 
+Run fuzz tests
+```
+cd fuzz
+cargo install cargo-fuzz
+cargo fuzz run fuzz_test
+```
+
 ### Clippy
 
 Clippy is also supported via:

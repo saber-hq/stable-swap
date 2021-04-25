@@ -1,14 +1,17 @@
 #![no_main]
 
-use fuzz::native_stable_swap::TokenType;
 use arbitrary::Arbitrary;
+use fuzz::native_stable_swap::TokenType;
+use lazy_static::lazy_static;
 use libfuzzer_sys::fuzz_target;
 use rand::Rng;
+use solana_program::{
+    account_info::AccountInfo, entrypoint::ProgramResult, instruction::Instruction,
+};
 use stable_swap::{
     curve::{MAX_AMP, MIN_AMP},
     fees::Fees,
     instruction::*,
-    utils::invoke_signed,
 };
 
 #[derive(Debug, Arbitrary, Clone)]
@@ -63,9 +66,25 @@ const INITIAL_SWAP_TOKEN_B_AMOUNT: u64 = 300_000_000_000;
 const INITIAL_USER_TOKEN_A_AMOUNT: u64 = 1_000_000_000;
 const INITIAL_USER_TOKEN_B_AMOUNT: u64 = 3_000_000_000;
 
+lazy_static! {
+    static ref VERBOSE: u32 = std::env::var("FUZZ_VERBOSE")
+        .map(|s| s.parse())
+        .ok()
+        .transpose()
+        .ok()
+        .flatten()
+        .unwrap_or(0);
+}
+
 fuzz_target!(|actions: Vec<Action>| { run_actions(actions) });
 
 fn run_actions(actions: Vec<Action>) {
+    if *VERBOSE >= 1 {
+        println!("{:#?}", actions);
+    } else {
+        solana_program::program_stubs::set_syscall_stubs(Box::new(NoSolLoggingStubs));
+    }
+
     let admin_trade_fee_numerator = 25;
     let admin_trade_fee_denominator = 10000;
     let admin_withdraw_fee_numerator = 30;
@@ -86,4 +105,18 @@ fn run_actions(actions: Vec<Action>) {
     };
 
     // TODO: Fuzz testing
+}
+
+struct NoSolLoggingStubs;
+
+impl solana_program::program_stubs::SyscallStubs for NoSolLoggingStubs {
+    fn sol_log(&self, _message: &str) {}
+    fn sol_invoke_signed(
+        &self,
+        _instruction: &Instruction,
+        _account_infos: &[AccountInfo],
+        _signers_seeds: &[&[&[u8]]],
+    ) -> ProgramResult {
+        unimplemented!()
+    }
 }

@@ -8,6 +8,7 @@ authors = ["michaelhly <michaelhly@gmail.com>"]
 edition = "2018"
 
 [features]
+program = []
 no-entrypoint = []
 fuzz = ["arbitrary"]
 

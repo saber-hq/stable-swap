@@ -1,10 +1,10 @@
-use solana_sdk::{
-    account::Account,
+use solana_program::{
     account_info::AccountInfo,
     clock::{Clock, Epoch},
     pubkey::Pubkey,
-    sysvar,
+    sysvar::id,
 };
+use solana_sdk::account::Account;
 
 #[derive(Clone)]
 pub struct NativeAccountData {
@@ -29,7 +29,7 @@ impl NativeAccountData {
     pub fn new_clock(current_ts: i64) -> Self {
         let mut clock = Clock::default();
         clock.unix_timestamp = current_ts;
-        let clock_account = Account::new_data(1, &clock, &sysvar::id()).unwrap();
+        let clock_account = Account::new_data(1, &clock, &id()).unwrap();
         Self {
             key: Pubkey::new_unique(),
             lamports: clock_account.lamports,

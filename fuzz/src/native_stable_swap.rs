@@ -1,8 +1,11 @@
+//! Helpers for working with swaps in a fuzzing environment
+
 use crate::native_account_data::NativeAccountData;
 use crate::native_processor::do_process_instruction;
 use crate::native_token;
+
 use arbitrary::Arbitrary;
-use solana_sdk::{
+use solana_program::{
     bpf_loader, entrypoint::ProgramResult, program_pack::Pack, pubkey::Pubkey, system_program,
 };
 use spl_token::instruction::approve;

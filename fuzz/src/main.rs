@@ -157,7 +157,7 @@ fn run_actions(actions: Vec<Action>) {
         if let Some(token_a_id) = token_a_id {
             token_a_accounts.entry(token_a_id).or_insert_with(|| {
                 stable_swap.create_token_a_account(
-                    NativeAccountData::new_signer(0, system_program::id()),
+                    NativeAccountData::new(0, system_program::id()),
                     INITIAL_USER_TOKEN_A_AMOUNT,
                 )
             });
@@ -165,7 +165,7 @@ fn run_actions(actions: Vec<Action>) {
         if let Some(token_b_id) = token_b_id {
             token_b_accounts.entry(token_b_id).or_insert_with(|| {
                 stable_swap.create_token_b_account(
-                    NativeAccountData::new_signer(0, system_program::id()),
+                    NativeAccountData::new(0, system_program::id()),
                     INITIAL_USER_TOKEN_B_AMOUNT,
                 )
             });
@@ -173,7 +173,7 @@ fn run_actions(actions: Vec<Action>) {
         if let Some(pool_token_id) = pool_token_id {
             pool_accounts.entry(pool_token_id).or_insert_with(|| {
                 stable_swap
-                    .create_pool_account(NativeAccountData::new_signer(0, system_program::id()))
+                    .create_pool_account(NativeAccountData::new(0, system_program::id()))
             });
         }
     }

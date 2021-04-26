@@ -1,7 +1,10 @@
 #![no_main]
 
 use arbitrary::Arbitrary;
-use fuzz::native_stable_swap::TokenType;
+use fuzz::{
+    native_account_data::NativeAccountData,
+    native_stable_swap::{NativeStableSwap, TokenType},
+};
 use lazy_static::lazy_static;
 use libfuzzer_sys::fuzz_target;
 use rand::Rng;
@@ -13,6 +16,7 @@ use stable_swap::{
     fees::Fees,
     instruction::*,
 };
+use std::collections::HashMap;
 
 #[derive(Debug, Arbitrary, Clone)]
 enum Action {
@@ -60,11 +64,12 @@ enum TradeDirection {
 /// more often.
 type AccountId = u8;
 
+const INITIAL_AMP_FACTOR: u64 = 100;
 const INITIAL_SWAP_TOKEN_A_AMOUNT: u64 = 100_000_000_000;
-const INITIAL_SWAP_TOKEN_B_AMOUNT: u64 = 300_000_000_000;
+const INITIAL_SWAP_TOKEN_B_AMOUNT: u64 = 100_000_000_000;
 
 const INITIAL_USER_TOKEN_A_AMOUNT: u64 = 1_000_000_000;
-const INITIAL_USER_TOKEN_B_AMOUNT: u64 = 3_000_000_000;
+const INITIAL_USER_TOKEN_B_AMOUNT: u64 = 1_000_000_000;
 
 lazy_static! {
     static ref VERBOSE: u32 = std::env::var("FUZZ_VERBOSE")
@@ -104,7 +109,17 @@ fn run_actions(actions: Vec<Action>) {
         admin_withdraw_fee_denominator,
     };
 
-    // TODO: Fuzz testing
+    let mut stable_swap = NativeStableSwap::new(
+        INITIAL_AMP_FACTOR,
+        INITIAL_SWAP_TOKEN_A_AMOUNT,
+        INITIAL_SWAP_TOKEN_B_AMOUNT,
+        fees,
+    );
+
+    // keep track of all accounts, including swap accounts
+    let mut token_a_accounts: HashMap<AccountId, NativeAccountData> = HashMap::new();
+    let mut token_b_accounts: HashMap<AccountId, NativeAccountData> = HashMap::new();
+    let mut pool_accounts: HashMap<AccountId, NativeAccountData> = HashMap::new();
 }
 
 struct NoSolLoggingStubs;

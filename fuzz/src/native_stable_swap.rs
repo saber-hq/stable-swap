@@ -51,11 +51,12 @@ impl NativeStableSwap {
             Pubkey::find_program_address(&[&swap_account.key.to_bytes()[..]], &stable_swap::id());
 
         let mut authority_account = create_program_account(authority_key);
-        let mut token_program_account = create_program_account(stable_swap::id());
+        let mut token_program_account = create_program_account(spl_token::id());
 
         let mut pool_mint_account = native_token::create_mint(&authority_account.key);
         let mut pool_token_account =
             native_token::create_token_account(&mut pool_mint_account, &user_account.key, 0);
+
         let mut token_a_mint_account = native_token::create_mint(&user_account.key);
         let mut admin_fee_a_account =
             native_token::create_token_account(&mut token_a_mint_account, &user_account.key, 0);
@@ -64,6 +65,7 @@ impl NativeStableSwap {
             &authority_account.key,
             token_a_amount,
         );
+
         let mut token_b_mint_account = native_token::create_mint(&user_account.key);
         let mut admin_fee_b_account =
             native_token::create_token_account(&mut token_b_mint_account, &user_account.key, 0);

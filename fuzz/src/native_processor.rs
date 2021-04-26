@@ -4,7 +4,58 @@ use solana_program::{
     account_info::AccountInfo, entrypoint::ProgramResult, instruction::Instruction,
     program_error::ProgramError, program_stubs, pubkey::Pubkey,
 };
+
+struct TestSyscallStubs {}
+impl program_stubs::SyscallStubs for TestSyscallStubs {
+    fn sol_invoke_signed(
+        &self,
+        instruction: &Instruction,
+        account_infos: &[AccountInfo],
+        signers_seeds: &[&[&[u8]]],
+    ) -> ProgramResult {
+        let mut new_account_infos = vec![];
+
+        // mimic check for token program in accounts
+        if !account_infos.iter().any(|x| *x.key == spl_token::id()) {
+            return Err(ProgramError::InvalidAccountData);
+        }
+
+        for meta in instruction.accounts.iter() {
+            for account_info in account_infos.iter() {
+                if meta.pubkey == *account_info.key {
+                    let mut new_account_info = account_info.clone();
+                    for seeds in signers_seeds.iter() {
+                        let signer =
+                            Pubkey::create_program_address(&seeds, &stable_swap::id()).unwrap();
+                        if *account_info.key == signer {
+                            new_account_info.is_signer = true;
+                        }
+                    }
+                    new_account_infos.push(new_account_info);
+                }
+            }
+        }
+
+        spl_token::processor::Processor::process(
+            &instruction.program_id,
+            &new_account_infos,
+            &instruction.data,
+        )
+    }
+}
+
+fn test_syscall_stubs() {
+    use std::sync::Once;
+    static ONCE: Once = Once::new();
+
+    ONCE.call_once(|| {
+        program_stubs::set_syscall_stubs(Box::new(TestSyscallStubs {}));
+    });
+}
+
 pub fn do_process_instruction(instruction: Instruction, accounts: &[AccountInfo]) -> ProgramResult {
+    test_syscall_stubs();
+
     // approximate the logic in the actual runtime which runs the instruction
     // and only updates accounts if the instruction is successful
     let mut account_data = accounts

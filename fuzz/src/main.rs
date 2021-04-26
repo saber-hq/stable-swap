@@ -9,7 +9,8 @@ use lazy_static::lazy_static;
 use libfuzzer_sys::fuzz_target;
 use rand::Rng;
 use solana_program::{
-    account_info::AccountInfo, entrypoint::ProgramResult, instruction::Instruction,
+    account_info::AccountInfo, entrypoint::ProgramResult, instruction::Instruction, pubkey::Pubkey,
+    system_program,
 };
 use stable_swap::{
     curve::{MAX_AMP, MIN_AMP},
@@ -86,8 +87,6 @@ fuzz_target!(|actions: Vec<Action>| { run_actions(actions) });
 fn run_actions(actions: Vec<Action>) {
     if *VERBOSE >= 1 {
         println!("{:#?}", actions);
-    } else {
-        solana_program::program_stubs::set_syscall_stubs(Box::new(NoSolLoggingStubs));
     }
 
     let admin_trade_fee_numerator = 25;
@@ -120,18 +119,62 @@ fn run_actions(actions: Vec<Action>) {
     let mut token_a_accounts: HashMap<AccountId, NativeAccountData> = HashMap::new();
     let mut token_b_accounts: HashMap<AccountId, NativeAccountData> = HashMap::new();
     let mut pool_accounts: HashMap<AccountId, NativeAccountData> = HashMap::new();
-}
 
-struct NoSolLoggingStubs;
+    // add all the pool and token accounts that will be needed
+    for action in &actions {
+        let (token_a_id, token_b_id, pool_token_id) = match action.clone() {
+            Action::Swap {
+                token_a_id,
+                token_b_id,
+                ..
+            } => (Some(token_a_id), Some(token_b_id), None),
+            Action::Deposit {
+                token_a_id,
+                token_b_id,
+                pool_token_id,
+                ..
+            } => (Some(token_a_id), Some(token_b_id), Some(pool_token_id)),
+            Action::DepositOne {
+                token_a_id,
+                token_b_id,
+                pool_token_id,
+                ..
+            } => (Some(token_a_id), Some(token_b_id), Some(pool_token_id)),
+            Action::Withdraw {
+                token_a_id,
+                token_b_id,
+                pool_token_id,
+                ..
+            } => (Some(token_a_id), Some(token_b_id), Some(pool_token_id)),
+            Action::WithdrawOne {
+                token_a_id,
+                token_b_id,
+                pool_token_id,
+                ..
+            } => (Some(token_a_id), Some(token_b_id), Some(pool_token_id)),
+        };
 
-impl solana_program::program_stubs::SyscallStubs for NoSolLoggingStubs {
-    fn sol_log(&self, _message: &str) {}
-    fn sol_invoke_signed(
-        &self,
-        _instruction: &Instruction,
-        _account_infos: &[AccountInfo],
-        _signers_seeds: &[&[&[u8]]],
-    ) -> ProgramResult {
-        unimplemented!()
+        if let Some(token_a_id) = token_a_id {
+            token_a_accounts.entry(token_a_id).or_insert_with(|| {
+                stable_swap.create_token_a_account(
+                    NativeAccountData::new_signer(0, system_program::id()),
+                    INITIAL_USER_TOKEN_A_AMOUNT,
+                )
+            });
+        }
+        if let Some(token_b_id) = token_b_id {
+            token_b_accounts.entry(token_b_id).or_insert_with(|| {
+                stable_swap.create_token_b_account(
+                    NativeAccountData::new_signer(0, system_program::id()),
+                    INITIAL_USER_TOKEN_B_AMOUNT,
+                )
+            });
+        }
+        if let Some(pool_token_id) = pool_token_id {
+            pool_accounts.entry(pool_token_id).or_insert_with(|| {
+                stable_swap
+                    .create_pool_account(NativeAccountData::new_signer(0, system_program::id()))
+            });
+        }
     }
 }

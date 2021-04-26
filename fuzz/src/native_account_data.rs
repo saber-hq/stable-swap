@@ -26,6 +26,16 @@ impl NativeAccountData {
         }
     }
 
+    pub fn new_signer(size: usize, program_id: Pubkey) -> Self {
+        Self {
+            key: Pubkey::new_unique(),
+            lamports: 0,
+            data: vec![0; size],
+            program_id,
+            is_signer: true,
+        }
+    }
+
     pub fn new_clock(current_ts: i64) -> Self {
         let mut clock = Clock::default();
         clock.unix_timestamp = current_ts;

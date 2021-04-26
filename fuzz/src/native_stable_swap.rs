@@ -44,8 +44,7 @@ pub struct NativeStableSwap {
 
 impl NativeStableSwap {
     pub fn new(amp_factor: u64, token_a_amount: u64, token_b_amount: u64, fees: Fees) -> Self {
-        let mut user_account = NativeAccountData::new(0, system_program::id());
-        user_account.is_signer = true;
+        let mut user_account = NativeAccountData::new_signer(0, system_program::id());
         let mut swap_account = NativeAccountData::new(SwapInfo::LEN, stable_swap::id());
         let (authority_key, nonce) =
             Pubkey::find_program_address(&[&swap_account.key.to_bytes()[..]], &stable_swap::id());

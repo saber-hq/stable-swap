@@ -4,6 +4,7 @@ use arbitrary::Arbitrary;
 use fuzz::{
     native_account_data::NativeAccountData,
     native_stable_swap::{NativeStableSwap, TokenType},
+    native_token::get_token_balance,
 };
 use lazy_static::lazy_static;
 use libfuzzer_sys::fuzz_target;
@@ -17,7 +18,7 @@ use stable_swap::{
     fees::Fees,
     instruction::*,
 };
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 #[derive(Debug, Arbitrary, Clone)]
 enum Action {
@@ -177,4 +178,45 @@ fn run_actions(actions: Vec<Action>) {
             });
         }
     }
+
+    let pool_tokens = get_token_balance(&stable_swap.pool_token_account) as u128;
+    let initial_pool_token_amount =
+        pool_tokens + pool_accounts.values().map(get_token_balance).sum::<u64>() as u128;
+    let initial_swap_token_a_amount = get_token_balance(&stable_swap.token_a_account) as u128;
+    let initial_swap_token_b_amount = get_token_balance(&stable_swap.token_b_account) as u128;
+
+    // to ensure that we never create or remove base tokens
+    let before_total_token_a =
+        INITIAL_SWAP_TOKEN_A_AMOUNT + get_total_token_a_amount(&actions);
+    let before_total_token_b =
+        INITIAL_SWAP_TOKEN_B_AMOUNT + get_total_token_b_amount(&actions);
+
+}
+
+fn get_total_token_a_amount(actions: &[Action]) -> u64 {
+    let mut token_a_ids = HashSet::new();
+    for action in actions.iter() {
+        match action {
+            Action::Swap { token_a_id, .. } => token_a_ids.insert(token_a_id),
+            Action::Deposit { token_a_id, .. } => token_a_ids.insert(token_a_id),
+            Action::DepositOne { token_a_id, .. } => token_a_ids.insert(token_a_id),
+            Action::Withdraw { token_a_id, .. } => token_a_ids.insert(token_a_id),
+            Action::WithdrawOne { token_a_id, .. } => token_a_ids.insert(token_a_id),
+        };
+    }
+    (token_a_ids.len() as u64) * INITIAL_USER_TOKEN_A_AMOUNT
+}
+
+fn get_total_token_b_amount(actions: &[Action]) -> u64 {
+    let mut token_b_ids = HashSet::new();
+    for action in actions.iter() {
+        match action {
+            Action::Swap { token_b_id, .. } => token_b_ids.insert(token_b_id),
+            Action::Deposit { token_b_id, .. } => token_b_ids.insert(token_b_id),
+            Action::DepositOne { token_b_id, .. } => token_b_ids.insert(token_b_id),
+            Action::Withdraw { token_b_id, .. } => token_b_ids.insert(token_b_id),
+            Action::WithdrawOne { token_b_id, .. } => token_b_ids.insert(token_b_id),
+        };
+    }
+    (token_b_ids.len() as u64) * INITIAL_USER_TOKEN_B_AMOUNT
 }

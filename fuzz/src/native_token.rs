@@ -34,3 +34,22 @@ pub fn create_token_account(
     TokenAccount::pack(account, &mut account_data.data[..]).unwrap();
     account_data
 }
+
+pub fn get_token_balance(account_data: &NativeAccountData) -> u64 {
+    let account = TokenAccount::unpack(&account_data.data).unwrap();
+    account.amount
+}
+
+pub fn transfer(
+    from_account: &mut NativeAccountData,
+    to_account: &mut NativeAccountData,
+    amount: u64,
+) {
+    let mut from = TokenAccount::unpack(&from_account.data).unwrap();
+    let mut to = TokenAccount::unpack(&to_account.data).unwrap();
+    assert_eq!(from.mint, to.mint);
+    from.amount -= amount;
+    to.amount += amount;
+    TokenAccount::pack(from, &mut from_account.data[..]).unwrap();
+    TokenAccount::pack(to, &mut to_account.data[..]).unwrap();
+}

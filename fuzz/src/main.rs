@@ -1,6 +1,7 @@
 #![no_main]
 
 use arbitrary::Arbitrary;
+// use chrono::prelude::*;
 use fuzz::{
     native_account_data::NativeAccountData,
     native_stable_swap::{NativeStableSwap, TokenType},
@@ -25,7 +26,7 @@ enum Action {
     Swap {
         token_a_id: AccountId,
         token_b_id: AccountId,
-        trade_directions: TradeDirection,
+        trade_direction: TradeDirection,
         instruction_data: SwapData,
     },
     Deposit {
@@ -117,9 +118,13 @@ fn run_actions(actions: Vec<Action>) {
     );
 
     // keep track of all accounts, including swap accounts
-    let mut token_a_accounts: HashMap<AccountId, NativeAccountData> = HashMap::new();
-    let mut token_b_accounts: HashMap<AccountId, NativeAccountData> = HashMap::new();
-    let mut pool_accounts: HashMap<AccountId, NativeAccountData> = HashMap::new();
+    // mapping of AccountId => (signing account, token account)
+    let mut token_a_accounts: HashMap<AccountId, (NativeAccountData, NativeAccountData)> =
+        HashMap::new();
+    let mut token_b_accounts: HashMap<AccountId, (NativeAccountData, NativeAccountData)> =
+        HashMap::new();
+    let mut pool_accounts: HashMap<AccountId, (NativeAccountData, NativeAccountData)> =
+        HashMap::new();
 
     // add all the pool and token accounts that will be needed
     for action in &actions {
@@ -155,42 +160,56 @@ fn run_actions(actions: Vec<Action>) {
             } => (Some(token_a_id), Some(token_b_id), Some(pool_token_id)),
         };
 
+        let signing_account = NativeAccountData::new_signer(0, system_program::id());
         if let Some(token_a_id) = token_a_id {
-            token_a_accounts.entry(token_a_id).or_insert_with(|| {
-                stable_swap.create_token_a_account(
-                    NativeAccountData::new(0, system_program::id()),
-                    INITIAL_USER_TOKEN_A_AMOUNT,
-                )
-            });
-        }
-        if let Some(token_b_id) = token_b_id {
-            token_b_accounts.entry(token_b_id).or_insert_with(|| {
+            let account_pairs = (
+                signing_account.clone(),
                 stable_swap.create_token_b_account(
                     NativeAccountData::new(0, system_program::id()),
                     INITIAL_USER_TOKEN_B_AMOUNT,
-                )
-            });
+                ),
+            );
+            token_a_accounts
+                .entry(token_a_id)
+                .or_insert_with(|| account_pairs);
+        }
+        if let Some(token_b_id) = token_b_id {
+            let account_pairs = (
+                signing_account.clone(),
+                stable_swap.create_token_b_account(
+                    NativeAccountData::new(0, system_program::id()),
+                    INITIAL_USER_TOKEN_B_AMOUNT,
+                ),
+            );
+            token_b_accounts
+                .entry(token_b_id)
+                .or_insert_with(|| account_pairs);
         }
         if let Some(pool_token_id) = pool_token_id {
-            pool_accounts.entry(pool_token_id).or_insert_with(|| {
-                stable_swap
-                    .create_pool_account(NativeAccountData::new(0, system_program::id()))
-            });
+            let account_pairs = (
+                signing_account.clone(),
+                stable_swap.create_pool_account(signing_account),
+            );
+            pool_accounts
+                .entry(pool_token_id)
+                .or_insert_with(|| account_pairs);
         }
     }
 
     let pool_tokens = get_token_balance(&stable_swap.pool_token_account) as u128;
-    let initial_pool_token_amount =
-        pool_tokens + pool_accounts.values().map(get_token_balance).sum::<u64>() as u128;
+    let initial_pool_token_amount = pool_tokens
+        + pool_accounts
+            .values()
+            .map(|account_pair| match account_pair {
+                (_, token_account) => get_token_balance(token_account),
+            })
+            .sum::<u64>() as u128;
     let initial_swap_token_a_amount = get_token_balance(&stable_swap.token_a_account) as u128;
     let initial_swap_token_b_amount = get_token_balance(&stable_swap.token_b_account) as u128;
 
     // to ensure that we never create or remove base tokens
-    let before_total_token_a =
-        INITIAL_SWAP_TOKEN_A_AMOUNT + get_total_token_a_amount(&actions);
-    let before_total_token_b =
-        INITIAL_SWAP_TOKEN_B_AMOUNT + get_total_token_b_amount(&actions);
-
+    let before_total_token_a = INITIAL_SWAP_TOKEN_A_AMOUNT + get_total_token_a_amount(&actions);
+    let before_total_token_b = INITIAL_SWAP_TOKEN_B_AMOUNT + get_total_token_b_amount(&actions);
 }
 
 fn get_total_token_a_amount(actions: &[Action]) -> u64 {
@@ -220,3 +239,44 @@ fn get_total_token_b_amount(actions: &[Action]) -> u64 {
     }
     (token_b_ids.len() as u64) * INITIAL_USER_TOKEN_B_AMOUNT
 }
+
+// fn run_action(
+//     action: Action,
+//     stable_swap: &mut NativeStableSwap,
+//     token_a_accounts: &mut HashMap<AccountId, (NativeAccountData, NativeAccountData)>,
+//     token_b_accounts: &mut HashMap<AccountId, (NativeAccountData, NativeAccountData)>,
+//     pool_accounts: &mut HashMap<AccountId, (NativeAccountData, NativeAccountData)>,
+// ) {
+//     let result = match action {
+//         Action::Swap {
+//             token_a_id,
+//             token_b_id,
+//             trade_direction,
+//             instruction_data,
+//         } => {
+//             let mut user_account = NativeAccountData::new_signer(0, system_program::id());
+//             let mut token_a_account = token_a_accounts.get_mut(&token_a_id).unwrap();
+//             let mut token_b_account = token_b_accounts.get_mut(&token_b_id).unwrap();
+//             match trade_direction {
+//                 TradeDirection::AtoB => {
+//                     stable_swap.swap_a_to_b(
+//                         Utc::now().timestamp(),
+//                         &mut user_account,
+//                         &mut token_a_account,
+//                         &mut token_b_account,
+//                         instruction_data
+//                     )
+//                 }
+//                 TradeDirection::BtoA => {
+//                     stable_swap.swap_b_to_a(
+//                         Utc::now().timestamp(),
+//                         &mut user_account,
+//                         &mut token_b_account,
+//                         &mut token_a_account,
+//                         instruction_data
+//                     )
+//                 }
+//             }
+//         }
+//     }
+// }

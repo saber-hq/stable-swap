@@ -10,7 +10,7 @@ use solana_program::{
 };
 use spl_token::instruction::approve;
 use stable_swap::{fees::Fees, instruction::*, state::SwapInfo};
-/// Helper enum to tell which token for DepositOne or WithdrawOne.
+/// Helper enum to tell which token for WithdrawOne.
 #[derive(Arbitrary, Clone, Debug, PartialEq)]
 pub enum TokenType {
     TokenA,
@@ -253,7 +253,7 @@ impl NativeStableSwap {
             &self.token_b_account.key,
             &self.token_a_account.key,
             &token_a_account.key,
-            &self.admin_fee_b_account.key,
+            &self.admin_fee_a_account.key,
             instruction_data.amount_in,
             instruction_data.minimum_amount_out,
         )

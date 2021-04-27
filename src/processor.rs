@@ -640,11 +640,8 @@ impl Processor {
         if *pool_mint_info.key != token_swap.pool_mint {
             return Err(SwapError::IncorrectMint.into());
         }
+        
         let pool_mint = Self::unpack_mint(&pool_mint_info.data.borrow())?;
-        if pool_token_amount > pool_mint.supply {
-            return Err(SwapError::InvalidInput.into());
-        }
-
         let clock = Clock::from_account_info(clock_sysvar_info)?;
         let base_token = utils::unpack_token_account(&base_token_info.data.borrow())?;
         let quote_token = utils::unpack_token_account(&quote_token_info.data.borrow())?;

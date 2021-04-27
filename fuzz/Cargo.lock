@@ -638,6 +638,7 @@ name = "fuzz"
 version = "0.1.0"
 dependencies = [
  "arbitrary",
+ "chrono",
  "lazy_static",
  "libfuzzer-sys",
  "rand",

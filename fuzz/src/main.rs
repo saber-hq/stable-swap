@@ -1,7 +1,7 @@
 #![no_main]
 
 use arbitrary::Arbitrary;
-// use chrono::prelude::*;
+use chrono::prelude::*;
 use fuzz::{
     native_account_data::NativeAccountData,
     native_stable_swap::{NativeStableSwap, TokenType},
@@ -14,8 +14,10 @@ use solana_program::{
     account_info::AccountInfo, entrypoint::ProgramResult, instruction::Instruction, pubkey::Pubkey,
     system_program,
 };
+use spl_token::error::TokenError;
 use stable_swap::{
     curve::{MAX_AMP, MIN_AMP},
+    error::SwapError,
     fees::Fees,
     instruction::*,
 };
@@ -33,13 +35,6 @@ enum Action {
         token_a_id: AccountId,
         token_b_id: AccountId,
         pool_token_id: AccountId,
-        instruction_data: DepositData,
-    },
-    DepositOne {
-        token_a_id: AccountId,
-        token_b_id: AccountId,
-        pool_token_id: AccountId,
-        deposit_token_type: TokenType,
         instruction_data: DepositData,
     },
     Withdraw {
@@ -140,12 +135,6 @@ fn run_actions(actions: Vec<Action>) {
                 pool_token_id,
                 ..
             } => (Some(token_a_id), Some(token_b_id), Some(pool_token_id)),
-            Action::DepositOne {
-                token_a_id,
-                token_b_id,
-                pool_token_id,
-                ..
-            } => (Some(token_a_id), Some(token_b_id), Some(pool_token_id)),
             Action::Withdraw {
                 token_a_id,
                 token_b_id,
@@ -165,7 +154,7 @@ fn run_actions(actions: Vec<Action>) {
             let account_pairs = (
                 signing_account.clone(),
                 stable_swap.create_token_b_account(
-                    NativeAccountData::new(0, system_program::id()),
+                    signing_account.clone(),
                     INITIAL_USER_TOKEN_B_AMOUNT,
                 ),
             );
@@ -177,7 +166,7 @@ fn run_actions(actions: Vec<Action>) {
             let account_pairs = (
                 signing_account.clone(),
                 stable_swap.create_token_b_account(
-                    NativeAccountData::new(0, system_program::id()),
+                    signing_account.clone(),
                     INITIAL_USER_TOKEN_B_AMOUNT,
                 ),
             );
@@ -188,7 +177,7 @@ fn run_actions(actions: Vec<Action>) {
         if let Some(pool_token_id) = pool_token_id {
             let account_pairs = (
                 signing_account.clone(),
-                stable_swap.create_pool_account(signing_account),
+                stable_swap.create_pool_account(signing_account.clone()),
             );
             pool_accounts
                 .entry(pool_token_id)
@@ -210,6 +199,16 @@ fn run_actions(actions: Vec<Action>) {
     // to ensure that we never create or remove base tokens
     let before_total_token_a = INITIAL_SWAP_TOKEN_A_AMOUNT + get_total_token_a_amount(&actions);
     let before_total_token_b = INITIAL_SWAP_TOKEN_B_AMOUNT + get_total_token_b_amount(&actions);
+
+    for action in actions {
+        run_action(
+            action,
+            &mut stable_swap,
+            &mut token_a_accounts,
+            &mut token_b_accounts,
+            &mut pool_accounts
+        )
+    }
 }
 
 fn get_total_token_a_amount(actions: &[Action]) -> u64 {
@@ -218,7 +217,6 @@ fn get_total_token_a_amount(actions: &[Action]) -> u64 {
         match action {
             Action::Swap { token_a_id, .. } => token_a_ids.insert(token_a_id),
             Action::Deposit { token_a_id, .. } => token_a_ids.insert(token_a_id),
-            Action::DepositOne { token_a_id, .. } => token_a_ids.insert(token_a_id),
             Action::Withdraw { token_a_id, .. } => token_a_ids.insert(token_a_id),
             Action::WithdrawOne { token_a_id, .. } => token_a_ids.insert(token_a_id),
         };
@@ -232,7 +230,6 @@ fn get_total_token_b_amount(actions: &[Action]) -> u64 {
         match action {
             Action::Swap { token_b_id, .. } => token_b_ids.insert(token_b_id),
             Action::Deposit { token_b_id, .. } => token_b_ids.insert(token_b_id),
-            Action::DepositOne { token_b_id, .. } => token_b_ids.insert(token_b_id),
             Action::Withdraw { token_b_id, .. } => token_b_ids.insert(token_b_id),
             Action::WithdrawOne { token_b_id, .. } => token_b_ids.insert(token_b_id),
         };
@@ -240,43 +237,121 @@ fn get_total_token_b_amount(actions: &[Action]) -> u64 {
     (token_b_ids.len() as u64) * INITIAL_USER_TOKEN_B_AMOUNT
 }
 
-// fn run_action(
-//     action: Action,
-//     stable_swap: &mut NativeStableSwap,
-//     token_a_accounts: &mut HashMap<AccountId, (NativeAccountData, NativeAccountData)>,
-//     token_b_accounts: &mut HashMap<AccountId, (NativeAccountData, NativeAccountData)>,
-//     pool_accounts: &mut HashMap<AccountId, (NativeAccountData, NativeAccountData)>,
-// ) {
-//     let result = match action {
-//         Action::Swap {
-//             token_a_id,
-//             token_b_id,
-//             trade_direction,
-//             instruction_data,
-//         } => {
-//             let mut user_account = NativeAccountData::new_signer(0, system_program::id());
-//             let mut token_a_account = token_a_accounts.get_mut(&token_a_id).unwrap();
-//             let mut token_b_account = token_b_accounts.get_mut(&token_b_id).unwrap();
-//             match trade_direction {
-//                 TradeDirection::AtoB => {
-//                     stable_swap.swap_a_to_b(
-//                         Utc::now().timestamp(),
-//                         &mut user_account,
-//                         &mut token_a_account,
-//                         &mut token_b_account,
-//                         instruction_data
-//                     )
-//                 }
-//                 TradeDirection::BtoA => {
-//                     stable_swap.swap_b_to_a(
-//                         Utc::now().timestamp(),
-//                         &mut user_account,
-//                         &mut token_b_account,
-//                         &mut token_a_account,
-//                         instruction_data
-//                     )
-//                 }
-//             }
-//         }
-//     }
-// }
+fn run_action(
+    action: Action,
+    stable_swap: &mut NativeStableSwap,
+    token_a_accounts: &mut HashMap<AccountId, (NativeAccountData, NativeAccountData)>,
+    token_b_accounts: &mut HashMap<AccountId, (NativeAccountData, NativeAccountData)>,
+    pool_accounts: &mut HashMap<AccountId, (NativeAccountData, NativeAccountData)>,
+) {
+    let result = match action {
+        Action::Swap {
+            token_a_id,
+            token_b_id,
+            trade_direction,
+            instruction_data,
+        } => {
+            let token_a_account_pair = token_a_accounts.get_mut(&token_a_id).unwrap();
+            let token_b_account_pair = token_b_accounts.get_mut(&token_b_id).unwrap();
+            match trade_direction {
+                TradeDirection::AtoB => {
+                    stable_swap.swap_a_to_b(
+                        Utc::now().timestamp(),
+                        &mut token_a_account_pair.0,
+                        &mut token_a_account_pair.1,
+                        &mut token_b_account_pair.1,
+                        instruction_data
+                    )
+                }
+                TradeDirection::BtoA => {
+                    stable_swap.swap_b_to_a(
+                        Utc::now().timestamp(),
+                        &mut token_b_account_pair.0,
+                        &mut token_b_account_pair.1,
+                        &mut token_a_account_pair.1,
+                        instruction_data
+                    )
+                }
+            }
+        },
+        Action::Deposit {
+            token_a_id,
+            token_b_id,
+            pool_token_id,
+            instruction_data
+        } => {
+            let token_a_account_pair = token_a_accounts.get_mut(&token_a_id).unwrap();
+            let token_b_account_pair = token_b_accounts.get_mut(&token_b_id).unwrap();
+            let pool_token_account_pair = pool_accounts.get_mut(&pool_token_id).unwrap();
+            stable_swap.deposit(
+                Utc::now().timestamp(),
+                &mut pool_token_account_pair.0,
+                &mut token_a_account_pair.1,
+                &mut token_b_account_pair.1,
+                &mut pool_token_account_pair.1,
+                instruction_data
+            )
+        },
+        Action::Withdraw {
+            token_a_id,
+            token_b_id,
+            pool_token_id,
+            instruction_data,
+        } => {
+            let token_a_account_pair = token_a_accounts.get_mut(&token_a_id).unwrap();
+            let token_b_account_pair = token_b_accounts.get_mut(&token_b_id).unwrap();
+            let pool_token_account_pair = pool_accounts.get_mut(&pool_token_id).unwrap();
+            stable_swap.withdraw(
+                &mut pool_token_account_pair.0,
+                &mut token_a_account_pair.1,
+                &mut token_b_account_pair.1,
+                &mut pool_token_account_pair.1,
+                instruction_data
+            )
+        },
+        Action::WithdrawOne {
+            token_a_id,
+            token_b_id,
+            pool_token_id,
+            withdraw_token_type,
+            instruction_data,
+        } => {
+            let token_a_account_pair = token_a_accounts.get_mut(&token_a_id).unwrap();
+            let token_b_account_pair = token_b_accounts.get_mut(&token_b_id).unwrap();
+            let pool_token_account_pair = pool_accounts.get_mut(&pool_token_id).unwrap();
+            match withdraw_token_type {
+                TokenType::TokenA => {
+                    stable_swap.withdraw_one(
+                        Utc::now().timestamp(),
+                        &mut token_a_account_pair.0,
+                        &mut token_a_account_pair.1,
+                        &mut pool_token_account_pair.1,
+                        TokenType::TokenA,
+                        instruction_data
+                    )
+                },
+                TokenType::TokenB => {
+                    stable_swap.withdraw_one(
+                        Utc::now().timestamp(),
+                        &mut token_b_account_pair.0,
+                        &mut token_b_account_pair.1,
+                        &mut pool_token_account_pair.1,
+                        TokenType::TokenB,
+                        instruction_data
+                    )
+                }
+            }
+        }
+    };
+    result
+        .map_err(|e| {
+            if !(e == SwapError::CalculationFailure.into()
+                || e == SwapError::ConversionFailure.into()
+                || e == SwapError::ExceededSlippage.into()
+                || e == TokenError::InsufficientFunds.into())
+            {
+                Err(e).unwrap()
+            }
+        })
+        .ok();
+}

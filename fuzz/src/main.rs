@@ -153,9 +153,9 @@ fn run_actions(actions: Vec<Action>) {
         if let Some(token_a_id) = token_a_id {
             let account_pairs = (
                 signing_account.clone(),
-                stable_swap.create_token_b_account(
+                stable_swap.create_token_a_account(
                     signing_account.clone(),
-                    INITIAL_USER_TOKEN_B_AMOUNT,
+                    INITIAL_USER_TOKEN_A_AMOUNT,
                 ),
             );
             token_a_accounts
@@ -267,8 +267,8 @@ fn run_action(
                     stable_swap.swap_b_to_a(
                         Utc::now().timestamp(),
                         &mut token_b_account_pair.0,
-                        &mut token_b_account_pair.1,
                         &mut token_a_account_pair.1,
+                        &mut token_b_account_pair.1,
                         instruction_data
                     )
                 }

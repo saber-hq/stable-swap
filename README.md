@@ -34,7 +34,6 @@ $ ./do.sh e2e-test
 
 Run fuzz tests
 ```
-cd fuzz
 cargo install cargo-fuzz
 cargo fuzz run fuzz_test
 ```

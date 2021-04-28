@@ -204,7 +204,8 @@ fn run_actions(actions: Vec<Action>) {
             get_token_balance(token_account)
         })
         .sum::<u64>()
-        + get_token_balance(&stable_swap.token_a_account);
+        + get_token_balance(&stable_swap.token_a_account)
+        + get_token_balance(&stable_swap.admin_fee_a_account);
     let diff = (before_total_token_a as f64 - after_total_token_a as f64).abs();
     assert!(
         (diff / before_total_token_a as f64) < EPSILON,
@@ -220,7 +221,8 @@ fn run_actions(actions: Vec<Action>) {
             get_token_balance(token_account)
         })
         .sum::<u64>()
-        + get_token_balance(&stable_swap.token_b_account);
+        + get_token_balance(&stable_swap.token_b_account)
+        + get_token_balance(&stable_swap.admin_fee_b_account);
     let diff = (before_total_token_b as f64 - after_total_token_b as f64).abs();
     assert!(
         (diff / before_total_token_b as f64) < EPSILON,

@@ -56,8 +56,10 @@ pub mod test_utils {
     pub const DEFAULT_TOKEN_DECIMALS: u8 = 6;
 
     pub fn clock_account(ts: i64) -> Account {
-        let mut clock = Clock::default();
-        clock.unix_timestamp = ts;
+        let clock = Clock {
+            unix_timestamp: ts,
+            ..Default::default()
+        };
         Account::new_data(1, &clock, &id()).unwrap()
     }
 

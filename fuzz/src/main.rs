@@ -195,7 +195,7 @@ fn run_actions(actions: Vec<Action>) {
         )
     }
 
-    const EPSILON: f64 = 1e-7;
+    const EPSILON: f64 = 1e-5;
     // check total token a and b amounts
     let after_total_token_a = token_a_accounts
         .values()
@@ -226,7 +226,7 @@ fn run_actions(actions: Vec<Action>) {
     let diff = (before_total_token_b as f64 - after_total_token_b as f64).abs();
     assert!(
         (diff / before_total_token_b as f64) < EPSILON,
-        "before_total_token_a: {}, after_total_token_a: {}",
+        "before_total_token_b: {}, after_total_token_b: {}",
         before_total_token_b,
         after_total_token_b
     );

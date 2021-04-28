@@ -199,8 +199,9 @@ fn run_actions(actions: Vec<Action>) {
     // check total token a and b amounts
     let after_total_token_a = token_a_accounts
         .values()
-        .map(|account_pair| match account_pair {
-            (_, token_account) => get_token_balance(token_account),
+        .map(|account_pair| {
+            let (_, token_account) = account_pair;
+            get_token_balance(token_account)
         })
         .sum::<u64>()
         + get_token_balance(&stable_swap.token_a_account);
@@ -214,8 +215,9 @@ fn run_actions(actions: Vec<Action>) {
 
     let after_total_token_b = token_b_accounts
         .values()
-        .map(|account_pair| match account_pair {
-            (_, token_account) => get_token_balance(token_account),
+        .map(|account_pair| {
+            let (_, token_account) = account_pair;
+            get_token_balance(token_account)
         })
         .sum::<u64>()
         + get_token_balance(&stable_swap.token_b_account);

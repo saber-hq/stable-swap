@@ -278,8 +278,9 @@ impl NativeStableSwap {
     pub fn deposit(
         &mut self,
         current_ts: i64,
-        user_account: &mut NativeAccountData,
+        user_account_a: &mut NativeAccountData,
         token_a_account: &mut NativeAccountData,
+        user_account_b: &mut NativeAccountData,
         token_b_account: &mut NativeAccountData,
         pool_token_account: &mut NativeAccountData,
         instruction_data: DepositData,
@@ -289,7 +290,7 @@ impl NativeStableSwap {
                 &self.token_program_account.key,
                 &token_a_account.key,
                 &self.authority_account.key,
-                &user_account.key,
+                &user_account_a.key,
                 &[],
                 instruction_data.token_a_amount,
             )
@@ -297,7 +298,7 @@ impl NativeStableSwap {
             &[
                 token_a_account.as_account_info(),
                 self.authority_account.as_account_info(),
-                user_account.as_account_info(),
+                user_account_a.as_account_info(),
             ],
         )
         .unwrap();
@@ -307,7 +308,7 @@ impl NativeStableSwap {
                 &self.token_program_account.key,
                 &token_b_account.key,
                 &self.authority_account.key,
-                &user_account.key,
+                &user_account_b.key,
                 &[],
                 instruction_data.token_b_amount,
             )
@@ -315,7 +316,7 @@ impl NativeStableSwap {
             &[
                 token_b_account.as_account_info(),
                 self.authority_account.as_account_info(),
-                user_account.as_account_info(),
+                user_account_b.as_account_info(),
             ],
         )
         .unwrap();
@@ -392,7 +393,7 @@ impl NativeStableSwap {
             &token_a_account.key,
             &token_b_account.key,
             &self.admin_fee_a_account.key,
-            &self.admin_fee_a_account.key,
+            &self.admin_fee_b_account.key,
             instruction_data.pool_token_amount,
             instruction_data.minimum_token_a_amount,
             instruction_data.minimum_token_b_amount,

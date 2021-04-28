@@ -91,14 +91,14 @@ fn run_actions(actions: Vec<Action>) {
     let withdraw_fee_numerator = 30;
     let withdraw_fee_denominator = 10000;
     let fees = Fees {
-        trade_fee_numerator,
-        trade_fee_denominator,
-        withdraw_fee_numerator,
-        withdraw_fee_denominator,
         admin_trade_fee_numerator,
         admin_trade_fee_denominator,
         admin_withdraw_fee_numerator,
         admin_withdraw_fee_denominator,
+        trade_fee_numerator,
+        trade_fee_denominator,
+        withdraw_fee_numerator,
+        withdraw_fee_denominator,
     };
 
     let mut rng = rand::thread_rng();

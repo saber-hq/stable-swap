@@ -275,6 +275,7 @@ impl NativeStableSwap {
         )
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn deposit(
         &mut self,
         current_ts: i64,

@@ -2,7 +2,7 @@ use solana_program::{
     account_info::AccountInfo,
     clock::{Clock, Epoch},
     pubkey::Pubkey,
-    sysvar::{id, clock},
+    sysvar::{clock, id},
 };
 use solana_sdk::account::Account;
 
@@ -37,8 +37,10 @@ impl NativeAccountData {
     }
 
     pub fn new_clock(current_ts: i64) -> Self {
-        let mut clock = Clock::default();
-        clock.unix_timestamp = current_ts;
+        let clock = Clock {
+            unix_timestamp: current_ts,
+            ..Default::default()
+        };
         let clock_account = Account::new_data(1, &clock, &id()).unwrap();
         Self {
             key: clock::id(),

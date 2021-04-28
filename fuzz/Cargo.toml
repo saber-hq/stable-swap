@@ -1,0 +1,27 @@
+[package]
+name = "fuzz"
+version = "0.1.0"
+authors = ["michaelhly <michaelhly@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+arbitrary = "0.4.6"
+chrono = "0.4"
+lazy_static = "1.4.0"
+libfuzzer-sys = "0.3"
+rand = { version = "0.7.0"}
+solana-program = "1.5.1"
+solana-sdk = "1.5.1"
+spl-token = { version = "3.0.1", features = ["no-entrypoint"] }
+stable-swap = { path = "..", features = ["fuzz", "program", "no-entrypoint"] }
+
+[[bin]]
+name = "fuzz_test"
+path = "src/main.rs"
+test = false
+doc = false

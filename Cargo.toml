@@ -2,19 +2,18 @@
 # Note: This crate must be built using do.sh
 
 [package]
-name = "spl-token-swap"
+name = "stable-swap"
 version = "0.1.0"
-description = "Solana Program Library Token Swap"
-authors = ["Solana Maintainers <maintainers@solana.foundation>"]
-repository = "https://github.com/solana-labs/solana-program-library"
-license = "Apache-2.0"
+authors = ["michaelhly <michaelhly@gmail.com>"]
 edition = "2018"
-exclude = ["js/**"]
 
 [features]
+program = []
 no-entrypoint = []
+fuzz = ["arbitrary"]
 
 [dependencies]
+arbitrary = { version = "0.4.6", features = ["derive"], optional = true }
 arrayref = "0.3.6"
 num-derive = "0.3"
 num-traits = "0.2"

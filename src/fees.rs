@@ -10,6 +10,7 @@ use solana_program::{
 /// Fees struct
 #[repr(C)]
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
+#[cfg_attr(feature = "fuzz", derive(arbitrary::Arbitrary))]
 pub struct Fees {
     /// Admin trade fee numerator
     pub admin_trade_fee_numerator: u64,

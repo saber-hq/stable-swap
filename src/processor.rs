@@ -640,11 +640,8 @@ impl Processor {
         if *pool_mint_info.key != token_swap.pool_mint {
             return Err(SwapError::IncorrectMint.into());
         }
-        let pool_mint = Self::unpack_mint(&pool_mint_info.data.borrow())?;
-        if pool_token_amount > pool_mint.supply {
-            return Err(SwapError::InvalidInput.into());
-        }
 
+        let pool_mint = Self::unpack_mint(&pool_mint_info.data.borrow())?;
         let clock = Clock::from_account_info(clock_sysvar_info)?;
         let base_token = utils::unpack_token_account(&base_token_info.data.borrow())?;
         let quote_token = utils::unpack_token_account(&quote_token_info.data.borrow())?;
@@ -3177,36 +3174,6 @@ mod tests {
                 )
             );
             accounts.authority_key = old_authority;
-        }
-
-        // not enough pool tokens
-        {
-            let (
-                token_a_key,
-                mut token_a_account,
-                _token_b_key,
-                _token_b_account,
-                pool_key,
-                mut pool_account,
-            ) = accounts.setup_token_accounts(
-                &user_key,
-                &withdrawer_key,
-                initial_a,
-                initial_b,
-                withdraw_amount,
-            );
-            assert_eq!(
-                Err(SwapError::InvalidInput.into()),
-                accounts.withdraw_one(
-                    &withdrawer_key,
-                    &pool_key,
-                    &mut pool_account,
-                    &token_a_key,
-                    &mut token_a_account,
-                    withdraw_amount * 100,
-                    minimum_amount,
-                )
-            );
         }
 
         // same swap / quote accounts

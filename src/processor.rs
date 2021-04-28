@@ -3176,36 +3176,6 @@ mod tests {
             accounts.authority_key = old_authority;
         }
 
-        // not enough pool tokens
-        {
-            let (
-                token_a_key,
-                mut token_a_account,
-                _token_b_key,
-                _token_b_account,
-                pool_key,
-                mut pool_account,
-            ) = accounts.setup_token_accounts(
-                &user_key,
-                &withdrawer_key,
-                initial_a,
-                initial_b,
-                withdraw_amount,
-            );
-            assert_eq!(
-                Err(SwapError::InvalidInput.into()),
-                accounts.withdraw_one(
-                    &withdrawer_key,
-                    &pool_key,
-                    &mut pool_account,
-                    &token_a_key,
-                    &mut token_a_account,
-                    withdraw_amount * 100,
-                    minimum_amount,
-                )
-            );
-        }
-
         // same swap / quote accounts
         {
             let (

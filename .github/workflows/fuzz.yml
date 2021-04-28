@@ -1,0 +1,16 @@
+name: Fuzz
+
+on:
+  schedule:
+    - cron: "0 3,15 * * *"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - run: cargo install cargo-fuzz --vers "^0.8"
+      - run: cargo fetch
+        working-directory: ./fuzz
+      - run: cargo fuzz run fuzz_test

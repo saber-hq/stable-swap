@@ -93,6 +93,7 @@ const run = async () => {
     stableSwapProgramId,
     TOKEN_PROGRAM_ID,
     nonce,
+    AMP_FACTOR,
     AMP_FACTOR
   );
 

@@ -16,7 +16,6 @@ export async function newAccountWithLamports(
   try {
     await connection.requestAirdrop(account.publicKey, lamports);
   } catch (e) {
-    // tslint:disable:no-console
     console.error(e);
   }
   for (;;) {
@@ -31,7 +30,10 @@ export async function newAccountWithLamports(
   throw new Error(`Airdrop of ${lamports} failed`);
 }
 
-export const getDeploymentInfo = () => {
+export const getDeploymentInfo = (): {
+  clusterUrl: string;
+  stableSwapProgramId: PublicKey;
+} => {
   const data = fs.readFileSync("../../last-deploy.json", "utf-8");
   const deployInfo = JSON.parse(data);
   return {

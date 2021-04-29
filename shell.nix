@@ -17,7 +17,6 @@ let
       install -m755 -D $src/bin/cargo $out/bin/cargo
       install -m755 -D $src/bin/rustc $out/bin/rustc
     '';
-
   };
 
   llvm-solana = stdenv.mkDerivation rec {
@@ -39,6 +38,32 @@ let
       install -m755 -D $src/bin/llvm-objcopy $out/bin/llvm-objcopy
       install -m755 -D $src/bin/ld.lld $out/bin/ld.lld
     '';
-
   };
-in mkShell { nativeBuildInputs = [ rustc-solana llvm-solana ]; }
+
+  bpf-sdk = stdenv.mkDerivation {
+    name = "bpf-sdk";
+    src = builtins.fetchTarball {
+      url = "http://solana-sdk.s3.amazonaws.com/beta/bpf-sdk.tar.bz2";
+      sha256 = "0rlagli61zqqdl9d5y5ykmp5qipp0sawljyzrnsfmmx08gzp9fjn";
+    };
+
+    nativeBuildInputs = [ llvm-solana rustc-solana ];
+
+    installPhase = ''
+      install -m755 -D $src/rust/build.sh $out/bin/solana-build-rust
+    '';
+  };
+
+in mkShell {
+  nativeBuildInputs = [
+    rustc-solana
+    llvm-solana
+    bpf-sdk
+
+    rustup
+
+    yarn
+    nodejs
+    docker-compose
+  ];
+}

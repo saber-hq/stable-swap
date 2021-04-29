@@ -52,7 +52,7 @@ perform_action() {
         ;;
     e2e-test)
         (
-            docker-compose up -d
+            solana-test-validator &
             ./scripts/deploy-stable-swap.sh localnet
             yarn --cwd sdk install
             yarn --cwd sdk test-int ${@:2}

@@ -1,0 +1,27 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build-client:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install dependencies
+        uses: borales/actions-yarn@v2.0.0
+        with:
+          cmd: --cwd sdk install
+      - name: Lint
+        run: yarn --cwd sdk lint
+      - name: Test
+        run: yarn --cwd sdk test-unit
+      - name: Build
+        run: yarn --cwd sdk build

@@ -56,7 +56,6 @@ perform_action() {
             ./scripts/deploy-stable-swap.sh localnet
             yarn --cwd sdk install
             yarn --cwd sdk test-int ${@:2}
-            docker-compose down
         )
     ;;
     deploy)

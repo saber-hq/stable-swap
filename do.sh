@@ -3,7 +3,7 @@
 set -ex
 cd "$(dirname "$0")"
 
-solana_version="1.5.1"
+solana_version="1.6.6"
 export PATH="$HOME"/.local/share/solana/install/active_release/bin:"$PATH"
 
 usage() {
@@ -84,8 +84,8 @@ perform_action() {
             exit
         ;;
     new-swap)
-            yarn --cwd lib/client install
-            yarn --cwd lib/client new-swap
+            yarn --cwd sdk install
+            yarn --cwd sdk new-swap
         ;;
     test)
             cargo test-bpf ${@:2}

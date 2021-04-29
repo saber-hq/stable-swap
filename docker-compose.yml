@@ -25,12 +25,3 @@ services:
       nofile:
         soft: 500000
         hard: 500000
-
-# must specify the subnet if openvpn is running locally.
-# doesn't seem to cause any harm if it isn't.
-networks:
-  default:
-    driver: bridge
-    ipam:
-      config:
-        - subnet: 172.19.199.1/24

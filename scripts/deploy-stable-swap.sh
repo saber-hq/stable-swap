@@ -21,10 +21,7 @@ fi
 
 CLUSTER_URL=""
 if [[ $1 == "localnet" ]]; then
-    CLUSTER_URL="http://localhost:8899"
-elif [[ $1 == "localnet-vm" ]]; then
-    # use this if we are in the VM
-    CLUSTER_URL="http://10.0.2.2:8899"
+    CLUSTER_URL="http://127.0.0.1:8899"
 elif [[ $1 == "devnet" ]]; then
     CLUSTER_URL="https://devnet.solana.com"
 elif [[ $1 == "testnet" ]]; then
@@ -37,7 +34,7 @@ fi
 solana config set --url $CLUSTER_URL
 sleep 1
 solana airdrop 10
-STABLE_SWAP_ID="$(solana deploy target/deploy/stable_swap.so | jq .programId -r)"
+STABLE_SWAP_ID="$(solana deploy target/deploy/stable_swap.so --output json | jq .programId -r)"
 echo "StableSwap ProgramID:" $STABLE_SWAP_ID
 jq -n --arg CLUSTER_URL ${CLUSTER_URL} --arg STABLE_SWAP_ID ${STABLE_SWAP_ID} \
     '{clusterUrl: $CLUSTER_URL, "swapProgramId": $STABLE_SWAP_ID}' > last-deploy.json

@@ -1,7 +1,7 @@
 version: "3"
 services:
   localnet:
-    image: "solanalabs/solana:v1.4.23"
+    image: "solanalabs/solana:v1.6.6"
     ports:
       - "8001:8001/tcp" # entrypoint
       - "8899:8899/tcp" # rpc http
@@ -25,3 +25,12 @@ services:
       nofile:
         soft: 500000
         hard: 500000
+
+# must specify the subnet if openvpn is running locally.
+# doesn't seem to cause any harm if it isn't.
+networks:
+  default:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.19.199.1/24

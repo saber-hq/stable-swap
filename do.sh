@@ -117,9 +117,9 @@ else
         usage
         exit
     fi
-    # if [[ ! -d "$sdkDir" ]]; then
-    #     ./do.sh update
-    # fi
+    if [[ ! -d "$sdkDir" ]]; then
+        ./do.sh update
+    fi
 fi
 
 perform_action "$1" "${@:2}"

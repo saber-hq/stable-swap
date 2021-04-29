@@ -5,7 +5,7 @@ if [ ! -d "./target/deploy" ]; then
     ./do.sh build
 fi
 
-solana_version="1.5.1"
+solana_version="1.6.6"
 
 if ! hash solana 2>/dev/null; then
     echo Installing Solana tool suite ...
@@ -22,6 +22,9 @@ fi
 CLUSTER_URL=""
 if [[ $1 == "localnet" ]]; then
     CLUSTER_URL="http://localhost:8899"
+elif [[ $1 == "localnet-vm" ]]; then
+    # use this if we are in the VM
+    CLUSTER_URL="http://10.0.2.2:8899"
 elif [[ $1 == "devnet" ]]; then
     CLUSTER_URL="https://devnet.solana.com"
 elif [[ $1 == "testnet" ]]; then

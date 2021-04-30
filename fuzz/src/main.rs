@@ -195,7 +195,6 @@ fn run_actions(actions: Vec<Action>) {
         )
     }
 
-    const EPSILON: f64 = 1e-5;
     // check total token a and b amounts
     let after_total_token_a = token_a_accounts
         .values()
@@ -206,13 +205,7 @@ fn run_actions(actions: Vec<Action>) {
         .sum::<u64>()
         + get_token_balance(&stable_swap.token_a_account)
         + get_token_balance(&stable_swap.admin_fee_a_account);
-    let diff = (before_total_token_a as f64 - after_total_token_a as f64).abs();
-    assert!(
-        (diff / before_total_token_a as f64) < EPSILON,
-        "before_total_token_a: {}, after_total_token_a: {}",
-        before_total_token_a,
-        after_total_token_a
-    );
+    assert_eq!(before_total_token_a, after_total_token_a);
 
     let after_total_token_b = token_b_accounts
         .values()
@@ -223,13 +216,7 @@ fn run_actions(actions: Vec<Action>) {
         .sum::<u64>()
         + get_token_balance(&stable_swap.token_b_account)
         + get_token_balance(&stable_swap.admin_fee_b_account);
-    let diff = (before_total_token_b as f64 - after_total_token_b as f64).abs();
-    assert!(
-        (diff / before_total_token_b as f64) < EPSILON,
-        "before_total_token_b: {}, after_total_token_b: {}",
-        before_total_token_b,
-        after_total_token_b
-    );
+    assert_eq!(before_total_token_b, after_total_token_b);
 }
 
 fn get_total_token_a_amount(actions: &[Action]) -> u64 {

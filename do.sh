@@ -3,7 +3,7 @@
 set -ex
 cd "$(dirname "$0")"
 
-solana_version="1.5.1"
+solana_version="1.6.6"
 export PATH="$HOME"/.local/share/solana/install/active_release/bin:"$PATH"
 
 usage() {

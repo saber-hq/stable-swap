@@ -19,3 +19,27 @@ jobs:
       - run: cargo fetch
         working-directory: ./fuzz
       - run: cargo fuzz run fuzz_test -- -max_total_time=14400
+
+name: Fuzz2
+
+on:
+  schedule:
+    - cron: "0 7,19 * * *"
+
+jobs:
+  no-withdraw-one:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          ref: fuzz/no-withdraw-one
+      - name: Install latest nightly
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          override: true
+      - run: cargo install cargo-fuzz --vers "^0.8"
+      - run: cargo fetch
+        working-directory: ./fuzz
+      - run: cargo fuzz run fuzz_test -- -max_total_time=14400

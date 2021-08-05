@@ -1,6 +1,6 @@
 {
   "name": "solana-stable-swap-client",
-  "version": "1.0.0-alpha.3",
+  "version": "1.0.0-alpha.4",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "license": "MIT",
@@ -18,10 +18,10 @@
     "@babel/preset-env": "^7.12.1",
     "@babel/preset-typescript": "^7.12.1",
     "@solana/spl-token": "^0.0.13",
-    "@solana/web3.js": "^0.86.2",
+    "@solana/web3.js": "^1.21.0",
     "@types/bn.js": "^4.11.6",
     "@types/jest": "^26.0.15",
-    "@types/node": "^14.14.6",
+    "@types/node": "^14.17.9",
     "husky": ">=4",
     "jest": "^26.6.1",
     "lint-staged": ">=10",
@@ -36,7 +36,7 @@
   },
   "peerDependencies": {
     "@solana/spl-token": "^0.0.13",
-    "@solana/web3.js": "^0.86.2"
+    "@solana/web3.js": "^1.21.0"
   },
   "husky": {
     "hooks": {

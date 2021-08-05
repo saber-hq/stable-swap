@@ -368,35 +368,35 @@ export class StableSwap {
     let tokenBData;
     let poolMintData;
     try {
-      tokenAData = await loadAccount(
+      tokenAData = loadAccount(
         this.connection,
         this.tokenAccountA,
         this.tokenProgramId
       );
-      tokenBData = await loadAccount(
+      tokenBData = loadAccount(
         this.connection,
         this.tokenAccountB,
         this.tokenProgramId
       );
-      poolMintData = await loadAccount(
+      poolMintData = loadAccount(
         this.connection,
         this.poolTokenMint,
         this.tokenProgramId
       );
+
+      const tokenA = AccountLayout.decode(await tokenAData);
+      const tokenB = AccountLayout.decode(await tokenBData);
+      const amountA = NumberU64.fromBuffer(tokenA.amount);
+      const amountB = NumberU64.fromBuffer(tokenB.amount);
+      const D = computeD(new BN(this.initialAmpFactor), amountA, amountB);
+
+      const poolMint = MintLayout.decode(await poolMintData);
+      const poolSupply = NumberU64.fromBuffer(poolMint.supply);
+
+      return D.div(poolSupply).toNumber();
     } catch (e) {
       throw new Error(e);
     }
-
-    const tokenA = AccountLayout.decode(tokenAData);
-    const tokenB = AccountLayout.decode(tokenBData);
-    const amountA = NumberU64.fromBuffer(tokenA.amount);
-    const amountB = NumberU64.fromBuffer(tokenB.amount);
-    const D = computeD(new BN(this.initialAmpFactor), amountA, amountB);
-
-    const poolMint = MintLayout.decode(poolMintData);
-    const poolSupply = NumberU64.fromBuffer(poolMint.supply);
-
-    return D.toNumber() / poolSupply.toNumber();
   }
 
   /**

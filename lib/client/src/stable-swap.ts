@@ -393,7 +393,11 @@ export class StableSwap {
       const poolMint = MintLayout.decode(await poolMintData);
       const poolSupply = NumberU64.fromBuffer(poolMint.supply);
 
-      return D.toNumber() / poolSupply.toNumber();
+      return (
+        D.mul(new BN(Math.pow(10, 6)))
+          .div(poolSupply)
+          .toNumber() / Math.pow(10, 6)
+      );
     } catch (e) {
       throw new Error(e);
     }

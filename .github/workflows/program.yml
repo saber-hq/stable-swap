@@ -61,4 +61,4 @@ jobs:
           components: rustfmt, clippy
       - name: Cache dependencies
         uses: Swatinem/rust-cache@v1
-      - run: cargo doc
+      - run: RUSTDOCFLAGS="-Dwarnings" cargo doc

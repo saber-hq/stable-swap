@@ -11,7 +11,13 @@ use anchor_lang::solana_program::entrypoint::ProgramResult;
 use anchor_lang::solana_program::program_pack::Pack;
 use anchor_lang::{Accounts, CpiContext};
 
-/// Creates a 'deposit' instruction.
+/// Creates and invokes a [stable_swap_client::instruction::deposit] instruction.
+///
+/// # Arguments:
+///
+/// * `token_a_amount` - Amount of tokens of [`Deposit::input_a`] to deposit.
+/// * `token_b_amount` - Amount of tokens of [`Deposit::input_b`] to deposit.
+/// * `min_mint_amount` - Minimum amount of LP tokens to mint.
 pub fn deposit<'a, 'b, 'c, 'info>(
     ctx: CpiContext<'a, 'b, 'c, 'info, Deposit<'info>>,
     token_a_amount: u64,

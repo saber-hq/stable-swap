@@ -1,3 +1,6 @@
+//! Math utilities for stable-swap.
+#![deny(missing_docs)]
+
 pub mod bn;
 pub mod curve;
 pub mod math;

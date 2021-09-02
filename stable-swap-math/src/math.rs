@@ -35,11 +35,17 @@ pub fn mul_div_imbalanced(a: u64, b: u64, c: u64) -> Option<u64> {
     }
 }
 
+/// Calculates fees.
 pub trait FeeCalculator {
+    /// Applies the admin trade fee.
     fn admin_trade_fee(&self, fee_amount: u64) -> Option<u64>;
+    /// Applies the admin withdraw fee.
     fn admin_withdraw_fee(&self, fee_amount: u64) -> Option<u64>;
+    /// Applies the trade fee.
     fn trade_fee(&self, trade_amount: u64) -> Option<u64>;
+    /// Applies the withdraw fee.
     fn withdraw_fee(&self, withdraw_amount: u64) -> Option<u64>;
+    /// Applies the normalized trade fee.
     fn normalized_trade_fee(&self, n_coins: u8, amount: u64) -> Option<u64>;
 }
 

@@ -47,3 +47,18 @@ jobs:
       - name: Cache dependencies
         uses: Swatinem/rust-cache@v1
       - run: cargo check
+
+  doc:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install Rust nightly
+        uses: actions-rs/toolchain@v1
+        with:
+          override: true
+          profile: minimal
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+          components: rustfmt, clippy
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@v1
+      - run: cargo doc

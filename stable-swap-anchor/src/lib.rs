@@ -60,7 +60,12 @@ pub fn deposit<'a, 'b, 'c, 'info>(
     )
 }
 
-/// Creates a 'swap' instruction.
+/// Creates and invokes a [stable_swap_client::instruction::swap] instruction.
+///
+/// # Arguments:
+///
+/// * `amount_in` - Amount of [`Swap::input`] tokens to swap.
+/// * `minimum_amount_out` - Minimum amount of [`Swap::output`] tokens to receive.
 pub fn swap<'a, 'b, 'c, 'info>(
     ctx: CpiContext<'a, 'b, 'c, 'info, Swap<'info>>,
     amount_in: u64,
@@ -98,7 +103,12 @@ pub fn swap<'a, 'b, 'c, 'info>(
     )
 }
 
-/// Creates a 'withdraw_one' instruction.
+/// Creates and invokes a [stable_swap_client::instruction::withdraw_one] instruction.
+///
+/// # Arguments:
+///
+/// * `pool_token_amount` - Amount of LP tokens to withdraw.
+/// * `minimum_token_amount` - Minimum amount of tokens of [`WithdrawOne::output`] to withdraw.
 pub fn withdraw_one<'a, 'b, 'c, 'info>(
     ctx: CpiContext<'a, 'b, 'c, 'info, WithdrawOne<'info>>,
     pool_token_amount: u64,
@@ -138,7 +148,13 @@ pub fn withdraw_one<'a, 'b, 'c, 'info>(
     )
 }
 
-/// Creates a 'withdraw' instruction.
+/// Creates and invokes a [stable_swap_client::instruction::withdraw] instruction.
+///
+/// # Arguments:
+///
+/// * `pool_token_amount` - Amount of LP tokens to withdraw.
+/// * `minimum_token_a_amount` - Minimum amount of tokens of [`Withdraw::output_a`] to withdraw.
+/// * `minimum_token_b_amount` - Minimum amount of tokens of [`Withdraw::output_b`] to withdraw.
 pub fn withdraw<'a, 'b, 'c, 'info>(
     ctx: CpiContext<'a, 'b, 'c, 'info, Withdraw<'info>>,
     pool_token_amount: u64,

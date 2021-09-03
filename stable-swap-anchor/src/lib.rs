@@ -1,5 +1,7 @@
 //! Anchor-compatible SDK for the StableSwap program.
 #![deny(missing_docs)]
+#![deny(rustdoc::all)]
+#![allow(rustdoc::missing_doc_code_examples)]
 #![allow(clippy::nonstandard_macro_braces)]
 
 use std::ops::Deref;

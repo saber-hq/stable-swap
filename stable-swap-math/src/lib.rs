@@ -1,4 +1,6 @@
 //! Math utilities for stable-swap.
+#![deny(rustdoc::all)]
+#![allow(rustdoc::missing_doc_code_examples)]
 #![deny(missing_docs)]
 
 pub mod bn;

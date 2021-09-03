@@ -1,5 +1,7 @@
 //! A Curve-like program for the Solana blockchain.
 #![deny(clippy::unwrap_used)]
+#![deny(rustdoc::all)]
+#![allow(rustdoc::missing_doc_code_examples)]
 #![deny(missing_docs)]
 
 pub mod error;

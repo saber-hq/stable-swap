@@ -1,3 +1,3 @@
 # stable-swap-anchor
 
-Anchor-compatible SDK for the StableSwap program.
+Anchor bindings for the StableSwap Rust client.

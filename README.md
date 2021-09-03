@@ -4,6 +4,11 @@ An adaptation of the Solana [token-swap](https://github.com/solana-labs/solana-p
 
 Click [here](https://stableswap.pro) to try it out live on the Solana testnet!
 
+## Libraries
+
+- [stable-swap](https://github.com/saber-hq/stable-swap) -- Rust crates for integrating with StableSwap
+- [@saberhq/stableswap-sdk](https://github.com/saber-hq/saber-common/tree/master/packages/stableswap-sdk) -- JavaScript SDK for interacting with StableSwap
+
 ## Development
 
 Download or update the BPF-SDK by running:

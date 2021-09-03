@@ -1,6 +1,6 @@
 [package]
 name = "stable-swap-anchor"
-version = "1.0.0"
+version = "1.1.0"
 description = "Anchor bindings for the StableSwap Rust client."
 license = "Apache-2.0"
 authors = ["michaelhly <michaelhly@gmail.com>"]

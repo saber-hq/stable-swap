@@ -23,3 +23,7 @@
 ## JavaScript/Web3.js
 
 To use StableSwap with your frontend, the [JavaScript SDK is available here.](https://github.com/saber-hq/saber-common/tree/master/packages/stableswap-sdk)
+
+## Archive
+
+An archived version of the stable-swap-program is available [here](https://github.com/saber-hq/stable-swap-program/tree/archive).

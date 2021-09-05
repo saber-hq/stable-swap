@@ -1174,6 +1174,7 @@ dependencies = [
 name = "stable-swap-math"
 version = "1.2.0"
 dependencies = [
+ "borsh",
  "num-traits",
  "stable-swap-client",
  "uint",

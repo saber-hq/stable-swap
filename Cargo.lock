@@ -1172,7 +1172,7 @@ dependencies = [
 
 [[package]]
 name = "stable-swap-math"
-version = "1.2.0"
+version = "1.3.0"
 dependencies = [
  "borsh",
  "num-traits",

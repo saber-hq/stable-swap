@@ -19,6 +19,58 @@ declare_id!("SSwpkEEcbUqx4vtoEByFjSkhKdCT862DNVb52nZg1UZ");
 ///
 /// # Arguments:
 ///
+/// * `nonce` - The nonce used to generate the swap_authority.
+/// * `amp_factor` - Amplification factor.
+/// * `fees` - Initial fees.
+pub fn initialize<'a, 'b, 'c, 'info>(
+    ctx: CpiContext<'a, 'b, 'c, 'info, Initialize<'info>>,
+    nonce: u8,
+    amp_factor: u64,
+    fees: stable_swap_client::fees::Fees,
+) -> ProgramResult {
+    let ix = stable_swap_client::instruction::initialize(
+        // token program ID is verified by the stable swap program
+        ctx.accounts.token_program.key,
+        ctx.accounts.swap.key,
+        ctx.accounts.swap_authority.key,
+        ctx.accounts.admin.key,
+        ctx.accounts.token_a.fees.key,
+        ctx.accounts.token_b.fees.key,
+        ctx.accounts.token_a.mint.key,
+        ctx.accounts.token_a.reserve.key,
+        ctx.accounts.token_b.mint.key,
+        ctx.accounts.token_b.reserve.key,
+        ctx.accounts.pool_mint.key,
+        ctx.accounts.output_lp.key,
+        nonce,
+        amp_factor,
+        fees,
+    )?;
+    solana_program::program::invoke_signed(
+        &ix,
+        &[
+            ctx.program,
+            ctx.accounts.swap,
+            ctx.accounts.swap_authority,
+            ctx.accounts.admin,
+            ctx.accounts.token_a.fees,
+            ctx.accounts.token_b.fees,
+            ctx.accounts.token_a.mint,
+            ctx.accounts.token_a.reserve,
+            ctx.accounts.token_b.mint,
+            ctx.accounts.token_b.reserve,
+            ctx.accounts.pool_mint,
+            ctx.accounts.output_lp,
+            ctx.accounts.token_program,
+        ],
+        ctx.signer_seeds,
+    )
+}
+
+/// Creates and invokes a [stable_swap_client::instruction::deposit] instruction.
+///
+/// # Arguments:
+///
 /// * `token_a_amount` - Amount of tokens of [`Deposit::input_a`] to deposit.
 /// * `token_b_amount` - Amount of tokens of [`Deposit::input_b`] to deposit.
 /// * `min_mint_amount` - Minimum amount of LP tokens to mint.
@@ -44,7 +96,7 @@ pub fn deposit<'a, 'b, 'c, 'info>(
         token_b_amount,
         min_mint_amount,
     )?;
-    solana_program::program::invoke(
+    solana_program::program::invoke_signed(
         &ix,
         &[
             ctx.program,
@@ -61,6 +113,7 @@ pub fn deposit<'a, 'b, 'c, 'info>(
             ctx.accounts.pool_mint,
             ctx.accounts.output_lp,
         ],
+        ctx.signer_seeds,
     )
 }
 
@@ -88,7 +141,7 @@ pub fn swap<'a, 'b, 'c, 'info>(
         amount_in,
         minimum_amount_out,
     )?;
-    solana_program::program::invoke(
+    solana_program::program::invoke_signed(
         &ix,
         &[
             ctx.program,
@@ -104,6 +157,7 @@ pub fn swap<'a, 'b, 'c, 'info>(
             ctx.accounts.output.user_token.user,
             ctx.accounts.output.fees,
         ],
+        ctx.signer_seeds,
     )
 }
 
@@ -132,7 +186,7 @@ pub fn withdraw_one<'a, 'b, 'c, 'info>(
         pool_token_amount,
         minimum_token_amount,
     )?;
-    solana_program::program::invoke(
+    solana_program::program::invoke_signed(
         &ix,
         &[
             ctx.program,
@@ -149,6 +203,7 @@ pub fn withdraw_one<'a, 'b, 'c, 'info>(
             ctx.accounts.output.user_token.user,
             ctx.accounts.output.fees,
         ],
+        ctx.signer_seeds,
     )
 }
 
@@ -184,14 +239,35 @@ pub fn withdraw<'a, 'b, 'c, 'info>(
         minimum_token_a_amount,
         minimum_token_b_amount,
     )?;
-    solana_program::program::invoke(&ix, &ctx.to_account_infos())
+    solana_program::program::invoke_signed(&ix, &ctx.to_account_infos(), ctx.signer_seeds)
 }
 
 /// --------------------------------
 /// Instructions
 /// --------------------------------
 
-/// Accounts for a 'deposit' instruction.
+/// Accounts for an [initialize] instruction.
+#[derive(Accounts)]
+pub struct Initialize<'info> {
+    /// The swap.
+    pub swap: AccountInfo<'info>,
+    /// The authority of the swap.
+    pub swap_authority: AccountInfo<'info>,
+    /// The admin of the swap.
+    pub admin: AccountInfo<'info>,
+    /// The "A" token of the swap.
+    pub token_a: InitToken<'info>,
+    /// The "B" token of the swap.
+    pub token_b: InitToken<'info>,
+    /// The pool mint of the swap.
+    pub pool_mint: AccountInfo<'info>,
+    /// The output account for LP tokens.
+    pub output_lp: AccountInfo<'info>,
+    /// The spl_token program.
+    pub token_program: AccountInfo<'info>,
+}
+
+/// Accounts for a [deposit] instruction.
 #[derive(Accounts)]
 pub struct Deposit<'info> {
     /// The context of the user.
@@ -250,6 +326,17 @@ pub struct Withdraw<'info> {
 /// --------------------------------
 /// Various accounts
 /// --------------------------------
+
+/// Token accounts for the output of a StableSwap instruction.
+#[derive(Accounts)]
+pub struct InitToken<'info> {
+    /// The token account for the pool's reserves of this token.
+    pub reserve: AccountInfo<'info>,
+    /// The token account for the fees associated with the token.
+    pub fees: AccountInfo<'info>,
+    /// The mint of the token.
+    pub mint: AccountInfo<'info>,
+}
 
 /// Token accounts for a 'swap' instruction.
 #[derive(Accounts)]

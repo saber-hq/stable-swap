@@ -375,6 +375,16 @@ pub struct SwapUserContext<'info> {
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct SwapInfo(stable_swap_client::state::SwapInfo);
 
+impl SwapInfo {
+    /// The length, in bytes, of the packed representation
+    pub const LEN: usize = stable_swap_client::state::SwapInfo::LEN;
+
+    /// Computes the minimum rent exempt balance of a [SwapInfo].
+    pub fn minimum_rent_exempt_balance() -> Result<u64, ProgramError> {
+        Ok(Rent::get()?.minimum_balance(Self::LEN))
+    }
+}
+
 impl Owner for SwapInfo {
     fn owner() -> Pubkey {
         ID
@@ -386,6 +396,13 @@ impl Deref for SwapInfo {
 
     fn deref(&self) -> &Self::Target {
         &self.0
+    }
+}
+
+impl anchor_lang::AccountSerialize for SwapInfo {
+    fn try_serialize<W: std::io::Write>(&self, _writer: &mut W) -> Result<(), ProgramError> {
+        // no-op
+        Ok(())
     }
 }
 

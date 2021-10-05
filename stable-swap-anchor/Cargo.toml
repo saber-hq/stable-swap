@@ -7,6 +7,6 @@ authors = ["michaelhly <michaelhly@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-anchor-lang = "0.13.2"
-anchor-spl = "0.13.2"
-stable-swap-client = { path = "../stable-swap-client", version = "1.0.0" }
+anchor-lang = "0.17.0"
+anchor-spl = "0.17.0"
+stable-swap-client = { path = "../stable-swap-client", version = "1.2.0" }

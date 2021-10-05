@@ -285,8 +285,14 @@ pub struct SwapUserContext<'info> {
 }
 
 /// Swap information.
-#[derive(Clone)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct SwapInfo(stable_swap_client::state::SwapInfo);
+
+impl Owner for SwapInfo {
+    fn owner() -> Pubkey {
+        ID
+    }
+}
 
 impl Deref for SwapInfo {
     type Target = stable_swap_client::state::SwapInfo;

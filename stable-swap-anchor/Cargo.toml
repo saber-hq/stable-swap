@@ -9,4 +9,5 @@ edition = "2018"
 [dependencies]
 anchor-lang = "0.17.0"
 anchor-spl = "0.17.0"
+solana-program = "1.7.11"
 stable-swap-client = { path = "../stable-swap-client", version = "1.2.0" }

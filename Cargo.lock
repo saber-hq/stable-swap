@@ -1171,6 +1171,7 @@ version = "1.2.0"
 dependencies = [
  "anchor-lang",
  "anchor-spl",
+ "solana-program",
  "stable-swap-client",
 ]
 

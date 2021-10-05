@@ -13,6 +13,8 @@ use anchor_lang::solana_program::entrypoint::ProgramResult;
 use anchor_lang::solana_program::program_pack::Pack;
 use anchor_lang::{Accounts, CpiContext};
 
+solana_program::declare_id!("SSwpkEEcbUqx4vtoEByFjSkhKdCT862DNVb52nZg1UZ");
+
 /// Creates and invokes a [stable_swap_client::instruction::deposit] instruction.
 ///
 /// # Arguments:

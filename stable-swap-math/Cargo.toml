@@ -4,7 +4,10 @@ version = "1.4.0"
 description = "Calculations for the StableSwap invariant"
 license = "Apache-2.0"
 authors = ["michaelhly <michaelhly@gmail.com>"]
+homepage = "https://saber.so"
+repository = "https://github.com/saber-hq/stable-swap"
 edition = "2018"
+keywords = ["solana", "saber"]
 
 [dependencies]
 borsh = "0.9.1"

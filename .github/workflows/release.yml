@@ -1,0 +1,29 @@
+name: Release
+
+on:
+  workflow_dispatch: {}
+  push:
+    tags:
+      - "v*.*.*"
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_TOOLCHAIN: nightly-2021-09-01
+
+jobs:
+  release-crate:
+    runs-on: ubuntu-latest
+    name: Release crate on crates.io
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install Rust nightly
+        uses: actions-rs/toolchain@v1
+        with:
+          override: true
+          profile: minimal
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+      - uses: Swatinem/rust-cache@v1
+      - name: Install cargo-workspaces
+        run: cargo install cargo-workspaces || true
+      - name: Publish crates
+        run: cargo ws publish --from-git --yes --skip-published --token ${{ secrets.CARGO_PUBLISH_TOKEN }}

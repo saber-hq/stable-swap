@@ -1167,7 +1167,7 @@ dependencies = [
 
 [[package]]
 name = "stable-swap-anchor"
-version = "1.4.0"
+version = "1.4.1"
 dependencies = [
  "anchor-lang",
  "anchor-spl",
@@ -1177,7 +1177,7 @@ dependencies = [
 
 [[package]]
 name = "stable-swap-client"
-version = "1.4.0"
+version = "1.4.1"
 dependencies = [
  "arbitrary",
  "arrayref",
@@ -1190,7 +1190,7 @@ dependencies = [
 
 [[package]]
 name = "stable-swap-math"
-version = "1.4.0"
+version = "1.4.1"
 dependencies = [
  "borsh",
  "num-traits",

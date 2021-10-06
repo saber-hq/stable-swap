@@ -415,3 +415,23 @@ impl anchor_lang::AccountDeserialize for SwapInfo {
         stable_swap_client::state::SwapInfo::unpack(buf).map(SwapInfo)
     }
 }
+
+/// The StableSwap program.
+#[derive(Clone)]
+pub struct StableSwap;
+
+impl anchor_lang::AccountDeserialize for StableSwap {
+    fn try_deserialize(buf: &mut &[u8]) -> Result<Self, ProgramError> {
+        StableSwap::try_deserialize_unchecked(buf)
+    }
+
+    fn try_deserialize_unchecked(_buf: &mut &[u8]) -> Result<Self, ProgramError> {
+        Ok(StableSwap)
+    }
+}
+
+impl anchor_lang::Id for StableSwap {
+    fn id() -> Pubkey {
+        ID
+    }
+}

@@ -205,7 +205,6 @@ impl AdminInstruction {
 
 /// Creates a 'ramp_a' instruction
 pub fn ramp_a(
-    program_id: &Pubkey,
     swap_pubkey: &Pubkey,
     admin_pubkey: &Pubkey,
     target_amp: u64,
@@ -224,7 +223,7 @@ pub fn ramp_a(
     ];
 
     Ok(Instruction {
-        program_id: *program_id,
+        program_id: crate::ID,
         accounts,
         data,
     })
@@ -232,9 +231,7 @@ pub fn ramp_a(
 
 /// Creates a 'stop_ramp_a' instruction
 pub fn stop_ramp_a(
-    program_id: &Pubkey,
     swap_pubkey: &Pubkey,
-
     admin_pubkey: &Pubkey,
 ) -> Result<Instruction, ProgramError> {
     let data = AdminInstruction::StopRampA.pack();
@@ -246,7 +243,7 @@ pub fn stop_ramp_a(
     ];
 
     Ok(Instruction {
-        program_id: *program_id,
+        program_id: crate::ID,
         accounts,
         data,
     })
@@ -254,7 +251,6 @@ pub fn stop_ramp_a(
 
 /// Creates a 'pause' instruction
 pub fn pause(
-    program_id: &Pubkey,
     swap_pubkey: &Pubkey,
     admin_pubkey: &Pubkey,
 ) -> Result<Instruction, ProgramError> {
@@ -266,7 +262,7 @@ pub fn pause(
     ];
 
     Ok(Instruction {
-        program_id: *program_id,
+        program_id: crate::ID,
         accounts,
         data,
     })
@@ -274,7 +270,6 @@ pub fn pause(
 
 /// Creates a 'unpause' instruction
 pub fn unpause(
-    program_id: &Pubkey,
     swap_pubkey: &Pubkey,
     admin_pubkey: &Pubkey,
 ) -> Result<Instruction, ProgramError> {
@@ -286,7 +281,7 @@ pub fn unpause(
     ];
 
     Ok(Instruction {
-        program_id: *program_id,
+        program_id: crate::ID,
         accounts,
         data,
     })
@@ -294,7 +289,6 @@ pub fn unpause(
 
 /// Creates a 'apply_new_admin' instruction
 pub fn apply_new_admin(
-    program_id: &Pubkey,
     swap_pubkey: &Pubkey,
     admin_pubkey: &Pubkey,
 ) -> Result<Instruction, ProgramError> {
@@ -307,7 +301,7 @@ pub fn apply_new_admin(
     ];
 
     Ok(Instruction {
-        program_id: *program_id,
+        program_id: crate::ID,
         accounts,
         data,
     })
@@ -315,7 +309,6 @@ pub fn apply_new_admin(
 
 /// Creates a 'commit_new_admin' instruction
 pub fn commit_new_admin(
-    program_id: &Pubkey,
     swap_pubkey: &Pubkey,
     admin_pubkey: &Pubkey,
     new_admin_pubkey: &Pubkey,
@@ -330,7 +323,7 @@ pub fn commit_new_admin(
     ];
 
     Ok(Instruction {
-        program_id: *program_id,
+        program_id: crate::ID,
         accounts,
         data,
     })
@@ -338,7 +331,6 @@ pub fn commit_new_admin(
 
 /// Creates a 'set_fee_account' instruction
 pub fn set_fee_account(
-    program_id: &Pubkey,
     swap_pubkey: &Pubkey,
     admin_pubkey: &Pubkey,
     new_fee_account_pubkey: &Pubkey,
@@ -352,7 +344,7 @@ pub fn set_fee_account(
     ];
 
     Ok(Instruction {
-        program_id: *program_id,
+        program_id: crate::ID,
         accounts,
         data,
     })
@@ -360,7 +352,6 @@ pub fn set_fee_account(
 
 /// Creates a 'set_new_fees' instruction
 pub fn set_new_fees(
-    program_id: &Pubkey,
     swap_pubkey: &Pubkey,
     admin_pubkey: &Pubkey,
     new_fees: Fees,
@@ -373,7 +364,7 @@ pub fn set_new_fees(
     ];
 
     Ok(Instruction {
-        program_id: *program_id,
+        program_id: crate::ID,
         accounts,
         data,
     })

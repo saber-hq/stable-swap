@@ -12,6 +12,7 @@ use anchor_lang::solana_program::account_info::AccountInfo;
 use anchor_lang::solana_program::entrypoint::ProgramResult;
 use anchor_lang::solana_program::program_pack::Pack;
 use anchor_lang::{Accounts, CpiContext};
+use anchor_spl::token::TokenAccount;
 
 declare_id!("SSwpkEEcbUqx4vtoEByFjSkhKdCT862DNVb52nZg1UZ");
 
@@ -242,6 +243,109 @@ pub fn withdraw<'a, 'b, 'c, 'info>(
     solana_program::program::invoke_signed(&ix, &ctx.to_account_infos(), ctx.signer_seeds)
 }
 
+/// Creates and invokes a [stable_swap_client::instruction::ramp_a] instruction.
+///
+/// # Arguments:
+///
+/// * `target_amp` - Target amplification factor to ramp to.
+/// * `stop_ramp_ts` - Timestamp when ramp up/down should stop.
+pub fn ramp_a<'a, 'b, 'c, 'info>(
+    ctx: CpiContext<'a, 'b, 'c, 'info, AdminUserContext<'info>>,
+    target_amp: u64,
+    stop_ramp_ts: i64,
+) -> ProgramResult {
+    let ix = stable_swap_client::instruction::ramp_a(
+        ctx.accounts.swap.key,
+        ctx.accounts.admin.key,
+        target_amp,
+        stop_ramp_ts,
+    )?;
+    solana_program::program::invoke_signed(&ix, &ctx.to_account_infos(), ctx.signer_seeds)
+}
+
+/// Creates and invokes a [stable_swap_client::instruction::stop_ramp_a] instruction.
+pub fn stop_ramp_a<'a, 'b, 'c, 'info>(
+    ctx: CpiContext<'a, 'b, 'c, 'info, AdminUserContext<'info>>,
+) -> ProgramResult {
+    let ix = stable_swap_client::instruction::stop_ramp_a(
+        ctx.accounts.swap.key,
+        ctx.accounts.admin.key,
+    )?;
+    solana_program::program::invoke_signed(&ix, &ctx.to_account_infos(), ctx.signer_seeds)
+}
+
+/// Creates and invokes a [stable_swap_client::instruction::pause] instruction.
+pub fn pause<'a, 'b, 'c, 'info>(
+    ctx: CpiContext<'a, 'b, 'c, 'info, AdminUserContext<'info>>,
+) -> ProgramResult {
+    let ix = stable_swap_client::instruction::pause(ctx.accounts.swap.key, ctx.accounts.admin.key)?;
+    solana_program::program::invoke_signed(&ix, &ctx.to_account_infos(), ctx.signer_seeds)
+}
+
+/// Creates and invokes a [stable_swap_client::instruction::unpause] instruction.
+pub fn unpause<'a, 'b, 'c, 'info>(
+    ctx: CpiContext<'a, 'b, 'c, 'info, AdminUserContext<'info>>,
+) -> ProgramResult {
+    let ix =
+        stable_swap_client::instruction::unpause(ctx.accounts.swap.key, ctx.accounts.admin.key)?;
+    solana_program::program::invoke_signed(&ix, &ctx.to_account_infos(), ctx.signer_seeds)
+}
+
+/// Creates and invokes a [stable_swap_client::instruction::apply_new_admin] instruction.
+pub fn apply_new_admin<'a, 'b, 'c, 'info>(
+    ctx: CpiContext<'a, 'b, 'c, 'info, AdminUserContext<'info>>,
+) -> ProgramResult {
+    let ix = stable_swap_client::instruction::apply_new_admin(
+        ctx.accounts.swap.key,
+        ctx.accounts.admin.key,
+    )?;
+    solana_program::program::invoke_signed(&ix, &ctx.to_account_infos(), ctx.signer_seeds)
+}
+
+/// Creates and invokes a [stable_swap_client::instruction::commit_new_admin] instruction.
+/// # Arguments:
+///
+/// * `new_admin` - Public key of the new admin.
+pub fn commit_new_admin<'a, 'b, 'c, 'info>(
+    ctx: CpiContext<'a, 'b, 'c, 'info, AdminUserContext<'info>>,
+    new_admin: Pubkey,
+) -> ProgramResult {
+    let ix = stable_swap_client::instruction::commit_new_admin(
+        ctx.accounts.swap.key,
+        ctx.accounts.admin.key,
+        &new_admin,
+    )?;
+    solana_program::program::invoke_signed(&ix, &ctx.to_account_infos(), ctx.signer_seeds)
+}
+
+/// Creates and invokes a [stable_swap_client::instruction::set_fee_account] instruction.
+pub fn set_fee_account<'a, 'b, 'c, 'info>(
+    ctx: CpiContext<'a, 'b, 'c, 'info, SetFeeAccount<'info>>,
+) -> ProgramResult {
+    let ix = stable_swap_client::instruction::set_fee_account(
+        ctx.accounts.admin_ctx.swap.key,
+        ctx.accounts.admin_ctx.admin.key,
+        ctx.accounts.fee_account.to_account_info().key,
+    )?;
+    solana_program::program::invoke_signed(&ix, &ctx.to_account_infos(), ctx.signer_seeds)
+}
+
+/// Creates and invokes a [stable_swap_client::instruction::set_new_fees] instruction.
+/// # Arguments:
+///
+/// * `fees` - new fees
+pub fn set_new_fees<'a, 'b, 'c, 'info>(
+    ctx: CpiContext<'a, 'b, 'c, 'info, AdminUserContext<'info>>,
+    fees: stable_swap_client::fees::Fees,
+) -> ProgramResult {
+    let ix = stable_swap_client::instruction::set_new_fees(
+        ctx.accounts.swap.key,
+        ctx.accounts.admin.key,
+        fees,
+    )?;
+    solana_program::program::invoke_signed(&ix, &ctx.to_account_infos(), ctx.signer_seeds)
+}
+
 /// --------------------------------
 /// Instructions
 /// --------------------------------
@@ -323,6 +427,15 @@ pub struct Withdraw<'info> {
     pub output_b: SwapOutput<'info>,
 }
 
+/// Accounts for a 'set_fee_account_instruction.
+#[derive(Accounts)]
+pub struct SetFeeAccount<'info> {
+    /// The context of the admin user
+    pub admin_ctx: AdminUserContext<'info>,
+    /// The new token account for fees
+    pub fee_account: Account<'info, TokenAccount>,
+}
+
 /// --------------------------------
 /// Various accounts
 /// --------------------------------
@@ -369,6 +482,15 @@ pub struct SwapUserContext<'info> {
     pub swap: AccountInfo<'info>,
     /// The clock
     pub clock: AccountInfo<'info>,
+}
+
+/// Accounts for an instruction that requires admin permission.
+#[derive(Accounts)]
+pub struct AdminUserContext<'info> {
+    /// The public key of the admin account.
+    pub admin: Signer<'info>,
+    /// The swap.
+    pub swap: AccountInfo<'info>,
 }
 
 /// Swap information.

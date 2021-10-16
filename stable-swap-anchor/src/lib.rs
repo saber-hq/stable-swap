@@ -320,7 +320,7 @@ pub fn commit_new_admin<'a, 'b, 'c, 'info>(
     solana_program::program::invoke_signed(&ix, &ctx.to_account_infos(), ctx.signer_seeds)
 }
 
-/// Creates and invokes a [stable_swap_client::instruction::commit_new_admin] instruction.
+/// Creates and invokes a [stable_swap_client::instruction::set_fee_account] instruction.
 pub fn set_fee_account<'a, 'b, 'c, 'info>(
     ctx: CpiContext<'a, 'b, 'c, 'info, SetFeeAccount<'info>>,
 ) -> ProgramResult {
@@ -328,6 +328,19 @@ pub fn set_fee_account<'a, 'b, 'c, 'info>(
         ctx.accounts.admin_ctx.swap.key,
         ctx.accounts.admin_ctx.admin.key,
         ctx.accounts.fee_account.to_account_info().key,
+    )?;
+    solana_program::program::invoke_signed(&ix, &ctx.to_account_infos(), ctx.signer_seeds)
+}
+
+/// Creates and invokes a [stable_swap_client::instruction::set_new_fees] instruction.
+pub fn set_new_fees<'a, 'b, 'c, 'info>(
+    ctx: CpiContext<'a, 'b, 'c, 'info, AdminUserContext<'info>>,
+    fees: stable_swap_client::fees::Fees,
+) -> ProgramResult {
+    let ix = stable_swap_client::instruction::set_new_fees(
+        ctx.accounts.swap.key,
+        ctx.accounts.admin.key,
+        fees,
     )?;
     solana_program::program::invoke_signed(&ix, &ctx.to_account_infos(), ctx.signer_seeds)
 }

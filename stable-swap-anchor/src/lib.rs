@@ -262,6 +262,18 @@ pub fn ramp_a<'a, 'b, 'c, 'info>(
     solana_program::program::invoke_signed(&ix, &ctx.to_account_infos(), ctx.signer_seeds)
 }
 
+/// Creates and invokes a [stable_swap_client::instruction::stop_ramp_a] instruction.
+pub fn stop_ramp_a<'a, 'b, 'c, 'info>(
+    ctx: CpiContext<'a, 'b, 'c, 'info, AdminUserContext<'info>>,
+) -> ProgramResult {
+    let ix = stable_swap_client::instruction::stop_ramp_a(
+        ctx.accounts.swap.key,
+        ctx.accounts.admin.key,
+    )?;
+    solana_program::program::invoke_signed(&ix, &ctx.to_account_infos(), ctx.signer_seeds)
+}
+
+
 /// --------------------------------
 /// Instructions
 /// --------------------------------

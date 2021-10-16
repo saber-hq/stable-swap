@@ -258,7 +258,7 @@ pub fn ramp_a<'a, 'b, 'c, 'info>(
         ctx.accounts.swap.key,
         ctx.accounts.admin.key,
         target_amp,
-        stop_ramp_ts
+        stop_ramp_ts,
     )?;
     solana_program::program::invoke_signed(&ix, &ctx.to_account_infos(), ctx.signer_seeds)
 }
@@ -278,10 +278,7 @@ pub fn stop_ramp_a<'a, 'b, 'c, 'info>(
 pub fn pause<'a, 'b, 'c, 'info>(
     ctx: CpiContext<'a, 'b, 'c, 'info, AdminUserContext<'info>>,
 ) -> ProgramResult {
-    let ix = stable_swap_client::instruction::pause(
-        ctx.accounts.swap.key,
-        ctx.accounts.admin.key,
-    )?;
+    let ix = stable_swap_client::instruction::pause(ctx.accounts.swap.key, ctx.accounts.admin.key)?;
     solana_program::program::invoke_signed(&ix, &ctx.to_account_infos(), ctx.signer_seeds)
 }
 
@@ -289,10 +286,8 @@ pub fn pause<'a, 'b, 'c, 'info>(
 pub fn unpause<'a, 'b, 'c, 'info>(
     ctx: CpiContext<'a, 'b, 'c, 'info, AdminUserContext<'info>>,
 ) -> ProgramResult {
-    let ix = stable_swap_client::instruction::unpause(
-        ctx.accounts.swap.key,
-        ctx.accounts.admin.key,
-    )?;
+    let ix =
+        stable_swap_client::instruction::unpause(ctx.accounts.swap.key, ctx.accounts.admin.key)?;
     solana_program::program::invoke_signed(&ix, &ctx.to_account_infos(), ctx.signer_seeds)
 }
 

@@ -250,10 +250,7 @@ pub fn stop_ramp_a(
 }
 
 /// Creates a 'pause' instruction
-pub fn pause(
-    swap_pubkey: &Pubkey,
-    admin_pubkey: &Pubkey,
-) -> Result<Instruction, ProgramError> {
+pub fn pause(swap_pubkey: &Pubkey, admin_pubkey: &Pubkey) -> Result<Instruction, ProgramError> {
     let data = AdminInstruction::Pause.pack();
 
     let accounts = vec![
@@ -269,10 +266,7 @@ pub fn pause(
 }
 
 /// Creates a 'unpause' instruction
-pub fn unpause(
-    swap_pubkey: &Pubkey,
-    admin_pubkey: &Pubkey,
-) -> Result<Instruction, ProgramError> {
+pub fn unpause(swap_pubkey: &Pubkey, admin_pubkey: &Pubkey) -> Result<Instruction, ProgramError> {
     let data = AdminInstruction::Unpause.pack();
 
     let accounts = vec![

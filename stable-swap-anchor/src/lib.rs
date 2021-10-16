@@ -242,6 +242,26 @@ pub fn withdraw<'a, 'b, 'c, 'info>(
     solana_program::program::invoke_signed(&ix, &ctx.to_account_infos(), ctx.signer_seeds)
 }
 
+/// Creates and invokes a [stable_swap_client::instruction::ramp_a] instruction.
+///
+/// # Arguments:
+///
+/// * `target_amp` - Target amplification factor to ramp to.
+/// * `stop_ramp_ts` - Timestamp when ramp up/down should stop.
+pub fn ramp_a<'a, 'b, 'c, 'info>(
+    ctx: CpiContext<'a, 'b, 'c, 'info, AdminUserContext<'info>>,
+    target_amp: u64,
+    stop_ramp_ts: i64,
+) -> ProgramResult {
+    let ix = stable_swap_client::instruction::ramp_a(
+        ctx.accounts.swap.key,
+        ctx.accounts.admin.key,
+        target_amp,
+        stop_ramp_ts
+    )?;
+    solana_program::program::invoke_signed(&ix, &ctx.to_account_infos(), ctx.signer_seeds)
+}
+
 /// --------------------------------
 /// Instructions
 /// --------------------------------
@@ -369,6 +389,15 @@ pub struct SwapUserContext<'info> {
     pub swap: AccountInfo<'info>,
     /// The clock
     pub clock: AccountInfo<'info>,
+}
+
+/// Accounts for an instruction that requires admin permission.
+#[derive(Accounts)]
+pub struct AdminUserContext<'info> {
+    /// The public key of the admin account.
+    pub admin: Signer<'info>,
+    /// The swap.
+    pub swap: AccountInfo<'info>,
 }
 
 /// Swap information.

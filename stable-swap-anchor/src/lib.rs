@@ -303,6 +303,9 @@ pub fn apply_new_admin<'a, 'b, 'c, 'info>(
 }
 
 /// Creates and invokes a [stable_swap_client::instruction::commit_new_admin] instruction.
+/// # Arguments:
+///
+/// * `new_admin` - Public key of the new admin.
 pub fn commit_new_admin<'a, 'b, 'c, 'info>(
     ctx: CpiContext<'a, 'b, 'c, 'info, AdminUserContext<'info>>,
     new_admin: Pubkey,
@@ -328,6 +331,9 @@ pub fn set_fee_account<'a, 'b, 'c, 'info>(
 }
 
 /// Creates and invokes a [stable_swap_client::instruction::set_new_fees] instruction.
+/// # Arguments:
+///
+/// * `fees` - new fees
 pub fn set_new_fees<'a, 'b, 'c, 'info>(
     ctx: CpiContext<'a, 'b, 'c, 'info, AdminUserContext<'info>>,
     fees: stable_swap_client::fees::Fees,

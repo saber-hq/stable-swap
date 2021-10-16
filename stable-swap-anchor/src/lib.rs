@@ -295,6 +295,30 @@ pub fn unpause<'a, 'b, 'c, 'info>(
     solana_program::program::invoke_signed(&ix, &ctx.to_account_infos(), ctx.signer_seeds)
 }
 
+/// Creates and invokes a [stable_swap_client::instruction::apply_new_admin] instruction.
+pub fn apply_new_admin<'a, 'b, 'c, 'info>(
+    ctx: CpiContext<'a, 'b, 'c, 'info, AdminUserContext<'info>>,
+) -> ProgramResult {
+    let ix = stable_swap_client::instruction::apply_new_admin(
+        ctx.accounts.swap.key,
+        ctx.accounts.admin.key,
+    )?;
+    solana_program::program::invoke_signed(&ix, &ctx.to_account_infos(), ctx.signer_seeds)
+}
+
+/// Creates and invokes a [stable_swap_client::instruction::commit_new_admin] instruction.
+pub fn commit_new_admin<'a, 'b, 'c, 'info>(
+    ctx: CpiContext<'a, 'b, 'c, 'info, AdminUserContext<'info>>,
+    new_admin: Pubkey,
+) -> ProgramResult {
+    let ix = stable_swap_client::instruction::commit_new_admin(
+        ctx.accounts.swap.key,
+        ctx.accounts.admin.key,
+        &new_admin,
+    )?;
+    solana_program::program::invoke_signed(&ix, &ctx.to_account_infos(), ctx.signer_seeds)
+}
+
 /// --------------------------------
 /// Instructions
 /// --------------------------------

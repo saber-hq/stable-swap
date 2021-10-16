@@ -12,6 +12,7 @@ use anchor_lang::solana_program::account_info::AccountInfo;
 use anchor_lang::solana_program::entrypoint::ProgramResult;
 use anchor_lang::solana_program::program_pack::Pack;
 use anchor_lang::{Accounts, CpiContext};
+use anchor_spl::token::TokenAccount;
 
 declare_id!("SSwpkEEcbUqx4vtoEByFjSkhKdCT862DNVb52nZg1UZ");
 
@@ -319,6 +320,18 @@ pub fn commit_new_admin<'a, 'b, 'c, 'info>(
     solana_program::program::invoke_signed(&ix, &ctx.to_account_infos(), ctx.signer_seeds)
 }
 
+/// Creates and invokes a [stable_swap_client::instruction::commit_new_admin] instruction.
+pub fn set_fee_account<'a, 'b, 'c, 'info>(
+    ctx: CpiContext<'a, 'b, 'c, 'info, SetFeeAccount<'info>>,
+) -> ProgramResult {
+    let ix = stable_swap_client::instruction::set_fee_account(
+        ctx.accounts.admin_ctx.swap.key,
+        ctx.accounts.admin_ctx.admin.key,
+        ctx.accounts.fee_account.to_account_info().key,
+    )?;
+    solana_program::program::invoke_signed(&ix, &ctx.to_account_infos(), ctx.signer_seeds)
+}
+
 /// --------------------------------
 /// Instructions
 /// --------------------------------
@@ -398,6 +411,15 @@ pub struct Withdraw<'info> {
     pub output_a: SwapOutput<'info>,
     /// The "B" token of the swap.
     pub output_b: SwapOutput<'info>,
+}
+
+/// Accounts for a 'set_fee_account_instruction.
+#[derive(Accounts)]
+pub struct SetFeeAccount<'info> {
+    /// The context of the admin user
+    pub admin_ctx: AdminUserContext<'info>,
+    /// The new token account for fees
+    pub fee_account: Account<'info, TokenAccount>,
 }
 
 /// --------------------------------

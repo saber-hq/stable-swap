@@ -217,7 +217,7 @@ pub fn ramp_a(
     .pack();
 
     let accounts = vec![
-        AccountMeta::new(*swap_pubkey, true),
+        AccountMeta::new(*swap_pubkey, false),
         AccountMeta::new_readonly(*admin_pubkey, true),
         AccountMeta::new(clock::id(), false),
     ];
@@ -237,7 +237,7 @@ pub fn stop_ramp_a(
     let data = AdminInstruction::StopRampA.pack();
 
     let accounts = vec![
-        AccountMeta::new(*swap_pubkey, true),
+        AccountMeta::new(*swap_pubkey, false),
         AccountMeta::new_readonly(*admin_pubkey, true),
         AccountMeta::new(clock::id(), false),
     ];
@@ -254,7 +254,7 @@ pub fn pause(swap_pubkey: &Pubkey, admin_pubkey: &Pubkey) -> Result<Instruction,
     let data = AdminInstruction::Pause.pack();
 
     let accounts = vec![
-        AccountMeta::new(*swap_pubkey, true),
+        AccountMeta::new(*swap_pubkey, false),
         AccountMeta::new_readonly(*admin_pubkey, true),
     ];
 
@@ -270,7 +270,7 @@ pub fn unpause(swap_pubkey: &Pubkey, admin_pubkey: &Pubkey) -> Result<Instructio
     let data = AdminInstruction::Unpause.pack();
 
     let accounts = vec![
-        AccountMeta::new(*swap_pubkey, true),
+        AccountMeta::new(*swap_pubkey, false),
         AccountMeta::new_readonly(*admin_pubkey, true),
     ];
 
@@ -289,7 +289,7 @@ pub fn apply_new_admin(
     let data = AdminInstruction::ApplyNewAdmin.pack();
 
     let accounts = vec![
-        AccountMeta::new(*swap_pubkey, true),
+        AccountMeta::new(*swap_pubkey, false),
         AccountMeta::new_readonly(*admin_pubkey, true),
         AccountMeta::new(clock::id(), false),
     ];
@@ -310,7 +310,7 @@ pub fn commit_new_admin(
     let data = AdminInstruction::CommitNewAdmin.pack();
 
     let accounts = vec![
-        AccountMeta::new(*swap_pubkey, true),
+        AccountMeta::new(*swap_pubkey, false),
         AccountMeta::new_readonly(*admin_pubkey, true),
         AccountMeta::new(*new_admin_pubkey, false),
         AccountMeta::new(clock::id(), false),
@@ -332,7 +332,7 @@ pub fn set_fee_account(
     let data = AdminInstruction::SetFeeAccount.pack();
 
     let accounts = vec![
-        AccountMeta::new(*swap_pubkey, true),
+        AccountMeta::new(*swap_pubkey, false),
         AccountMeta::new_readonly(*admin_pubkey, true),
         AccountMeta::new(*new_fee_account_pubkey, false),
     ];
@@ -353,7 +353,7 @@ pub fn set_new_fees(
     let data = AdminInstruction::SetNewFees(new_fees).pack();
 
     let accounts = vec![
-        AccountMeta::new(*swap_pubkey, true),
+        AccountMeta::new(*swap_pubkey, false),
         AccountMeta::new_readonly(*admin_pubkey, true),
     ];
 

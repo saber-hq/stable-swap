@@ -250,13 +250,13 @@ pub fn withdraw<'a, 'b, 'c, 'info>(
 /// * `target_amp` - Target amplification factor to ramp to.
 /// * `stop_ramp_ts` - Timestamp when ramp up/down should stop.
 pub fn ramp_a<'a, 'b, 'c, 'info>(
-    ctx: CpiContext<'a, 'b, 'c, 'info, AdminUserContext<'info>>,
+    ctx: CpiContext<'a, 'b, 'c, 'info, AdminUserContextWithClock<'info>>,
     target_amp: u64,
     stop_ramp_ts: i64,
 ) -> ProgramResult {
     let ix = stable_swap_client::instruction::ramp_a(
-        ctx.accounts.swap.key,
-        ctx.accounts.admin.key,
+        ctx.accounts.admin_ctx.swap.key,
+        ctx.accounts.admin_ctx.admin.key,
         target_amp,
         stop_ramp_ts,
     )?;
@@ -293,11 +293,11 @@ pub fn unpause<'a, 'b, 'c, 'info>(
 
 /// Creates and invokes a [stable_swap_client::instruction::apply_new_admin] instruction.
 pub fn apply_new_admin<'a, 'b, 'c, 'info>(
-    ctx: CpiContext<'a, 'b, 'c, 'info, AdminUserContext<'info>>,
+    ctx: CpiContext<'a, 'b, 'c, 'info, AdminUserContextWithClock<'info>>,
 ) -> ProgramResult {
     let ix = stable_swap_client::instruction::apply_new_admin(
-        ctx.accounts.swap.key,
-        ctx.accounts.admin.key,
+        ctx.accounts.admin_ctx.swap.key,
+        ctx.accounts.admin_ctx.admin.key,
     )?;
     solana_program::program::invoke_signed(&ix, &ctx.to_account_infos(), ctx.signer_seeds)
 }
@@ -307,12 +307,12 @@ pub fn apply_new_admin<'a, 'b, 'c, 'info>(
 ///
 /// * `new_admin` - Public key of the new admin.
 pub fn commit_new_admin<'a, 'b, 'c, 'info>(
-    ctx: CpiContext<'a, 'b, 'c, 'info, AdminUserContext<'info>>,
+    ctx: CpiContext<'a, 'b, 'c, 'info, AdminUserContextWithClock<'info>>,
     new_admin: Pubkey,
 ) -> ProgramResult {
     let ix = stable_swap_client::instruction::commit_new_admin(
-        ctx.accounts.swap.key,
-        ctx.accounts.admin.key,
+        ctx.accounts.admin_ctx.swap.key,
+        ctx.accounts.admin_ctx.admin.key,
         &new_admin,
     )?;
     solana_program::program::invoke_signed(&ix, &ctx.to_account_infos(), ctx.signer_seeds)
@@ -427,13 +427,24 @@ pub struct Withdraw<'info> {
     pub output_b: SwapOutput<'info>,
 }
 
-/// Accounts for a 'set_fee_account_instruction.
+/// Accounts for a 'set_fee_account' instruction.
 #[derive(Accounts)]
 pub struct SetFeeAccount<'info> {
     /// The context of the admin user
     pub admin_ctx: AdminUserContext<'info>,
     /// The new token account for fees
     pub fee_account: Account<'info, TokenAccount>,
+}
+
+/// Accounts for a 'apply_new_admin'.
+#[derive(Accounts)]
+pub struct ApplyNewAdmin<'info> {
+    /// The context of the admin user
+    pub admin_ctx: AdminUserContext<'info>,
+    /// The account of the new admin
+    pub new_admin: AccountInfo<'info>,
+    /// The clock
+    pub clock: AccountInfo<'info>,
 }
 
 /// --------------------------------
@@ -491,6 +502,15 @@ pub struct AdminUserContext<'info> {
     pub admin: Signer<'info>,
     /// The swap.
     pub swap: AccountInfo<'info>,
+}
+
+/// Accounts for an instruction that requires admin permission with the clock.
+#[derive(Accounts)]
+pub struct AdminUserContextWithClock<'info> {
+    /// The admin user context.
+    pub admin_ctx: AdminUserContext<'info>,
+    /// The clock
+    pub clock: AccountInfo<'info>,
 }
 
 /// Swap information.

@@ -260,7 +260,15 @@ pub fn ramp_a<'a, 'b, 'c, 'info>(
         target_amp,
         stop_ramp_ts,
     )?;
-    solana_program::program::invoke_signed(&ix, &ctx.to_account_infos(), ctx.signer_seeds)
+    solana_program::program::invoke_signed(
+        &ix,
+        &[
+            ctx.accounts.admin_ctx.swap,
+            ctx.accounts.admin_ctx.admin.to_account_info(),
+            ctx.accounts.clock,
+        ],
+        ctx.signer_seeds,
+    )
 }
 
 /// Creates and invokes a [stable_swap_client::instruction::stop_ramp_a] instruction.
@@ -271,7 +279,15 @@ pub fn stop_ramp_a<'a, 'b, 'c, 'info>(
         ctx.accounts.admin_ctx.swap.key,
         ctx.accounts.admin_ctx.admin.key,
     )?;
-    solana_program::program::invoke_signed(&ix, &ctx.to_account_infos(), ctx.signer_seeds)
+    solana_program::program::invoke_signed(
+        &ix,
+        &[
+            ctx.accounts.admin_ctx.swap,
+            ctx.accounts.admin_ctx.admin.to_account_info(),
+            ctx.accounts.clock,
+        ],
+        ctx.signer_seeds,
+    )
 }
 
 /// Creates and invokes a [stable_swap_client::instruction::pause] instruction.
@@ -299,7 +315,15 @@ pub fn apply_new_admin<'a, 'b, 'c, 'info>(
         ctx.accounts.admin_ctx.swap.key,
         ctx.accounts.admin_ctx.admin.key,
     )?;
-    solana_program::program::invoke_signed(&ix, &ctx.to_account_infos(), ctx.signer_seeds)
+    solana_program::program::invoke_signed(
+        &ix,
+        &[
+            ctx.accounts.admin_ctx.swap,
+            ctx.accounts.admin_ctx.admin.to_account_info(),
+            ctx.accounts.clock,
+        ],
+        ctx.signer_seeds,
+    )
 }
 
 /// Creates and invokes a [stable_swap_client::instruction::commit_new_admin] instruction.
@@ -307,7 +331,7 @@ pub fn apply_new_admin<'a, 'b, 'c, 'info>(
 ///
 /// * `new_admin` - Public key of the new admin.
 pub fn commit_new_admin<'a, 'b, 'c, 'info>(
-    ctx: CpiContext<'a, 'b, 'c, 'info, AdminUserContextWithClock<'info>>,
+    ctx: CpiContext<'a, 'b, 'c, 'info, CommitNewAdmin<'info>>,
     new_admin: Pubkey,
 ) -> ProgramResult {
     let ix = stable_swap_client::instruction::commit_new_admin(
@@ -315,7 +339,16 @@ pub fn commit_new_admin<'a, 'b, 'c, 'info>(
         ctx.accounts.admin_ctx.admin.key,
         &new_admin,
     )?;
-    solana_program::program::invoke_signed(&ix, &ctx.to_account_infos(), ctx.signer_seeds)
+    solana_program::program::invoke_signed(
+        &ix,
+        &[
+            ctx.accounts.admin_ctx.swap,
+            ctx.accounts.admin_ctx.admin.to_account_info(),
+            ctx.accounts.new_admin,
+            ctx.accounts.clock,
+        ],
+        ctx.signer_seeds,
+    )
 }
 
 /// Creates and invokes a [stable_swap_client::instruction::set_fee_account] instruction.
@@ -438,7 +471,7 @@ pub struct SetFeeAccount<'info> {
 
 /// Accounts for a 'apply_new_admin'.
 #[derive(Accounts)]
-pub struct ApplyNewAdmin<'info> {
+pub struct CommitNewAdmin<'info> {
     /// The context of the admin user
     pub admin_ctx: AdminUserContext<'info>,
     /// The account of the new admin

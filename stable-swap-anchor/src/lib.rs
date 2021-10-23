@@ -466,7 +466,7 @@ pub struct SetFeeAccount<'info> {
     /// The context of the admin user
     pub admin_ctx: AdminUserContext<'info>,
     /// The new token account for fees
-    pub fee_account: Box<Account<'info, TokenAccount>>,
+    pub fee_account: AccountInfo<'info>,
 }
 
 /// Accounts for a 'apply_new_admin'.

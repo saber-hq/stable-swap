@@ -308,12 +308,12 @@ pub fn apply_new_admin<'a, 'b, 'c, 'info>(
 /// * `new_admin` - Public key of the new admin.
 pub fn commit_new_admin<'a, 'b, 'c, 'info>(
     ctx: CpiContext<'a, 'b, 'c, 'info, CommitNewAdmin<'info>>,
-    new_admin: Pubkey,
 ) -> ProgramResult {
+    let admin_ctx = &ctx.accounts.admin_with_clock.admin_ctx;
     let ix = stable_swap_client::instruction::commit_new_admin(
-        ctx.accounts.admin_ctx.swap.key,
-        ctx.accounts.admin_ctx.admin.key,
-        &new_admin,
+        admin_ctx.swap.key,
+        admin_ctx.admin.key,
+        ctx.accounts.new_admin.key,
     )?;
     solana_program::program::invoke_signed(&ix, &ctx.to_account_infos(), ctx.signer_seeds)
 }
@@ -440,11 +440,9 @@ pub struct SetFeeAccount<'info> {
 #[derive(Accounts)]
 pub struct CommitNewAdmin<'info> {
     /// The context of the admin user
-    pub admin_ctx: AdminUserContext<'info>,
+    pub admin_with_clock: AdminUserContextWithClock<'info>,
     /// The account of the new admin
     pub new_admin: AccountInfo<'info>,
-    /// The clock
-    pub clock: AccountInfo<'info>,
 }
 
 /// --------------------------------
@@ -505,7 +503,7 @@ pub struct AdminUserContext<'info> {
 }
 
 /// Accounts for an instruction that requires admin permission with the clock.
-#[derive(Accounts)]
+#[derive(Accounts, Clone)]
 pub struct AdminUserContextWithClock<'info> {
     /// The admin user context.
     pub admin_ctx: AdminUserContext<'info>,

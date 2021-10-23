@@ -260,11 +260,7 @@ pub fn ramp_a<'a, 'b, 'c, 'info>(
         target_amp,
         stop_ramp_ts,
     )?;
-    solana_program::program::invoke_signed(
-        &ix,
-        &ctx.to_account_infos(),
-        ctx.signer_seeds,
-    )
+    solana_program::program::invoke_signed(&ix, &ctx.to_account_infos(), ctx.signer_seeds)
 }
 
 /// Creates and invokes a [stable_swap_client::instruction::stop_ramp_a] instruction.
@@ -275,11 +271,7 @@ pub fn stop_ramp_a<'a, 'b, 'c, 'info>(
         ctx.accounts.admin_ctx.swap.key,
         ctx.accounts.admin_ctx.admin.key,
     )?;
-    solana_program::program::invoke_signed(
-        &ix,
-        &ctx.to_account_infos(),
-        ctx.signer_seeds,
-    )
+    solana_program::program::invoke_signed(&ix, &ctx.to_account_infos(), ctx.signer_seeds)
 }
 
 /// Creates and invokes a [stable_swap_client::instruction::pause] instruction.
@@ -307,11 +299,7 @@ pub fn apply_new_admin<'a, 'b, 'c, 'info>(
         ctx.accounts.admin_ctx.swap.key,
         ctx.accounts.admin_ctx.admin.key,
     )?;
-    solana_program::program::invoke_signed(
-        &ix,
-        &ctx.to_account_infos(),
-        ctx.signer_seeds,
-    )
+    solana_program::program::invoke_signed(&ix, &ctx.to_account_infos(), ctx.signer_seeds)
 }
 
 /// Creates and invokes a [stable_swap_client::instruction::commit_new_admin] instruction.
@@ -327,11 +315,7 @@ pub fn commit_new_admin<'a, 'b, 'c, 'info>(
         ctx.accounts.admin_ctx.admin.key,
         &new_admin,
     )?;
-    solana_program::program::invoke_signed(
-        &ix,
-        &ctx.to_account_infos(),
-        ctx.signer_seeds,
-    )
+    solana_program::program::invoke_signed(&ix, &ctx.to_account_infos(), ctx.signer_seeds)
 }
 
 /// Creates and invokes a [stable_swap_client::instruction::set_fee_account] instruction.

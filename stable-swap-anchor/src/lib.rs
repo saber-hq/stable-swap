@@ -262,11 +262,7 @@ pub fn ramp_a<'a, 'b, 'c, 'info>(
     )?;
     solana_program::program::invoke_signed(
         &ix,
-        &[
-            ctx.accounts.admin_ctx.swap,
-            ctx.accounts.admin_ctx.admin.to_account_info(),
-            ctx.accounts.clock,
-        ],
+        &ctx.to_account_infos(),
         ctx.signer_seeds,
     )
 }
@@ -281,11 +277,7 @@ pub fn stop_ramp_a<'a, 'b, 'c, 'info>(
     )?;
     solana_program::program::invoke_signed(
         &ix,
-        &[
-            ctx.accounts.admin_ctx.swap,
-            ctx.accounts.admin_ctx.admin.to_account_info(),
-            ctx.accounts.clock,
-        ],
+        &ctx.to_account_infos(),
         ctx.signer_seeds,
     )
 }
@@ -317,11 +309,7 @@ pub fn apply_new_admin<'a, 'b, 'c, 'info>(
     )?;
     solana_program::program::invoke_signed(
         &ix,
-        &[
-            ctx.accounts.admin_ctx.swap,
-            ctx.accounts.admin_ctx.admin.to_account_info(),
-            ctx.accounts.clock,
-        ],
+        &ctx.to_account_infos(),
         ctx.signer_seeds,
     )
 }
@@ -341,12 +329,7 @@ pub fn commit_new_admin<'a, 'b, 'c, 'info>(
     )?;
     solana_program::program::invoke_signed(
         &ix,
-        &[
-            ctx.accounts.admin_ctx.swap,
-            ctx.accounts.admin_ctx.admin.to_account_info(),
-            ctx.accounts.new_admin,
-            ctx.accounts.clock,
-        ],
+        &ctx.to_account_infos(),
         ctx.signer_seeds,
     )
 }

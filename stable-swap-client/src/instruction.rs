@@ -219,7 +219,7 @@ pub fn ramp_a(
     let accounts = vec![
         AccountMeta::new(*swap_pubkey, false),
         AccountMeta::new_readonly(*admin_pubkey, true),
-        AccountMeta::new(clock::id(), false),
+        AccountMeta::new_readonly(clock::id(), false),
     ];
 
     Ok(Instruction {
@@ -239,7 +239,7 @@ pub fn stop_ramp_a(
     let accounts = vec![
         AccountMeta::new(*swap_pubkey, false),
         AccountMeta::new_readonly(*admin_pubkey, true),
-        AccountMeta::new(clock::id(), false),
+        AccountMeta::new_readonly(clock::id(), false),
     ];
 
     Ok(Instruction {
@@ -291,7 +291,7 @@ pub fn apply_new_admin(
     let accounts = vec![
         AccountMeta::new(*swap_pubkey, false),
         AccountMeta::new_readonly(*admin_pubkey, true),
-        AccountMeta::new(clock::id(), false),
+        AccountMeta::new_readonly(clock::id(), false),
     ];
 
     Ok(Instruction {
@@ -312,8 +312,8 @@ pub fn commit_new_admin(
     let accounts = vec![
         AccountMeta::new(*swap_pubkey, false),
         AccountMeta::new_readonly(*admin_pubkey, true),
-        AccountMeta::new(*new_admin_pubkey, false),
-        AccountMeta::new(clock::id(), false),
+        AccountMeta::new_readonly(*new_admin_pubkey, false),
+        AccountMeta::new_readonly(clock::id(), false),
     ];
 
     Ok(Instruction {
@@ -334,7 +334,7 @@ pub fn set_fee_account(
     let accounts = vec![
         AccountMeta::new(*swap_pubkey, false),
         AccountMeta::new_readonly(*admin_pubkey, true),
-        AccountMeta::new(*new_fee_account_pubkey, false),
+        AccountMeta::new_readonly(*new_fee_account_pubkey, false),
     ];
 
     Ok(Instruction {

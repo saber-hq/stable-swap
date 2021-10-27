@@ -14,3 +14,7 @@ borsh = "0.9.1"
 num-traits = "0.2"
 stable-swap-client = { path = "../stable-swap-client", version = "1.0.0" }
 uint = { version = "0.9.1", default-features = false }
+
+[dev-dependencies]
+proptest = "1.0.0"
+proptest-derive = "0.3"

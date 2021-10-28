@@ -17,4 +17,3 @@ uint = { version = "0.9.1", default-features = false }
 
 [dev-dependencies]
 proptest = "1.0.0"
-proptest-derive = "0.3"

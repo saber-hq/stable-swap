@@ -1332,7 +1332,7 @@ dependencies = [
 
 [[package]]
 name = "stable-swap-anchor"
-version = "1.5.2"
+version = "1.5.4"
 dependencies = [
  "anchor-lang",
  "anchor-spl",

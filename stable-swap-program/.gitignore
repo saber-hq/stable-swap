@@ -1,0 +1,12 @@
+corpus
+target
+.env
+.vscode
+config.json
+last-deploy.json
+fuzz/artifacts
+.vagrant/
+deployments/
+test-ledger/
+result
+tmp/

@@ -1,0 +1,42 @@
+name: JavaScript SDK
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - ".github/workflows/sdk.yml"
+      - "sdk/**"
+  pull_request:
+    branches: [master]
+    paths:
+      - ".github/workflows/sdk.yml"
+      - "sdk/**"
+
+jobs:
+  build-client:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: sdk/
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: "14"
+      - name: Cache SDK dependencies
+        uses: actions/cache@v2
+        id: cache-sdk
+        with:
+          path: ./node_modules
+          key: ${{ runner.os }}-${{ hashFiles('**/yarn.lock') }}
+      - name: Install dependencies
+        run: yarn install
+      - name: Lint
+        run: yarn lint:ci
+      - name: Check types
+        run: yarn tsc
+      - name: Test
+        run: yarn test-unit
+      - name: Build
+        run: yarn build

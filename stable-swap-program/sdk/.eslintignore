@@ -1,0 +1,5 @@
+bin/
+lib/
+jest.config.ts
+.eslintrc.js
+babel.config.js

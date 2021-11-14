@@ -1,0 +1,8 @@
+[package]
+name = "sim"
+version = "0.1.0"
+authors = ["michaelhly <michaelhly@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+pyo3 = "0.13.2"

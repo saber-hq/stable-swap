@@ -1,0 +1,69 @@
+{
+  "name": "@saber-hq/stableswap-sdk",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/saber-hq/stableswap.git"
+  },
+  "version": "1.12.3",
+  "main": "dist/index.js",
+  "bin": "bin/stableswap",
+  "license": "UNLICENSED",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "clean": "rm -rf dist",
+    "lint": "eslint . --cache",
+    "lint:ci": "eslint . --max-warnings=0",
+    "lint:fix": "eslint . --fix --cache",
+    "test": "jest",
+    "prettier": "prettier -w src test",
+    "test-int": "jest int.test.ts --force-exit --testTimeout=10000",
+    "test-unit": "jest unit.test.ts",
+    "prepublishOnly": "npm run clean && npm run build",
+    "prepare": "cd .. && husky install"
+  },
+  "engines": {
+    "node": ">=12.x"
+  },
+  "devDependencies": {
+    "@babel/preset-env": "^7.15.0",
+    "@babel/preset-typescript": "^7.15.0",
+    "@saberhq/eslint-config": "^0.9.0",
+    "@saberhq/solana-contrib": "^0.9.0",
+    "@types/bs58": "^4.0.1",
+    "@types/jest": "^26.0.24",
+    "@types/lodash.mapvalues": "^4.6.6",
+    "@types/node": "^16.4.12",
+    "b58": "^4.0.3",
+    "eslint": "^7.32.0",
+    "husky": ">=7",
+    "jest": "^27.0.6",
+    "lint-staged": ">=11.1.1",
+    "lodash.mapvalues": "^4.6.0",
+    "prettier": "^2.3.2",
+    "ts-node": "^10.1.0",
+    "typescript": "^4.3.5"
+  },
+  "dependencies": {
+    "@saberhq/token-utils": "^0.9.7",
+    "@solana/web3.js": "^1.22.0",
+    "@types/bn.js": "^5.1.0",
+    "@types/yargs": "^17.0.2",
+    "bn.js": "^5.2.0",
+    "buffer-layout": "^1.2.2",
+    "jsbi": "^3.1.6",
+    "yargs": "^17.1.0"
+  },
+  "lint-staged": {
+    "*.{js,css,ts,tsx}": "prettier --write",
+    "../**/*.{md,yml,yaml}": "prettier --write"
+  },
+  "resolutions": {},
+  "files": [
+    "bin/",
+    "dist/",
+    "src/"
+  ],
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  }
+}

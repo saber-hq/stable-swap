@@ -10,7 +10,7 @@ edition = "2018"
 keywords = ["solana", "saber"]
 
 [dependencies]
-arbitrary = { version = "1.0.2", features = ["derive"], optional = true }
+arbitrary = { version = "1.0.3", features = ["derive"], optional = true }
 arrayref = "0.3.6"
 num-derive = "0.3"
 num-traits = "0.2"

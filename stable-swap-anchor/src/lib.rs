@@ -100,8 +100,6 @@ pub fn deposit<'a, 'b, 'c, 'info>(
         &ix,
         &[
             ctx.program,
-            ctx.accounts.user.clock,
-            ctx.accounts.user.token_program,
             ctx.accounts.user.swap,
             ctx.accounts.user.swap_authority,
             ctx.accounts.user.user_authority,
@@ -112,6 +110,8 @@ pub fn deposit<'a, 'b, 'c, 'info>(
             ctx.accounts.input_b.reserve,
             ctx.accounts.pool_mint,
             ctx.accounts.output_lp,
+            ctx.accounts.user.clock,
+            ctx.accounts.user.token_program,
         ],
         ctx.signer_seeds,
     )

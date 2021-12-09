@@ -11,6 +11,6 @@ keywords = ["solana", "saber", "anchor"]
 
 [dependencies]
 anchor-lang = "0.18.0"
-anchor-spl = "0.18.0"
+anchor-spl = "0.19.0"
 solana-program = "1.8.3"
 stable-swap-client = { path = "../stable-swap-client", version = "1.2.0" }

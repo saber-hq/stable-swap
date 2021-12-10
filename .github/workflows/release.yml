@@ -8,7 +8,7 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
-  RUST_TOOLCHAIN: nightly-2021-09-01
+  RUST_TOOLCHAIN: nightly-2021-12-09
 
 jobs:
   release-crate:
@@ -16,6 +16,17 @@ jobs:
     name: Release crate on crates.io
     steps:
       - uses: actions/checkout@v2
+      - uses: cachix/install-nix-action@v16
+        with:
+          install_url: https://nixos-nix-install-tests.cachix.org/serve/i6laym9jw3wg9mw6ncyrk6gjx4l34vvx/install
+          install_options: "--tarball-url-prefix https://nixos-nix-install-tests.cachix.org/serve"
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+      - name: Setup Cachix
+        uses: cachix/cachix-action@v10
+        with:
+          name: saber
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
       - name: Install Rust nightly
         uses: actions-rs/toolchain@v1
         with:
@@ -23,7 +34,5 @@ jobs:
           profile: minimal
           toolchain: ${{ env.RUST_TOOLCHAIN }}
       - uses: Swatinem/rust-cache@v1
-      - name: Install cargo-workspaces
-        run: cargo install cargo-workspaces || true
       - name: Publish crates
-        run: cargo ws publish --from-git --yes --skip-published --token ${{ secrets.CARGO_PUBLISH_TOKEN }}
+        run: nix shell .#ci --command cargo ws publish --from-git --yes --skip-published --token ${{ secrets.CARGO_PUBLISH_TOKEN }}

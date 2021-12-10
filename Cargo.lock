@@ -1232,17 +1232,16 @@ dependencies = [
 
 [[package]]
 name = "stable-swap-anchor"
-version = "1.5.4"
+version = "1.5.5"
 dependencies = [
  "anchor-lang",
  "anchor-spl",
- "solana-program",
  "stable-swap-client",
 ]
 
 [[package]]
 name = "stable-swap-client"
-version = "1.5.2"
+version = "1.5.5"
 dependencies = [
  "arbitrary",
  "arrayref",
@@ -1255,7 +1254,7 @@ dependencies = [
 
 [[package]]
 name = "stable-swap-math"
-version = "1.5.3"
+version = "1.5.5"
 dependencies = [
  "borsh",
  "num-traits",

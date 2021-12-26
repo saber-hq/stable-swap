@@ -9,6 +9,9 @@ repository = "https://github.com/saber-hq/stable-swap"
 edition = "2018"
 keywords = ["solana", "saber"]
 
+[features]
+fuzz = ["arbitrary"]
+
 [dependencies]
 arbitrary = { version = "1.0.2", features = ["derive"], optional = true }
 arrayref = "0.3.6"

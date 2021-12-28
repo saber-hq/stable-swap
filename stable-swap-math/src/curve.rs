@@ -568,11 +568,7 @@ mod tests {
                 amp_factor, amount_a, amount_b,
             );
 
-            let model = Model::new(
-                amp_factor,
-                vec![amount_a, amount_b],
-                N_COINS,
-            );
+            let model = Model::new(amp_factor, vec![amount_a, amount_b], N_COINS);
             let d = check_d(
                 &model,
                 amount_a,
@@ -725,15 +721,11 @@ mod tests {
         );
         assert_eq!(
             result.0,
-            model
-                .sim_calc_withdraw_one_coin(pool_token_amount, 0)
-                .0
+            model.sim_calc_withdraw_one_coin(pool_token_amount, 0).0
         );
         assert_eq!(
             result.1,
-            model
-                .sim_calc_withdraw_one_coin(pool_token_amount, 0)
-                .1
+            model.sim_calc_withdraw_one_coin(pool_token_amount, 0).1
         );
     }
 

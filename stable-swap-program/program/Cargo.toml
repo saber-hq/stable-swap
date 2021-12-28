@@ -1,6 +1,6 @@
 [package]
 name = "stable-swap"
-version = "1.6.3"
+version = "1.6.4"
 authors = ["michaelhly <michaelhly@gmail.com>"]
 edition = "2021"
 description = "Saber StableSwap program."

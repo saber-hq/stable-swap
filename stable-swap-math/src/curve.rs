@@ -328,7 +328,11 @@ impl StableSwap {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used, clippy::integer_arithmetic)]
+#[allow(
+    clippy::unwrap_used,
+    clippy::integer_arithmetic,
+    clippy::too_many_arguments
+)]
 mod tests {
     use super::*;
     use crate::pool_converter::PoolTokenConverter;

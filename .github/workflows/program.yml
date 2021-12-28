@@ -2,7 +2,7 @@ name: Program
 
 on:
   workflow_run:
-    workflows: ["Libraries", "Pre-build Checks"]
+    workflows: ["Libraries"]
     types:
       - completed
 env:

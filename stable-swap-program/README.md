@@ -18,24 +18,6 @@ To build the program, run:
 ./do.sh build
 ```
 
-### Vagrant environment
-
-In the event that you are on an incompatible machine, you may use the Vagrant configuration provided.
-
-To do this, run:
-
-```
-vagrant up
-vagrant ssh
-
-# in the vagrant box:
-
-cd /vagrant
-./scripts/setup-devenv.sh
-source $HOME/.cargo/env
-export PATH="$HOME/.local/share/solana/install/active_release/bin:$PATH"
-```
-
 ### Testing
 
 Unit tests contained within the project can be built via:

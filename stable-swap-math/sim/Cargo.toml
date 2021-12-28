@@ -6,7 +6,7 @@ description = "Simulations of the StableSwap invariant compared to Curve's refer
 license = "Apache-2.0"
 homepage = "https://saber.so"
 repository = "https://github.com/saber-hq/stable-swap"
-edition = "2018"
+edition = "2021"
 keywords = ["solana", "saber", "curve"]
 
 [lib]

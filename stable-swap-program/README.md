@@ -6,21 +6,23 @@ Click [here](https://stableswap.pro) to try it out live on the Solana testnet!
 
 ## Development
 
+_We recommend using the included Nix flake to develop within this repo._
+
 Download or update the Solana SDK by running:
 
 ```bash
-./do.sh update
+solana-install init 1.8.11
 ```
 
 To build the program, run:
 
 ```bash
-./do.sh build
+anchor build
 ```
 
 ### Testing
 
-Unit tests contained within the project can be built via:
+Run the unit tests contained within the project via:
 
 ```bash
 ./do.sh test
@@ -35,13 +37,12 @@ Running end-to-end tests:
 Run fuzz tests
 
 ```
-cargo install cargo-fuzz
 cargo fuzz run fuzz_test
 ```
 
 ### Clippy
 
-Clippy is also supported via:
+Run the [Clippy linter](https://github.com/rust-lang/rust-clippy) via:
 
 ```bash
 cargo clippy
@@ -53,7 +54,7 @@ To deploy, run:
 
 ```bash
 # On Vagrant/build environment only
-./do.sh build
+anchor build
 
 # On your machine
 ./scripts/deploy-program.sh <cluster>

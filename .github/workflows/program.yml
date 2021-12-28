@@ -54,7 +54,7 @@ jobs:
       - name: Cache Rust
         uses: Swatinem/rust-cache@v1
         with:
-          key: ${{ runner.os }}-${{ hashFiles('do.sh')}}
+          key: ${{ runner.os }}-${{ env.SOLANA_VERSION }}
 
       - name: Run unit tests
         run: ./do.sh test --nocapture
@@ -109,7 +109,7 @@ jobs:
       - name: Cache Rust
         uses: Swatinem/rust-cache@v1
         with:
-          key: ${{ runner.os }}-${{ hashFiles('do.sh')}}
+          key: ${{ runner.os }}-${{ env.SOLANA_VERSION }}
 
       - name: Build
         run: nix shell .#ci --command anchor build

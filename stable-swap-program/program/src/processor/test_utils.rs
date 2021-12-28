@@ -1,4 +1,5 @@
 //! Test utility methods
+#![allow(clippy::too_many_arguments)]
 
 use crate::{curve::ZERO_TS, fees::Fees, instruction::*, processor::Processor, state::SwapInfo};
 use solana_program::{

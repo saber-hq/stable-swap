@@ -161,8 +161,7 @@ mod tests {
         let expected_normalized_fee =
             trade_amount * adjusted_trade_fee_numerator / trade_fee_denominator;
         assert_eq!(
-            fees.normalized_trade_fee(n_coins, trade_amount.into())
-                .unwrap(),
+            fees.normalized_trade_fee(n_coins, trade_amount).unwrap(),
             expected_normalized_fee
         );
     }

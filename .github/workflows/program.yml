@@ -110,7 +110,7 @@ jobs:
           key: ${{ runner.os }}-${{ env.SOLANA_VERSION }}
 
       - name: Build
-        run: nix shell .#ci --command anchor build
+        run: nix shell .#ci --command anchor build --program-name stable_swap
       - name: Run e2e tests
         working-directory: stable-swap-program
         run: nix shell ../#ci --command ./do.sh e2e-test

@@ -1,7 +1,7 @@
+//! An automated market maker for mean-reverting trading pairs.
+
 #![deny(clippy::unwrap_used)]
 #![deny(missing_docs)]
-
-//! A Curve-like program for the Solana blockchain.
 
 pub mod entrypoint;
 pub mod processor;

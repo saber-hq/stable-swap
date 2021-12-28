@@ -55,7 +55,7 @@ jobs:
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
 
       - name: Build programs
-        run: nix shell .#ci --command anchor build --verifiable
+        run: nix shell .#ci --command anchor build --verifiable --program-name stable_swap
       - name: Release
         uses: softprops/action-gh-release@v1
         with:

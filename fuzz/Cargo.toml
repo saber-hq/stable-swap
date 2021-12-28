@@ -27,7 +27,7 @@ stable-swap = { path = "../stable-swap-program/program", features = [
     "fuzz",
     "program",
     "no-entrypoint"
-] }
+], version = "^1" }
 
 [[bin]]
 name = "fuzz_test"

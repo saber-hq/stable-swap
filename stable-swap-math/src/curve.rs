@@ -447,8 +447,8 @@ mod tests {
             stop_ramp_ts,
         };
         assert_eq!(
-            swap.compute_y_raw(x.into(), d).unwrap().to_u128().unwrap(),
-            model.sim_y(0, 1, x.into())
+            swap.compute_y_raw(x, d).unwrap().to_u128().unwrap(),
+            model.sim_y(0, 1, x)
         )
     }
 
@@ -462,7 +462,7 @@ mod tests {
         ) {
             let start_ramp_ts = cmp::max(0, current_ts - MIN_RAMP_DURATION);
             let stop_ramp_ts = cmp::min(i64::MAX, current_ts + MIN_RAMP_DURATION);
-            let model = Model::new(amp_factor.into(), vec![amount_a.into(), amount_b.into()], N_COINS.into());
+            let model = Model::new(amp_factor, vec![amount_a, amount_b], N_COINS);
             let d = check_d(&model, amount_a, amount_b, current_ts, start_ramp_ts, stop_ramp_ts);
             check_y(&model, amount_a, d, current_ts, start_ramp_ts, stop_ramp_ts);
         }
@@ -474,7 +474,7 @@ mod tests {
         let current_ts = ZERO_TS;
         let start_ramp_ts = ZERO_TS;
         let stop_ramp_ts = ZERO_TS;
-        let model_no_balance = Model::new(1, vec![0, 0], N_COINS.into());
+        let model_no_balance = Model::new(1, vec![0, 0], N_COINS);
         check_d(
             &model_no_balance,
             0,
@@ -486,7 +486,7 @@ mod tests {
 
         let amount_a: u64 = 1046129065254161082;
         let amount_b: u64 = 1250710035549196829;
-        let model = Model::new(1188, vec![amount_a.into(), amount_b.into()], N_COINS.into());
+        let model = Model::new(1188, vec![amount_a, amount_b], N_COINS);
         let d = check_d(
             &model,
             amount_a,
@@ -500,7 +500,7 @@ mod tests {
 
         let amount_a: u64 = 862538457714585493;
         let amount_b: u64 = 492548187909826733;
-        let model = Model::new(9, vec![amount_a.into(), amount_b.into()], N_COINS.into());
+        let model = Model::new(9, vec![amount_a, amount_b], N_COINS);
         let d = check_d(
             &model,
             amount_a,
@@ -569,9 +569,9 @@ mod tests {
             );
 
             let model = Model::new(
-                amp_factor.into(),
-                vec![amount_a.into(), amount_b.into()],
-                N_COINS.into(),
+                amp_factor,
+                vec![amount_a, amount_b],
+                N_COINS,
             );
             let d = check_d(
                 &model,
@@ -607,16 +607,16 @@ mod tests {
         );
         let result = swap
             .swap_to(
-                source_amount.into(),
-                swap_source_amount.into(),
-                swap_destination_amount.into(),
+                source_amount,
+                swap_source_amount,
+                swap_destination_amount,
                 &MODEL_FEES,
             )
             .unwrap();
         let model = Model::new(
             swap.compute_amp_factor().unwrap(),
-            vec![swap_source_amount.into(), swap_destination_amount.into()],
-            N_COINS.into(),
+            vec![swap_source_amount, swap_destination_amount],
+            N_COINS,
         );
 
         assert_eq!(
@@ -710,29 +710,29 @@ mod tests {
         );
         let result = swap
             .compute_withdraw_one(
-                pool_token_amount.into(),
-                pool_token_supply.into(),
-                swap_base_amount.into(),
-                swap_quote_amount.into(),
+                pool_token_amount,
+                pool_token_supply,
+                swap_base_amount,
+                swap_quote_amount,
                 &MODEL_FEES,
             )
             .unwrap();
         let model = Model::new_with_pool_tokens(
             swap.compute_amp_factor().unwrap(),
-            vec![swap_base_amount.into(), swap_quote_amount.into()],
-            N_COINS.into(),
-            pool_token_supply.into(),
+            vec![swap_base_amount, swap_quote_amount],
+            N_COINS,
+            pool_token_supply,
         );
         assert_eq!(
             result.0,
             model
-                .sim_calc_withdraw_one_coin(pool_token_amount.into(), 0)
+                .sim_calc_withdraw_one_coin(pool_token_amount, 0)
                 .0
         );
         assert_eq!(
             result.1,
             model
-                .sim_calc_withdraw_one_coin(pool_token_amount.into(), 0)
+                .sim_calc_withdraw_one_coin(pool_token_amount, 0)
                 .1
         );
     }

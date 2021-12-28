@@ -122,7 +122,7 @@ fn process_initialize(
     }
 
     let token_swap = SwapInfo::unpack_unchecked(&swap_info.data.borrow())?;
-    invariant!(token_swap.is_initialized, AlreadyInUse);
+    invariant!(!token_swap.is_initialized, AlreadyInUse);
     let swap_authority = utils::authority_id(program_id, swap_info.key, nonce)?;
     assert_keys_eq!(
         authority_info,

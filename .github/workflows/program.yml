@@ -1,0 +1,22 @@
+name: Program
+
+on:
+  workflow_run:
+    workflows: ["Libraries", "Pre-build Checks"]
+    branches: [master]
+    types:
+      - completed
+env:
+  CARGO_TERM_COLOR: always
+  SOLANA_VERSION: "1.8.11"
+
+ jobs:
+   unit-tests:
+      defaults:
+       run:
+         working-directory: stable-swap-program
+      
+      runs-on: ubuntu-latest
+      if: ${{ github.event.workflow_run.conclusion == 'success' }}
+      steps:
+        - run: ./do.sh test

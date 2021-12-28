@@ -23,6 +23,7 @@
             (pkgs.lib.optionals pkgs.stdenv.isLinux ([ libudev ])) ++ [
               anchor-0_19_0
               cargo-workspaces
+              cargo-fuzz
 
               # sdk
               nodejs

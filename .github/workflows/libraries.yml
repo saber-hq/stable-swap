@@ -11,43 +11,6 @@ env:
   RUST_TOOLCHAIN: nightly-2021-12-09
 
 jobs:
-  lint:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: Install Rust nightly
-        uses: actions-rs/toolchain@v1
-        with:
-          override: true
-          profile: minimal
-          toolchain: ${{ env.RUST_TOOLCHAIN }}
-          components: rustfmt, clippy
-      - name: Cache dependencies
-        uses: Swatinem/rust-cache@v1
-
-      - name: Run cargo fmt
-        run: cargo fmt -- --check
-      - name: Run clippy
-        uses: actions-rs/clippy-check@v1
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          args: --all-features -- --deny=warnings
-
-  check:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: Install Rust nightly
-        uses: actions-rs/toolchain@v1
-        with:
-          override: true
-          profile: minimal
-          toolchain: ${{ env.RUST_TOOLCHAIN }}
-          components: rustfmt, clippy
-      - name: Cache dependencies
-        uses: Swatinem/rust-cache@v1
-      - run: cargo check
-
   doc:
     runs-on: ubuntu-latest
     steps:
@@ -61,4 +24,20 @@ jobs:
           components: rustfmt, clippy
       - name: Cache dependencies
         uses: Swatinem/rust-cache@v1
-      - run: cargo doc
+      - run: cargo doc --workspace --exclude stable-swap-program --exclude fuzz
+
+  test:
+    runs-on: ubuntu-latest
+      steps:
+        - uses: actions/checkout@v2
+        - name: Install Rust nightly
+          uses: actions-rs/toolchain@v1
+          with:
+            override: true
+            profile: minimal
+            toolchain: ${{ env.RUST_TOOLCHAIN }}
+            components: rustfmt, clippy
+        - name: Cache dependencies
+          uses: Swatinem/rust-cache@v1
+        - run: cargo test --workspace --exclude stable-swap-program --exclude fuzz
+

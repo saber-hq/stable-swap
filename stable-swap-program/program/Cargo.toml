@@ -17,8 +17,8 @@ fuzz = ["stable-swap-client/fuzz"]
 [dependencies]
 solana-program = "^1.6.10"
 spl-token = { version = "3.1.1", features = ["no-entrypoint"] }
-stable-swap-client = "1.5.5"
-stable-swap-math = "1.5.5"
+stable-swap-client = { path = "../../stable-swap-client", version = "^1" }
+stable-swap-math = { path = "../../stable-swap-math", version = "^1" }
 
 [dev-dependencies]
 solana-sdk = "^1.6.10"

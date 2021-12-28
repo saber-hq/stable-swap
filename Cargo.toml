@@ -1,2 +1,3 @@
 [workspace]
-members = ["stable-swap-anchor/", "stable-swap-client/", "stable-swap-math/", "stable-swap-math/sim"]
+members = ["stable-swap-anchor/", "stable-swap-client/", "stable-swap-math/", "stable-swap-math/sim",
+"stable-swap-program/fuzz", "stable-swap-program/program"]

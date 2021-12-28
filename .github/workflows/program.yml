@@ -119,9 +119,6 @@ jobs:
 
   fuzz:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: stable-swap-program
 
     steps:
       - uses: actions/checkout@v2

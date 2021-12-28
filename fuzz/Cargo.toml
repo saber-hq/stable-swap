@@ -1,5 +1,5 @@
 [package]
-name = "fuzz"
+name = "stable-swap-fuzz"
 version = "0.2.0"
 authors = ["michaelhly <michaelhly@gmail.com>"]
 edition = "2018"
@@ -12,6 +12,9 @@ keywords = ["solana", "saber"]
 [package.metadata]
 cargo-fuzz = true
 
+[lib]
+name = "fuzz"
+
 [dependencies]
 arbitrary = "1.0.0"
 chrono = "0.4"
@@ -20,7 +23,7 @@ libfuzzer-sys = "0.4.0"
 rand = { version = "0.8.4" }
 solana-program = "^1.9"
 spl-token = { version = "3.1.0", features = ["no-entrypoint"] }
-stable-swap = { path = "../program", features = [
+stable-swap = { path = "../stable-swap-program/program", features = [
     "fuzz",
     "program",
     "no-entrypoint"

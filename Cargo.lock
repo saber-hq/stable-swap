@@ -690,20 +690,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3f9eec918d3f24069decb9af1554cad7c880e2da24a9afd88aca000531ab82c1"
 
 [[package]]
-name = "fuzz"
-version = "0.2.0"
-dependencies = [
- "arbitrary",
- "chrono",
- "lazy_static",
- "libfuzzer-sys",
- "rand 0.8.4",
- "solana-program",
- "spl-token",
- "stable-swap",
-]
-
-[[package]]
 name = "generic-array"
 version = "0.14.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1764,6 +1750,20 @@ dependencies = [
  "solana-program",
  "spl-token",
  "thiserror",
+]
+
+[[package]]
+name = "stable-swap-fuzz"
+version = "0.2.0"
+dependencies = [
+ "arbitrary",
+ "chrono",
+ "lazy_static",
+ "libfuzzer-sys",
+ "rand 0.8.4",
+ "solana-program",
+ "spl-token",
+ "stable-swap",
 ]
 
 [[package]]

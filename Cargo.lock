@@ -1721,7 +1721,7 @@ dependencies = [
 
 [[package]]
 name = "stable-swap"
-version = "1.6.1"
+version = "1.6.2"
 dependencies = [
  "solana-program",
  "solana-sdk",

@@ -27,59 +27,59 @@ jobs:
         working-directory: stable-swap-program
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
 
-      steps:
-        - uses: actions/checkout@v2
-        - uses: actions/setup-node@v2
-          with:
-            node-version: "14"
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: "14"
 
-        - name: Cache SDK dependencies
-          uses: actions/cache@v2
-          id: cache-sdk
-          with:
-            path: ./sdk/node_modules
-            key: ${{ runner.os }}-${{ hashFiles('**/yarn.lock') }}
+      - name: Cache SDK dependencies
+        uses: actions/cache@v2
+        id: cache-sdk
+        with:
+          path: ./sdk/node_modules
+          key: ${{ runner.os }}-${{ hashFiles('**/yarn.lock') }}
 
-        # Install Cachix
-        - uses: cachix/install-nix-action@v16
-          with:
-            install_url: https://nixos-nix-install-tests.cachix.org/serve/i6laym9jw3wg9mw6ncyrk6gjx4l34vvx/install
-            install_options: "--tarball-url-prefix https://nixos-nix-install-tests.cachix.org/serve"
-            extra_nix_config: |
-              experimental-features = nix-command flakes
-        - name: Setup Cachix
-          uses: cachix/cachix-action@v10
-          with:
-            name: saber
-            authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+      # Install Cachix
+      - uses: cachix/install-nix-action@v16
+        with:
+          install_url: https://nixos-nix-install-tests.cachix.org/serve/i6laym9jw3wg9mw6ncyrk6gjx4l34vvx/install
+          install_options: "--tarball-url-prefix https://nixos-nix-install-tests.cachix.org/serve"
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+      - name: Setup Cachix
+        uses: cachix/cachix-action@v10
+        with:
+          name: saber
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
 
-        # Install Solana
-        - name: Cache Solana binaries
-          id: solana-cache
-          uses: actions/cache@v2
-          with:
-            path: |
-              ~/.cache/solana
-              ~/.local/share/solana/install
-            key: ${{ runner.os }}-${{ env.SOLANA_VERSION }}
-        - name: Install Solana
-          if: steps.solana-cache.outputs.cache-hit != 'true'
-          run: |
-            nix shell .#ci --command solana-install init ${{ env.SOLANA_VERSION }}
-        - name: Setup Solana Path
-          run: |
-            echo "$HOME/.local/share/solana/install/active_release/bin" >> $GITHUB_PATH
-            export PATH="/home/runner/.local/share/solana/install/active_release/bin:$PATH"
-            solana --version
-        - name: Cache Rust
-          uses: Swatinem/rust-cache@v1
-          with:
-            key: ${{ runner.os }}-${{ hashFiles('do.sh')}}
+      # Install Solana
+      - name: Cache Solana binaries
+        id: solana-cache
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cache/solana
+            ~/.local/share/solana/install
+          key: ${{ runner.os }}-${{ env.SOLANA_VERSION }}
+      - name: Install Solana
+        if: steps.solana-cache.outputs.cache-hit != 'true'
+        run: |
+          nix shell .#ci --command solana-install init ${{ env.SOLANA_VERSION }}
+      - name: Setup Solana Path
+        run: |
+          echo "$HOME/.local/share/solana/install/active_release/bin" >> $GITHUB_PATH
+          export PATH="/home/runner/.local/share/solana/install/active_release/bin:$PATH"
+          solana --version
+      - name: Cache Rust
+        uses: Swatinem/rust-cache@v1
+        with:
+          key: ${{ runner.os }}-${{ hashFiles('do.sh')}}
 
-        - name: Build
-          run: nix shell .#ci --command anchor build
-        - name: Run e2e tests
-          run: nix shell .#ci --command ./do.sh e2e-test
+      - name: Build
+        run: nix shell .#ci --command anchor build
+      - name: Run e2e tests
+        run: nix shell .#ci --command ./do.sh e2e-test
 
   fuzz:
     runs-on: ubuntu-latest

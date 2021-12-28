@@ -5,11 +5,13 @@ use crate::{
     processor::utils,
     state::{SwapInfo, SwapTokenInfo},
 };
+use anchor_lang::prelude::*;
 
 use solana_program::{
     account_info::AccountInfo, entrypoint::ProgramResult, program_error::ProgramError,
     pubkey::Pubkey,
 };
+use vipers::assert_keys_eq;
 
 use super::logging::log_slippage_error;
 
@@ -78,10 +80,9 @@ pub fn check_withdraw_token_accounts(
     admin_fee_dest_key: &Pubkey,
 ) -> ProgramResult {
     check_reserves_match(token, reserves_info_key)?;
-    check_keys_equal!(
-        *admin_fee_dest_key,
+    assert_keys_eq!(
+        admin_fee_dest_key,
         token.admin_fees,
-        "Admin fee dest",
         SwapError::InvalidAdmin
     );
     Ok(())
@@ -94,10 +95,9 @@ pub fn check_swap_authority(
     swap_authority_key: &Pubkey,
 ) -> ProgramResult {
     let swap_authority = utils::authority_id(program_id, swap_info_key, token_swap.nonce)?;
-    check_keys_equal!(
-        *swap_authority_key,
+    assert_keys_eq!(
+        swap_authority_key,
         swap_authority,
-        "Swap authority",
         SwapError::InvalidProgramAddress
     );
     Ok(())
@@ -109,16 +109,14 @@ pub fn check_swap_token_destination_accounts(
     swap_destination_info_key: &Pubkey,
     admin_destination_info_key: &Pubkey,
 ) -> ProgramResult {
-    check_keys_equal!(
-        *swap_destination_info_key,
+    assert_keys_eq!(
+        swap_destination_info_key,
         token.reserves,
-        "Incorrect destination, expected",
         SwapError::IncorrectSwapAccount
     );
-    check_keys_equal!(
-        *admin_destination_info_key,
+    assert_keys_eq!(
+        admin_destination_info_key,
         token.admin_fees,
-        "Admin fee",
         SwapError::InvalidAdmin
     );
     Ok(())

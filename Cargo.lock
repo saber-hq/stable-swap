@@ -1723,11 +1723,13 @@ dependencies = [
 name = "stable-swap"
 version = "1.6.0"
 dependencies = [
+ "anchor-lang",
  "solana-program",
  "solana-sdk",
  "spl-token",
  "stable-swap-client",
  "stable-swap-math",
+ "vipers",
 ]
 
 [[package]]
@@ -1934,6 +1936,17 @@ name = "version_check"
 version = "0.9.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5fecdca9a5291cc2b8dcf7dc02453fee791a280f3743cb0905f8822ae463b3fe"
+
+[[package]]
+name = "vipers"
+version = "1.5.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "344716a0a37af7570a1402541e48b42a09def1d453c031aefcd05944d2c4488c"
+dependencies = [
+ "anchor-lang",
+ "anchor-spl",
+ "spl-associated-token-account",
+]
 
 [[package]]
 name = "wait-timeout"

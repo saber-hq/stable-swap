@@ -15,10 +15,12 @@ no-entrypoint = []
 fuzz = ["stable-swap-client/fuzz"]
 
 [dependencies]
+anchor-lang = ">=0.17"
 solana-program = "^1.6.10"
 spl-token = { version = "3.1.1", features = ["no-entrypoint"] }
 stable-swap-client = { path = "../../stable-swap-client", version = "^1" }
 stable-swap-math = { path = "../../stable-swap-math", version = "^1" }
+vipers = "^1.5.5"
 
 [dev-dependencies]
 solana-sdk = "^1.6.10"

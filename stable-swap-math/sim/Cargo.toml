@@ -2,7 +2,7 @@
 name = "stable-swap-sim"
 version = "0.1.0"
 authors = ["michaelhly <michaelhly@gmail.com>"]
-description = "Simulations of the StableSwap invariant compared to Curve's reference implementation"
+description = "Simulations of the StableSwap invariant compared to Curve's reference implementation."
 license = "Apache-2.0"
 homepage = "https://saber.so"
 repository = "https://github.com/saber-hq/stable-swap"

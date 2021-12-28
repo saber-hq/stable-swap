@@ -1,3 +1,5 @@
+//! Simulations of the StableSwap invariant compared to Curve's reference implementation.
+
 use pyo3::prelude::*;
 use pyo3::types::PyTuple;
 use std::fs::File;
@@ -13,7 +15,7 @@ const FILE_PATH: &str = "sim/simulation.py";
 const MODULE_NAME: &str = "simulation";
 
 pub struct Model {
-    py_src: String,
+    pub py_src: String,
     pub amp_factor: u64,
     pub balances: Vec<u64>,
     pub n_coins: u8,

@@ -1,9 +1,12 @@
 import type { Network } from "@saberhq/solana-contrib";
 import { DEFAULT_NETWORK_CONFIG_MAP } from "@saberhq/solana-contrib";
+import type { Fees } from "@saberhq/stableswap-sdk";
+import { DEFAULT_FEE } from "@saberhq/stableswap-sdk";
 import { Percent } from "@saberhq/token-utils";
 import type {
   Cluster,
   Connection,
+  PublicKey,
   Signer,
   Transaction,
   TransactionSignature,
@@ -11,14 +14,8 @@ import type {
 import {
   Keypair,
   LAMPORTS_PER_SOL,
-  PublicKey,
   sendAndConfirmTransaction as realSendAndConfirmTransaction,
 } from "@solana/web3.js";
-import * as fs from "fs/promises";
-import * as os from "os";
-
-import type { Fees } from "../src";
-import { DEFAULT_FEE } from "../src";
 
 // Initial amount in each swap token
 export const INITIAL_TOKEN_A_AMOUNT = LAMPORTS_PER_SOL;
@@ -63,30 +60,6 @@ export const isCluster = (clusterRaw?: string): clusterRaw is Cluster =>
   (Object.keys(DEFAULT_NETWORK_CONFIG_MAP) as readonly string[]).includes(
     clusterRaw
   );
-
-interface IDeployment {
-  cluster: Network;
-  programId: PublicKey;
-  authority: PublicKey;
-}
-
-export const getProgramDeploymentInfo = async (
-  cluster: Network
-): Promise<IDeployment> => {
-  const data = await fs.readFile(
-    `${os.homedir()}/stableswap_deployments/${cluster}/program.json`,
-    "utf-8"
-  );
-  const deployInfo = JSON.parse(data) as {
-    programId: string;
-    authority: string;
-  };
-  return {
-    cluster,
-    programId: new PublicKey(deployInfo.programId),
-    authority: new PublicKey(deployInfo.authority),
-  };
-};
 
 export const CLUSTER_API_URLS: { [C in Network]: string } = {
   "mainnet-beta": "https://api.mainnet-beta.solana.com",

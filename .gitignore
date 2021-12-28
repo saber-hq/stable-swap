@@ -11,3 +11,4 @@ last-deploy.json
 
 stable-swap-program/fuzz/artifacts
 stable-swap-program/fuzz/corpus
+test-ledger

@@ -1,4 +1,13 @@
 import { SignerWallet } from "@saberhq/solana-contrib";
+import type { IExchange } from "@saberhq/stableswap-sdk";
+import {
+  calculateVirtualPrice,
+  deployNewSwap,
+  loadExchangeInfo,
+  parseEventLogs,
+  StableSwap,
+  SWAP_PROGRAM_ID,
+} from "@saberhq/stableswap-sdk";
 import {
   SPLToken,
   Token as SToken,
@@ -13,18 +22,12 @@ import {
   Transaction,
 } from "@solana/web3.js";
 
-import { calculateVirtualPrice, StableSwap } from "../src";
-import type { IExchange } from "../src/entities/exchange";
-import { loadExchangeInfo } from "../src/entities/exchange";
-import { parseEventLogs } from "../src/events";
-import { deployTestTokens } from "../src/util/deployTestTokens";
-import { deployNewSwap } from "../src/util/initialize";
+import { deployTestTokens } from "./deployTestTokens";
 import {
   AMP_FACTOR,
   BOOTSTRAP_TIMEOUT,
   CLUSTER_URL,
   FEES,
-  getProgramDeploymentInfo,
   INITIAL_TOKEN_A_AMOUNT,
   INITIAL_TOKEN_B_AMOUNT,
   newKeypairWithLamports,
@@ -74,8 +77,7 @@ describe("e2e test", () => {
       initialTokenBAmount: INITIAL_TOKEN_B_AMOUNT,
     });
 
-    stableSwapProgramId = (await getProgramDeploymentInfo("localnet"))
-      .programId;
+    stableSwapProgramId = SWAP_PROGRAM_ID;
     stableSwapAccount = Keypair.generate();
 
     const { swap: newSwap, initializeArgs } = await deployNewSwap({
@@ -158,16 +160,11 @@ describe("e2e test", () => {
   });
 
   it("loadStableSwap", async () => {
-    let fetchedStableSwap: StableSwap;
-    try {
-      fetchedStableSwap = await StableSwap.load(
-        connection,
-        stableSwapAccount.publicKey,
-        stableSwapProgramId
-      );
-    } catch (e) {
-      throw new Error(e);
-    }
+    const fetchedStableSwap = await StableSwap.load(
+      connection,
+      stableSwapAccount.publicKey,
+      stableSwapProgramId
+    );
 
     expect(fetchedStableSwap.config.swapAccount).toEqual(
       stableSwapAccount.publicKey
@@ -207,30 +204,26 @@ describe("e2e test", () => {
     await sleep(500);
 
     let txReceipt: ConfirmedTransaction | null = null;
-    try {
-      // Depositing into swap
-      const txn = new Transaction().add(
-        stableSwap.deposit({
-          userAuthority: owner.publicKey,
-          sourceA: userAccountA,
-          sourceB: userAccountB,
-          poolTokenAccount: userPoolAccount,
-          tokenAmountA: new u64(depositAmountA),
-          tokenAmountB: new u64(depositAmountB),
-          minimumPoolTokenAmount: new u64(0), // To avoid slippage errors
-        })
-      );
-      const txSig = await sendAndConfirmTransactionWithTitle(
-        "deposit",
-        connection,
-        txn,
-        payer,
-        owner
-      );
-      txReceipt = await connection.getConfirmedTransaction(txSig, "confirmed");
-    } catch (e) {
-      throw new Error(e);
-    }
+    // Depositing into swap
+    const txn = new Transaction().add(
+      stableSwap.deposit({
+        userAuthority: owner.publicKey,
+        sourceA: userAccountA,
+        sourceB: userAccountB,
+        poolTokenAccount: userPoolAccount,
+        tokenAmountA: new u64(depositAmountA),
+        tokenAmountB: new u64(depositAmountB),
+        minimumPoolTokenAmount: new u64(0), // To avoid slippage errors
+      })
+    );
+    const txSig = await sendAndConfirmTransactionWithTitle(
+      "deposit",
+      connection,
+      txn,
+      payer,
+      owner
+    );
+    txReceipt = await connection.getConfirmedTransaction(txSig, "confirmed");
 
     let info = await mintA.getAccountInfo(userAccountA);
     expect(info.amount.toNumber()).toBe(0);
@@ -280,30 +273,26 @@ describe("e2e test", () => {
     await sleep(500);
 
     let txReceipt = null;
-    try {
-      // Withdrawing pool tokens for A and B tokens
-      const txn = new Transaction().add(
-        stableSwap.withdraw({
-          userAuthority: owner.publicKey,
-          userAccountA,
-          userAccountB,
-          sourceAccount: userPoolAccount,
-          poolTokenAmount: new u64(withdrawalAmount),
-          minimumTokenA: new u64(0), // To avoid slippage errors
-          minimumTokenB: new u64(0), // To avoid spliiage errors
-        })
-      );
-      const txSig = await sendAndConfirmTransactionWithTitle(
-        "withdraw",
-        connection,
-        txn,
-        payer,
-        owner
-      );
-      txReceipt = await connection.getConfirmedTransaction(txSig, "confirmed");
-    } catch (e) {
-      throw new Error(e);
-    }
+    // Withdrawing pool tokens for A and B tokens
+    const txn = new Transaction().add(
+      stableSwap.withdraw({
+        userAuthority: owner.publicKey,
+        userAccountA,
+        userAccountB,
+        sourceAccount: userPoolAccount,
+        poolTokenAmount: new u64(withdrawalAmount),
+        minimumTokenA: new u64(0), // To avoid slippage errors
+        minimumTokenB: new u64(0), // To avoid spliiage errors
+      })
+    );
+    const txSig = await sendAndConfirmTransactionWithTitle(
+      "withdraw",
+      connection,
+      txn,
+      payer,
+      owner
+    );
+    txReceipt = await connection.getConfirmedTransaction(txSig, "confirmed");
 
     let info = await mintA.getAccountInfo(userAccountA);
     expect(info.amount.toNumber()).toBe(expectedWithdrawA);
@@ -354,30 +343,26 @@ describe("e2e test", () => {
     await sleep(500);
 
     let txReceipt = null;
-    try {
-      // Swapping
-      const txn = new Transaction().add(
-        stableSwap.swap({
-          userAuthority: owner.publicKey,
-          userSource: userAccountA, // User source token account            | User source -> Swap source
-          poolSource: tokenAccountA, // Swap source token account
-          poolDestination: tokenAccountB, // Swap destination token account | Swap dest -> User dest
-          userDestination: userAccountB, // User destination token account
-          amountIn: new u64(SWAP_AMOUNT_IN),
-          minimumAmountOut: new u64(0), // To avoid slippage errors
-        })
-      );
-      const txSig = await sendAndConfirmTransactionWithTitle(
-        "swap",
-        connection,
-        txn,
-        payer,
-        owner
-      );
-      txReceipt = await connection.getConfirmedTransaction(txSig, "confirmed");
-    } catch (e) {
-      throw new Error(e);
-    }
+    // Swapping
+    const txn = new Transaction().add(
+      stableSwap.swap({
+        userAuthority: owner.publicKey,
+        userSource: userAccountA, // User source token account            | User source -> Swap source
+        poolSource: tokenAccountA, // Swap source token account
+        poolDestination: tokenAccountB, // Swap destination token account | Swap dest -> User dest
+        userDestination: userAccountB, // User destination token account
+        amountIn: new u64(SWAP_AMOUNT_IN),
+        minimumAmountOut: new u64(0), // To avoid slippage errors
+      })
+    );
+    const txSig = await sendAndConfirmTransactionWithTitle(
+      "swap",
+      connection,
+      txn,
+      payer,
+      owner
+    );
+    txReceipt = await connection.getConfirmedTransaction(txSig, "confirmed");
     // Make sure swap was complete
     await sleep(500);
 
@@ -421,30 +406,26 @@ describe("e2e test", () => {
     await sleep(500);
 
     let txReceipt = null;
-    try {
-      // Swapping;
-      const txn = new Transaction().add(
-        stableSwap.swap({
-          userAuthority: owner.publicKey,
-          userSource: userAccountB, // User source token account       | User source -> Swap source
-          poolSource: tokenAccountB, // Swap source token account
-          poolDestination: tokenAccountA, // Swap destination token account | Swap dest -> User dest
-          userDestination: userAccountA, // User destination token account
-          amountIn: new u64(SWAP_AMOUNT_IN),
-          minimumAmountOut: new u64(0), // To avoid slippage errors
-        })
-      );
-      const txSig = await sendAndConfirmTransactionWithTitle(
-        "swap",
-        connection,
-        txn,
-        payer,
-        owner
-      );
-      txReceipt = await connection.getConfirmedTransaction(txSig, "confirmed");
-    } catch (e) {
-      throw new Error(e);
-    }
+    // Swapping;
+    const txn = new Transaction().add(
+      stableSwap.swap({
+        userAuthority: owner.publicKey,
+        userSource: userAccountB, // User source token account       | User source -> Swap source
+        poolSource: tokenAccountB, // Swap source token account
+        poolDestination: tokenAccountA, // Swap destination token account | Swap dest -> User dest
+        userDestination: userAccountA, // User destination token account
+        amountIn: new u64(SWAP_AMOUNT_IN),
+        minimumAmountOut: new u64(0), // To avoid slippage errors
+      })
+    );
+    const txSig = await sendAndConfirmTransactionWithTitle(
+      "swap",
+      connection,
+      txn,
+      payer,
+      owner
+    );
+    txReceipt = await connection.getConfirmedTransaction(txSig, "confirmed");
 
     // Make sure swap was complete
     await sleep(500);
@@ -509,7 +490,7 @@ describe("e2e test", () => {
       txReceipt = await connection.getConfirmedTransaction(txSig, "confirmed");
     } catch (e) {
       console.error(e);
-      throw new Error(e);
+      throw e;
     }
 
     const expectedWithdrawA = withdrawalAmount;
@@ -577,7 +558,7 @@ describe("e2e test", () => {
       txReceipt = await connection.getConfirmedTransaction(txSig, "confirmed");
     } catch (e) {
       console.error(e);
-      throw new Error(e);
+      throw e;
     }
 
     const expectedWithdrawB = withdrawalAmount + 1;

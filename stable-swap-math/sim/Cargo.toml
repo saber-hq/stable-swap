@@ -13,4 +13,4 @@ keywords = ["solana", "saber", "curve"]
 name = "sim"
 
 [dependencies]
-pyo3 = "0.13.2"
+pyo3 = "0.15.1"

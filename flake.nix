@@ -14,12 +14,11 @@
       "x86_64-darwin"
     ] (system:
       let
-        pkgs = import nixpkgs { inherit system; };
-        saber-pkgs = saber-overlay.packages.${system};
+        pkgs = import nixpkgs { inherit system; }
+          // saber-overlay.packages.${system};
         ci = pkgs.buildEnv {
           name = "ci";
           paths = with pkgs;
-            with saber-pkgs;
             (pkgs.lib.optionals pkgs.stdenv.isLinux ([ libudev ])) ++ [
               anchor-0_19_0
               cargo-workspaces
@@ -48,9 +47,14 @@
       in {
         packages.ci = ci;
         devShell = pkgs.mkShell {
-          buildInputs = with pkgs;
-            [ ci rustup cargo-deps gh ]
-            ++ (with saber-pkgs; [ spl-token-cli solana-cli ]);
+          buildInputs = with pkgs; [
+            ci
+            rustup
+            cargo-deps
+            gh
+            spl-token-cli
+            solana-cli
+          ];
         };
       });
 }

@@ -150,8 +150,7 @@ mod tests {
         let expected_admin_withdraw_fee =
             expected_withdraw_fee * admin_withdraw_fee_numerator / admin_withdraw_fee_denominator;
         assert_eq!(
-            fees.admin_withdraw_fee(expected_withdraw_fee)
-                .unwrap(),
+            fees.admin_withdraw_fee(expected_withdraw_fee).unwrap(),
             expected_admin_withdraw_fee
         );
 

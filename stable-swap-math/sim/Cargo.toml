@@ -7,7 +7,7 @@ license = "Apache-2.0"
 homepage = "https://saber.so"
 repository = "https://github.com/saber-hq/stable-swap"
 edition = "2021"
-keywords = ["solana", "saber", "curve"]
+keywords = ["solana", "saber", "curve", "sim"]
 
 [lib]
 name = "sim"

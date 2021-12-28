@@ -6,7 +6,7 @@ edition = "2021"
 description = "Saber StableSwap program."
 homepage = "https://saber.so"
 repository = "https://github.com/saber-hq/stable-swap"
-keywords = ["solana", "saber"]
+keywords = ["solana", "saber", "program"]
 license = "Apache-2.0"
 
 [features]

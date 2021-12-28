@@ -7,7 +7,7 @@ authors = ["michaelhly <michaelhly@gmail.com>"]
 homepage = "https://saber.so"
 repository = "https://github.com/saber-hq/stable-swap"
 edition = "2021"
-keywords = ["solana", "saber"]
+keywords = ["solana", "saber", "math"]
 
 [dependencies]
 borsh = "0.9.1"

@@ -28,16 +28,15 @@ jobs:
 
   test:
     runs-on: ubuntu-latest
-      steps:
-        - uses: actions/checkout@v2
-        - name: Install Rust nightly
-          uses: actions-rs/toolchain@v1
-          with:
-            override: true
-            profile: minimal
-            toolchain: ${{ env.RUST_TOOLCHAIN }}
-            components: rustfmt, clippy
-        - name: Cache dependencies
-          uses: Swatinem/rust-cache@v1
-        - run: cargo test --workspace --exclude stable-swap-program --exclude fuzz
-
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install Rust nightly
+        uses: actions-rs/toolchain@v1
+        with:
+          override: true
+          profile: minimal
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+          components: rustfmt, clippy
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@v1
+      - run: cargo test --workspace --exclude stable-swap-program --exclude fuzz

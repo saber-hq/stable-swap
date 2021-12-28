@@ -50,6 +50,7 @@
           buildInputs = with pkgs; [
             ci
             rustup
+            cargo-outdated
             cargo-deps
             gh
             spl-token-cli

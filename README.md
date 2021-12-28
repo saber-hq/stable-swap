@@ -26,4 +26,4 @@ To use StableSwap with your frontend, the [JavaScript SDK is available here.](ht
 
 ## Archive
 
-An archived version of the stable-swap-program is available [here](https://github.com/saber-hq/stable-swap-program/tree/archive).
+An archived version of the original stable-swap-program is available [at the archive branch](https://github.com/saber-hq/stable-swap/tree/archive).

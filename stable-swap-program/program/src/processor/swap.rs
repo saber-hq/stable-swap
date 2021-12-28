@@ -1297,8 +1297,8 @@ mod tests {
             );
         }
         let swap_info = SwapInfo::unpack(&accounts.swap_account.data).unwrap();
-        assert_eq!(swap_info.is_initialized, true);
-        assert_eq!(swap_info.is_paused, false);
+        assert!(swap_info.is_initialized);
+        assert!(!swap_info.is_paused);
         assert_eq!(swap_info.nonce, accounts.nonce);
         assert_eq!(swap_info.initial_amp_factor, amp_factor);
         assert_eq!(swap_info.target_amp_factor, amp_factor);

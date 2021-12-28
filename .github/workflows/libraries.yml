@@ -24,7 +24,7 @@ jobs:
           components: rustfmt, clippy
       - name: Cache dependencies
         uses: Swatinem/rust-cache@v1
-      - run: cargo doc --workspace --exclude stable-swap --exclude fuzz
+      - run: cargo doc
 
   test:
     runs-on: ubuntu-latest
@@ -39,4 +39,4 @@ jobs:
           components: rustfmt, clippy
       - name: Cache dependencies
         uses: Swatinem/rust-cache@v1
-      - run: cargo test --workspace --exclude stable-swap --exclude fuzz
+      - run: cargo test --workspace --exclude stable-swap

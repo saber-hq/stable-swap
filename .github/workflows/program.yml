@@ -13,9 +13,6 @@ env:
 jobs:
   unit-tests:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: stable-swap-program
 
     steps:
       - uses: actions/checkout@v2
@@ -54,9 +51,10 @@ jobs:
       - name: Cache Rust
         uses: Swatinem/rust-cache@v1
         with:
-          key: ${{ runner.os }}-${{ hashFiles('do.sh')}}
+          key: ${{ runner.os }}-${{ env.SOLANA_VERSION }}
 
       - name: Run unit tests
+        working-directory: stable-swap-program
         run: ./do.sh test --nocapture
 
   e2e-test:
@@ -109,13 +107,13 @@ jobs:
       - name: Cache Rust
         uses: Swatinem/rust-cache@v1
         with:
-          key: ${{ runner.os }}-${{ hashFiles('do.sh')}}
+          key: ${{ runner.os }}-${{ env.SOLANA_VERSION }}
 
       - name: Build
         run: nix shell .#ci --command anchor build
       - name: Run e2e tests
         working-directory: stable-swap-program
-        run: nix shell .#ci --command ./do.sh e2e-test
+        run: nix shell ../#ci --command ./do.sh e2e-test
 
   fuzz:
     runs-on: ubuntu-latest

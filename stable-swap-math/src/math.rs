@@ -133,7 +133,7 @@ mod tests {
 
         let trade_amount = 1_000_000_000;
         let expected_trade_fee = trade_amount * trade_fee_numerator / trade_fee_denominator;
-        let trade_fee = fees.trade_fee(trade_amount.into()).unwrap();
+        let trade_fee = fees.trade_fee(trade_amount).unwrap();
         assert_eq!(trade_fee, expected_trade_fee);
         let expected_admin_trade_fee =
             expected_trade_fee * admin_trade_fee_numerator / admin_trade_fee_denominator;
@@ -145,13 +145,12 @@ mod tests {
         let withdraw_amount = 100_000_000_000;
         let expected_withdraw_fee =
             withdraw_amount * withdraw_fee_numerator / withdraw_fee_denominator;
-        let withdraw_fee = fees.withdraw_fee(withdraw_amount.into()).unwrap();
+        let withdraw_fee = fees.withdraw_fee(withdraw_amount).unwrap();
         assert_eq!(withdraw_fee, expected_withdraw_fee);
         let expected_admin_withdraw_fee =
             expected_withdraw_fee * admin_withdraw_fee_numerator / admin_withdraw_fee_denominator;
         assert_eq!(
-            fees.admin_withdraw_fee(expected_withdraw_fee.into())
-                .unwrap(),
+            fees.admin_withdraw_fee(expected_withdraw_fee).unwrap(),
             expected_admin_withdraw_fee
         );
 
@@ -161,8 +160,7 @@ mod tests {
         let expected_normalized_fee =
             trade_amount * adjusted_trade_fee_numerator / trade_fee_denominator;
         assert_eq!(
-            fees.normalized_trade_fee(n_coins, trade_amount.into())
-                .unwrap(),
+            fees.normalized_trade_fee(n_coins, trade_amount).unwrap(),
             expected_normalized_fee
         );
     }

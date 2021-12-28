@@ -7,7 +7,6 @@
 use borsh::{BorshDeserialize, BorshSerialize};
 use stable_swap_client::error::SwapError;
 use std::borrow::BorrowMut;
-use std::convert::TryInto;
 use std::io::{Error, ErrorKind, Write};
 use std::mem::size_of;
 use uint::construct_uint;

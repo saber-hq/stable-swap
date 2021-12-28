@@ -11,7 +11,6 @@ use solana_program::{
     pubkey::Pubkey,
     sysvar::clock,
 };
-use std::convert::TryInto;
 use std::mem::size_of;
 
 /// Initialize instruction data

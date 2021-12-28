@@ -5,7 +5,6 @@
 #![allow(clippy::manual_range_contains)]
 
 use crate::error::SwapError;
-use std::convert::TryInto;
 use uint::construct_uint;
 
 construct_uint! {

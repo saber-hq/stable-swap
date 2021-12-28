@@ -104,3 +104,66 @@ impl FeeCalculator for Fees {
         )
     }
 }
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn fee_results() {
+        let admin_trade_fee_numerator = 1;
+        let admin_trade_fee_denominator = 2;
+        let admin_withdraw_fee_numerator = 3;
+        let admin_withdraw_fee_denominator = 4;
+        let trade_fee_numerator = 5;
+        let trade_fee_denominator = 6;
+        let withdraw_fee_numerator = 7;
+        let withdraw_fee_denominator = 8;
+        let fees = Fees {
+            admin_trade_fee_numerator,
+            admin_trade_fee_denominator,
+            admin_withdraw_fee_numerator,
+            admin_withdraw_fee_denominator,
+            trade_fee_numerator,
+            trade_fee_denominator,
+            withdraw_fee_numerator,
+            withdraw_fee_denominator,
+        };
+
+        let trade_amount = 1_000_000_000;
+        let expected_trade_fee = trade_amount * trade_fee_numerator / trade_fee_denominator;
+        let trade_fee = fees.trade_fee(trade_amount.into()).unwrap();
+        assert_eq!(trade_fee, expected_trade_fee);
+        let expected_admin_trade_fee =
+            expected_trade_fee * admin_trade_fee_numerator / admin_trade_fee_denominator;
+        assert_eq!(
+            fees.admin_trade_fee(trade_fee).unwrap(),
+            expected_admin_trade_fee
+        );
+
+        let withdraw_amount = 100_000_000_000;
+        let expected_withdraw_fee =
+            withdraw_amount * withdraw_fee_numerator / withdraw_fee_denominator;
+        let withdraw_fee = fees.withdraw_fee(withdraw_amount.into()).unwrap();
+        assert_eq!(withdraw_fee, expected_withdraw_fee);
+        let expected_admin_withdraw_fee =
+            expected_withdraw_fee * admin_withdraw_fee_numerator / admin_withdraw_fee_denominator;
+        assert_eq!(
+            fees.admin_withdraw_fee(expected_withdraw_fee.into())
+                .unwrap(),
+            expected_admin_withdraw_fee
+        );
+
+        let n_coins: u8 = 2;
+        let adjusted_trade_fee_numerator: u64 =
+            trade_fee_numerator * (n_coins as u64) / (4 * ((n_coins as u64) - 1));
+        let expected_normalized_fee =
+            trade_amount * adjusted_trade_fee_numerator / trade_fee_denominator;
+        assert_eq!(
+            fees.normalized_trade_fee(n_coins, trade_amount.into())
+                .unwrap(),
+            expected_normalized_fee
+        );
+    }
+}

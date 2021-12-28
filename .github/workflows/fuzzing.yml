@@ -37,10 +37,10 @@ jobs:
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
 
       - name: Build
-        run: nix shell .#ci --command cargo fuzz build fuzz_test
+        run: nix shell .#ci --command cargo fuzz build --dev fuzz_test
         env:
           RUSTFLAGS: "-Znew-llvm-pass-manager=no"
       - name: Run fuzz test
-        run: nix shell .#ci --command cargo fuzz run fuzz_test -- -max_total_time=14400
+        run: nix shell .#ci --command cargo fuzz run --dev fuzz_test -- -max_total_time=10800
         env:
           RUSTFLAGS: "-Znew-llvm-pass-manager=no"

@@ -108,11 +108,19 @@ fn ramp_a(token_swap: &mut SwapInfo, target_amp: u64, stop_ramp_ts: i64) -> Prog
         .compute_amp_factor()
         .ok_or(SwapError::CalculationFailure)?;
     if target_amp < current_amp {
-        if current_amp > target_amp * MAX_A_CHANGE {
+        if current_amp
+            > target_amp
+                .checked_mul(MAX_A_CHANGE)
+                .ok_or(SwapError::CalculationFailure)?
+        {
             // target_amp too low
             return Err(SwapError::InvalidInput.into());
         }
-    } else if target_amp > current_amp * MAX_A_CHANGE {
+    } else if target_amp
+        > current_amp
+            .checked_mul(MAX_A_CHANGE)
+            .ok_or(SwapError::CalculationFailure)?
+    {
         // target_amp too high
         return Err(SwapError::InvalidInput.into());
     }
@@ -244,7 +252,7 @@ fn set_new_fees(token_swap: &mut SwapInfo, new_fees: &Fees) -> ProgramResult {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
+#[allow(clippy::unwrap_used, clippy::integer_arithmetic)]
 mod tests {
     use super::*;
     use crate::{curve::ZERO_TS, processor::test_utils::*};

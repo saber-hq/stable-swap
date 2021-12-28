@@ -1,5 +1,4 @@
 //! Program entrypoint definitions
-
 #![cfg(not(feature = "no-entrypoint"))]
 
 use crate::{error::SwapError, processor::Processor};

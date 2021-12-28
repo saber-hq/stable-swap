@@ -22,8 +22,12 @@
 
 ## JavaScript/Web3.js
 
-To use StableSwap with your frontend, the [JavaScript SDK is available here.](https://github.com/saber-hq/saber-common/tree/master/packages/stableswap-sdk)
+To use StableSwap with your frontend or Node.js project, use [the JavaScript SDK.](https://github.com/saber-hq/saber-common/tree/master/packages/stableswap-sdk)
 
 ## Archive
 
-An archived version of the original stable-swap-program is available [at the archive branch](https://github.com/saber-hq/stable-swap/tree/archive).
+The original Saber StableSwap program can be found on the [archive branch](https://github.com/saber-hq/stable-swap/tree/archive).
+
+## License
+
+Saber StableSwap is licensed under the Apache License, Version 2.0.

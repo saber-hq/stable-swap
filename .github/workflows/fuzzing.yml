@@ -1,0 +1,46 @@
+name: The Daily Fuzz
+
+on:
+  schedule:
+    - cron: "0 10 * * *"
+  push:
+    branches: [master]
+    paths:
+      - ".github/workflows/fuzzing.yml"
+
+jobs:
+  nightly:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install Rust nightly
+        uses: actions-rs/toolchain@v1
+        with:
+          override: true
+          profile: minimal
+          toolchain: nightly-2021-12-25
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@v1
+
+      # Install Cachix
+      - uses: cachix/install-nix-action@v16
+        with:
+          install_url: https://nixos-nix-install-tests.cachix.org/serve/i6laym9jw3wg9mw6ncyrk6gjx4l34vvx/install
+          install_options: "--tarball-url-prefix https://nixos-nix-install-tests.cachix.org/serve"
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+      - name: Setup Cachix
+        uses: cachix/cachix-action@v10
+        with:
+          name: saber
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+
+      - name: Build
+        run: nix shell .#ci --command cargo fuzz build fuzz_test
+        env:
+          RUSTFLAGS: "-Znew-llvm-pass-manager=no"
+      - name: Run fuzz test
+        run: nix shell .#ci --command cargo fuzz run fuzz_test -- -max_total_time=14400
+        env:
+          RUSTFLAGS: "-Znew-llvm-pass-manager=no"

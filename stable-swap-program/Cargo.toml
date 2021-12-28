@@ -1,2 +1,0 @@
-[workspace]
-members = ["program", "fuzz", "sim"]

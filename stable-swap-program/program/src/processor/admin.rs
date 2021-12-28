@@ -1,9 +1,7 @@
 //! Module for processing admin-only instructions.
 
 use crate::{
-    curve::{StableSwap, MAX_AMP, MIN_AMP, MIN_RAMP_DURATION, ZERO_TS},
     error::SwapError,
-    fees::Fees,
     instruction::{AdminInstruction, RampAData},
     processor::utils,
     state::SwapInfo,
@@ -16,6 +14,8 @@ use solana_program::{
     pubkey::Pubkey,
     sysvar::{clock::Clock, Sysvar},
 };
+use stable_swap_client::fees::Fees;
+use stable_swap_math::curve::{StableSwap, MAX_AMP, MIN_AMP, MIN_RAMP_DURATION, ZERO_TS};
 
 use super::checks::check_has_admin_signer;
 
@@ -39,11 +39,11 @@ pub fn process_admin_instruction(
             stop_ramp_ts,
         }) => {
             msg!("Instruction: RampA");
-            ramp_a(token_swap, target_amp, stop_ramp_ts, account_info_iter)
+            ramp_a(token_swap, target_amp, stop_ramp_ts)
         }
         AdminInstruction::StopRampA => {
             msg!("Instruction: StopRampA");
-            stop_ramp_a(token_swap, account_info_iter)
+            stop_ramp_a(token_swap)
         }
         AdminInstruction::Pause => {
             msg!("Instruction: Pause");
@@ -59,7 +59,7 @@ pub fn process_admin_instruction(
         }
         AdminInstruction::ApplyNewAdmin => {
             msg!("Instruction: ApplyNewAdmin");
-            apply_new_admin(token_swap, account_info_iter)
+            apply_new_admin(token_swap)
         }
         AdminInstruction::CommitNewAdmin => {
             msg!("Instruction: CommitNewAdmin");
@@ -75,19 +75,12 @@ pub fn process_admin_instruction(
 }
 
 /// Ramp to future a
-fn ramp_a<'a, 'b: 'a, I: Iterator<Item = &'a AccountInfo<'b>>>(
-    token_swap: &mut SwapInfo,
-    target_amp: u64,
-    stop_ramp_ts: i64,
-    account_info_iter: &mut I,
-) -> ProgramResult {
-    let clock_sysvar_info = next_account_info(account_info_iter)?;
-
+fn ramp_a(token_swap: &mut SwapInfo, target_amp: u64, stop_ramp_ts: i64) -> ProgramResult {
     if !(MIN_AMP..=MAX_AMP).contains(&target_amp) {
         return Err(SwapError::InvalidInput.into());
     }
 
-    let clock = Clock::from_account_info(clock_sysvar_info)?;
+    let clock = Clock::get()?;
     let ramp_lock_ts = token_swap
         .start_ramp_ts
         .checked_add(MIN_RAMP_DURATION)
@@ -137,13 +130,8 @@ fn ramp_a<'a, 'b: 'a, I: Iterator<Item = &'a AccountInfo<'b>>>(
 }
 
 /// Stop ramp a
-fn stop_ramp_a<'a, 'b: 'a, I: Iterator<Item = &'a AccountInfo<'b>>>(
-    token_swap: &mut SwapInfo,
-    account_info_iter: &mut I,
-) -> ProgramResult {
-    let clock_sysvar_info = next_account_info(account_info_iter)?;
-
-    let clock = Clock::from_account_info(clock_sysvar_info)?;
+fn stop_ramp_a(token_swap: &mut SwapInfo) -> ProgramResult {
+    let clock = Clock::get()?;
     let invariant = StableSwap::new(
         token_swap.initial_amp_factor,
         token_swap.target_amp_factor,
@@ -207,16 +195,11 @@ fn set_fee_account<'a, 'b: 'a, I: Iterator<Item = &'a AccountInfo<'b>>>(
 }
 
 /// Apply new admin (finalize admin transfer)
-fn apply_new_admin<'a, 'b: 'a, I: Iterator<Item = &'a AccountInfo<'b>>>(
-    token_swap: &mut SwapInfo,
-    account_info_iter: &mut I,
-) -> ProgramResult {
-    let clock_sysvar_info = next_account_info(account_info_iter)?;
-
+fn apply_new_admin(token_swap: &mut SwapInfo) -> ProgramResult {
     if token_swap.future_admin_deadline == ZERO_TS {
         return Err(SwapError::NoActiveTransfer.into());
     }
-    let clock = Clock::from_account_info(clock_sysvar_info)?;
+    let clock = Clock::get()?;
     if clock.unix_timestamp > token_swap.future_admin_deadline {
         return Err(SwapError::AdminDeadlineExceeded.into());
     }
@@ -234,9 +217,8 @@ fn commit_new_admin<'a, 'b: 'a, I: Iterator<Item = &'a AccountInfo<'b>>>(
     account_info_iter: &mut I,
 ) -> ProgramResult {
     let new_admin_info = next_account_info(account_info_iter)?;
-    let clock_sysvar_info = next_account_info(account_info_iter)?;
 
-    let clock = Clock::from_account_info(clock_sysvar_info)?;
+    let clock = Clock::get()?;
     if clock.unix_timestamp < token_swap.future_admin_deadline {
         return Err(SwapError::ActiveTransfer.into());
     }
@@ -266,8 +248,8 @@ fn set_new_fees(token_swap: &mut SwapInfo, new_fees: &Fees) -> ProgramResult {
 mod tests {
     use super::*;
     use crate::{curve::ZERO_TS, processor::test_utils::*};
+    use solana_program::clock::Epoch;
     use solana_program::program_error::ProgramError;
-    use solana_sdk::clock::Epoch;
 
     const DEFAULT_TOKEN_A_AMOUNT: u64 = 1_000_000_000;
     const DEFAULT_TOKEN_B_AMOUNT: u64 = 1_000_000_000;

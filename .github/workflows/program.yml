@@ -8,11 +8,118 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
-  RUST_TOOLCHAIN: nightly-2021-12-09
+  SOLANA_VERSION: "1.8.11"
 
 jobs:
-  lint:
+  unit-tests:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: stable-swap-program
+
+    steps:
+      - uses: actions/checkout@v2
+
+      # Install Cachix
+      - uses: cachix/install-nix-action@v16
+        with:
+          install_url: https://nixos-nix-install-tests.cachix.org/serve/i6laym9jw3wg9mw6ncyrk6gjx4l34vvx/install
+          install_options: "--tarball-url-prefix https://nixos-nix-install-tests.cachix.org/serve"
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+      - name: Setup Cachix
+        uses: cachix/cachix-action@v10
+        with:
+          name: saber
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+
+      # Install Solana
+      - name: Cache Solana binaries
+        id: solana-cache
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cache/solana
+            ~/.local/share/solana/install
+          key: ${{ runner.os }}-${{ env.SOLANA_VERSION }}
+      - name: Install Solana
+        if: steps.solana-cache.outputs.cache-hit != 'true'
+        run: |
+          nix shell .#ci --command solana-install init ${{ env.SOLANA_VERSION }}
+      - name: Setup Solana Path
+        run: |
+          echo "$HOME/.local/share/solana/install/active_release/bin" >> $GITHUB_PATH
+          export PATH="/home/runner/.local/share/solana/install/active_release/bin:$PATH"
+          solana --version
+      - name: Cache Rust
+        uses: Swatinem/rust-cache@v1
+        with:
+          key: ${{ runner.os }}-${{ hashFiles('do.sh')}}
+
+      - name: Run unit tests
+        run: ./do.sh test --nocapture
+
+  e2e-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: "14"
+
+      - name: Cache SDK dependencies
+        uses: actions/cache@v2
+        id: cache-sdk
+        with:
+          path: ./sdk/node_modules
+          key: ${{ runner.os }}-${{ hashFiles('**/yarn.lock') }}
+
+      # Install Cachix
+      - uses: cachix/install-nix-action@v16
+        with:
+          install_url: https://nixos-nix-install-tests.cachix.org/serve/i6laym9jw3wg9mw6ncyrk6gjx4l34vvx/install
+          install_options: "--tarball-url-prefix https://nixos-nix-install-tests.cachix.org/serve"
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+      - name: Setup Cachix
+        uses: cachix/cachix-action@v10
+        with:
+          name: saber
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+
+      # Install Solana
+      - name: Cache Solana binaries
+        id: solana-cache
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cache/solana
+            ~/.local/share/solana/install
+          key: ${{ runner.os }}-${{ env.SOLANA_VERSION }}
+      - name: Install Solana
+        if: steps.solana-cache.outputs.cache-hit != 'true'
+        run: |
+          nix shell .#ci --command solana-install init ${{ env.SOLANA_VERSION }}
+      - name: Setup Solana Path
+        run: |
+          echo "$HOME/.local/share/solana/install/active_release/bin" >> $GITHUB_PATH
+          export PATH="/home/runner/.local/share/solana/install/active_release/bin:$PATH"
+          solana --version
+      - name: Cache Rust
+        uses: Swatinem/rust-cache@v1
+        with:
+          key: ${{ runner.os }}-${{ hashFiles('do.sh')}}
+
+      - name: Build
+        run: nix shell .#ci --command anchor build
+      - name: Run e2e tests
+        working-directory: stable-swap-program
+        run: nix shell .#ci --command ./do.sh e2e-test
+
+  fuzz:
+    runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v2
       - name: Install Rust nightly
@@ -20,45 +127,28 @@ jobs:
         with:
           override: true
           profile: minimal
-          toolchain: ${{ env.RUST_TOOLCHAIN }}
-          components: rustfmt, clippy
+          toolchain: nightly-2021-12-25
       - name: Cache dependencies
         uses: Swatinem/rust-cache@v1
 
-      - name: Run cargo fmt
-        run: cargo fmt -- --check
-      - name: Run clippy
-        uses: actions-rs/clippy-check@v1
+      # Install Cachix
+      - uses: cachix/install-nix-action@v16
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          args: --all-features -- --deny=warnings
+          install_url: https://nixos-nix-install-tests.cachix.org/serve/i6laym9jw3wg9mw6ncyrk6gjx4l34vvx/install
+          install_options: "--tarball-url-prefix https://nixos-nix-install-tests.cachix.org/serve"
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+      - name: Setup Cachix
+        uses: cachix/cachix-action@v10
+        with:
+          name: saber
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
 
-  check:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: Install Rust nightly
-        uses: actions-rs/toolchain@v1
-        with:
-          override: true
-          profile: minimal
-          toolchain: ${{ env.RUST_TOOLCHAIN }}
-          components: rustfmt, clippy
-      - name: Cache dependencies
-        uses: Swatinem/rust-cache@v1
-      - run: cargo check
-
-  doc:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: Install Rust nightly
-        uses: actions-rs/toolchain@v1
-        with:
-          override: true
-          profile: minimal
-          toolchain: ${{ env.RUST_TOOLCHAIN }}
-          components: rustfmt, clippy
-      - name: Cache dependencies
-        uses: Swatinem/rust-cache@v1
-      - run: cargo doc
+      - name: Build
+        run: nix shell .#ci --command cargo fuzz build --dev fuzz_test
+        env:
+          RUSTFLAGS: "-Znew-llvm-pass-manager=no"
+      - name: Run fuzz test
+        run: nix shell .#ci --command cargo fuzz run --dev fuzz_test -- -max_total_time=180
+        env:
+          RUSTFLAGS: "-Znew-llvm-pass-manager=no"

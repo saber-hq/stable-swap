@@ -2,8 +2,13 @@ import type { Network, Provider } from "@saberhq/solana-contrib";
 import {
   DEFAULT_NETWORK_CONFIG_MAP,
   SignerWallet,
-  SolanaProvider,
 } from "@saberhq/solana-contrib";
+import type { ISeedPoolAccountsFn } from "@saberhq/stableswap-sdk";
+import {
+  DEFAULT_TOKEN_DECIMALS,
+  deployNewSwap,
+  RECOMMENDED_FEES,
+} from "@saberhq/stableswap-sdk";
 import type { TokenAccountData } from "@saberhq/token-utils";
 import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -26,11 +31,7 @@ import path from "path";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 
-import { RECOMMENDED_FEES } from "..";
-import { DEFAULT_TOKEN_DECIMALS } from "../constants";
-import type { ISeedPoolAccountsFn } from "../util";
-import { deployNewSwap } from "../util";
-import { deployTestTokens } from "../util/deployTestTokens";
+import { deployTestTokens } from "../../test/deployTestTokens";
 
 const DEFAULT_AMP_FACTOR = 100;
 export const DEFAULT_INITIAL_TOKEN_A_AMOUNT =
@@ -40,7 +41,7 @@ export const DEFAULT_INITIAL_TOKEN_B_AMOUNT =
 
 const readKeyfile = async (path: string): Promise<Keypair> =>
   Keypair.fromSecretKey(
-    new Uint8Array(JSON.parse(await fs.readFile(path, "utf-8")))
+    new Uint8Array(JSON.parse(await fs.readFile(path, "utf-8")) as number[])
   );
 
 const run = async ({
@@ -249,9 +250,8 @@ export default async (): Promise<void> => {
         const connection = new Connection(
           DEFAULT_NETWORK_CONFIG_MAP[cluster as Network].endpoint
         );
-        const provider = new SolanaProvider(
-          connection,
-          new SignerWallet(payerSigner)
+        const provider = new SignerWallet(payerSigner).createProvider(
+          connection
         );
 
         if (!payer_keyfile) {

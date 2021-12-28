@@ -1,4 +1,6 @@
 import type { Provider } from "@saberhq/solana-contrib";
+import type { ISeedPoolAccountsFn } from "@saberhq/stableswap-sdk";
+import { DEFAULT_TOKEN_DECIMALS } from "@saberhq/stableswap-sdk";
 import {
   createInitMintInstructions,
   SPLToken,
@@ -10,10 +12,7 @@ import { Account, Keypair } from "@solana/web3.js";
 import {
   DEFAULT_INITIAL_TOKEN_A_AMOUNT,
   DEFAULT_INITIAL_TOKEN_B_AMOUNT,
-} from "../cli";
-import { DEFAULT_TOKEN_DECIMALS } from "../constants";
-import type { ISeedPoolAccountsFn } from ".";
-import type { TransactionInstructions } from "./instructions";
+} from "../src/cli";
 
 /**
  * Creates a new token mint
@@ -79,7 +78,7 @@ export const deployTestTokens = async ({
   const seedPoolAccounts: ISeedPoolAccountsFn = ({
     tokenAAccount,
     tokenBAccount,
-  }): TransactionInstructions => ({
+  }) => ({
     instructions: [
       SPLToken.createMintToInstruction(
         TOKEN_PROGRAM_ID,

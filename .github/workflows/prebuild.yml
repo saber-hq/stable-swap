@@ -1,21 +1,14 @@
-name: Program
+name: Pre-build Checks
 
 on:
   push:
     branches: [master]
-    paths-ignore:
-      - ".husky/**"
-      - "nix"
-      - "sdk/**"
   pull_request:
     branches: [master]
-    paths-ignore:
-      - ".husky/**"
-      - "nix"
-      - "sdk/**"
 
 env:
   CARGO_TERM_COLOR: always
+  RUST_TOOLCHAIN: nightly-2021-12-09
 
 jobs:
   lint:
@@ -27,7 +20,7 @@ jobs:
         with:
           override: true
           profile: minimal
-          toolchain: nightly-2021-05-28
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
           components: rustfmt, clippy
       - name: Cache dependencies
         uses: Swatinem/rust-cache@v1
@@ -49,27 +42,8 @@ jobs:
         with:
           override: true
           profile: minimal
-          toolchain: nightly-2021-05-28
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
           components: rustfmt, clippy
       - name: Cache dependencies
         uses: Swatinem/rust-cache@v1
       - run: cargo check
-
-  fuzz:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: Install Rust nightly
-        uses: actions-rs/toolchain@v1
-        with:
-          override: true
-          profile: minimal
-          toolchain: nightly-2021-05-28
-      - name: Cache dependencies
-        uses: Swatinem/rust-cache@v1
-
-      - run: cargo install cargo-fuzz --vers "^0.10.2"
-      - name: Build
-        run: cargo fuzz build fuzz_test
-      - name: Run fuzz test
-        run: cargo fuzz run fuzz_test -- -max_total_time=180

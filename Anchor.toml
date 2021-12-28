@@ -1,0 +1,21 @@
+anchor_version = "0.19.0"
+solana_version = "1.8.11"
+
+[workspace]
+members = ["stable-swap-program/program"]
+
+[provider]
+cluster = "localnet"
+wallet = "~/.config/solana/id.json"
+
+[programs.mainnet]
+stable_swap = "SSwpkEEcbUqx4vtoEByFjSkhKdCT862DNVb52nZg1UZ"
+
+[programs.devnet]
+stable_swap = "SSwpkEEcbUqx4vtoEByFjSkhKdCT862DNVb52nZg1UZ"
+
+[programs.testnet]
+stable_swap = "SSwpkEEcbUqx4vtoEByFjSkhKdCT862DNVb52nZg1UZ"
+
+[programs.localnet]
+stable_swap = "SSwpkEEcbUqx4vtoEByFjSkhKdCT862DNVb52nZg1UZ"

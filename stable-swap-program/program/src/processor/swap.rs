@@ -1,7 +1,6 @@
 //! Module for processing non-admin pool instructions.
 
 use crate::{
-    curve::{StableSwap, MAX_AMP, MIN_AMP, ZERO_TS},
     error::SwapError,
     fees::Fees,
     instruction::{
@@ -11,6 +10,8 @@ use crate::{
     processor::utils,
     state::{SwapInfo, SwapTokenInfo},
 };
+use stable_swap_math::curve::{StableSwap, MAX_AMP, MIN_AMP, ZERO_TS};
+use stable_swap_math::math::FeeCalculator;
 
 use solana_program::{
     account_info::{next_account_info, AccountInfo},
@@ -113,7 +114,6 @@ fn process_initialize(
     let pool_mint_info = next_account_info(account_info_iter)?;
     let destination_info = next_account_info(account_info_iter)?; // Destination account to mint LP tokens to
     let token_program_info = next_account_info(account_info_iter)?;
-    let clock_sysvar_info = next_account_info(account_info_iter)?;
 
     if !(MIN_AMP..=MAX_AMP).contains(&amp_factor) {
         msg!("Invalid amp factor: {}", amp_factor);
@@ -270,16 +270,13 @@ fn process_initialize(
     };
     SwapInfo::pack(obj, &mut swap_info.data.borrow_mut())?;
 
-    let clock = Clock::from_account_info(clock_sysvar_info)?;
     log_event(
         Event::Deposit,
-        clock.unix_timestamp,
         token_a.amount,
         token_b.amount,
         mint_amount,
         0,
     );
-
     Ok(())
 }
 
@@ -304,7 +301,6 @@ fn process_swap(
     let destination_info = next_account_info(account_info_iter)?;
     let admin_destination_info = next_account_info(account_info_iter)?;
     let token_program_info = next_account_info(account_info_iter)?;
-    let clock_sysvar_info = next_account_info(account_info_iter)?;
 
     if *swap_source_info.key == *swap_destination_info.key {
         return Err(SwapError::InvalidInput.into());
@@ -356,7 +352,7 @@ fn process_swap(
         return Err(SwapError::IncorrectSwapAccount.into());
     }
 
-    let clock = Clock::from_account_info(clock_sysvar_info)?;
+    let clock = Clock::get()?;
     let swap_source_account = utils::unpack_token_account(&swap_source_info.data.borrow())?;
     let swap_destination_account =
         utils::unpack_token_account(&swap_destination_info.data.borrow())?;
@@ -412,25 +408,10 @@ fn process_swap(
     )?;
 
     if *swap_source_info.key == token_swap.token_a.reserves {
-        log_event(
-            Event::SwapAToB,
-            clock.unix_timestamp,
-            amount_in,
-            amount_swapped,
-            0,
-            result.fee,
-        );
+        log_event(Event::SwapAToB, amount_in, amount_swapped, 0, result.fee);
     } else {
-        log_event(
-            Event::SwapBToA,
-            clock.unix_timestamp,
-            amount_swapped,
-            amount_in,
-            0,
-            result.fee,
-        );
+        log_event(Event::SwapBToA, amount_swapped, amount_in, 0, result.fee);
     };
-
     Ok(())
 }
 
@@ -457,7 +438,6 @@ fn process_deposit(
     let pool_mint_info = next_account_info(account_info_iter)?;
     let dest_info = next_account_info(account_info_iter)?;
     let token_program_info = next_account_info(account_info_iter)?;
-    let clock_sysvar_info = next_account_info(account_info_iter)?;
 
     let token_swap = SwapInfo::unpack(&swap_info.data.borrow())?;
     if token_swap.is_paused {
@@ -480,7 +460,7 @@ fn process_deposit(
         SwapError::IncorrectMint
     );
 
-    let clock = Clock::from_account_info(clock_sysvar_info)?;
+    let clock = Clock::get()?;
     let token_a = utils::unpack_token_account(&token_a_info.data.borrow())?;
     let token_b = utils::unpack_token_account(&token_b_info.data.borrow())?;
     let pool_mint = utils::unpack_mint(&pool_mint_info.data.borrow())?;
@@ -536,13 +516,11 @@ fn process_deposit(
 
     log_event(
         Event::Deposit,
-        clock.unix_timestamp,
         token_a_amount,
         token_b_amount,
         mint_amount,
         0,
     );
-
     Ok(())
 }
 
@@ -609,7 +587,6 @@ fn process_withdraw(
     let admin_fee_dest_a_info = next_account_info(account_info_iter)?;
     let admin_fee_dest_b_info = next_account_info(account_info_iter)?;
     let token_program_info = next_account_info(account_info_iter)?;
-    let clock_sysvar_info = next_account_info(account_info_iter)?;
 
     let token_swap = SwapInfo::unpack(&swap_info.data.borrow())?;
     check_swap_authority(
@@ -694,32 +671,9 @@ fn process_withdraw(
         pool_token_amount,
     )?;
 
-    let clock = Clock::from_account_info(clock_sysvar_info)?;
-    log_event(
-        Event::WithdrawA,
-        clock.unix_timestamp,
-        a_amount,
-        0,
-        0,
-        a_fee,
-    );
-    log_event(
-        Event::WithdrawB,
-        clock.unix_timestamp,
-        0,
-        b_amount,
-        0,
-        b_fee,
-    );
-    log_event(
-        Event::Burn,
-        clock.unix_timestamp,
-        0,
-        0,
-        pool_token_amount,
-        0,
-    );
-
+    log_event(Event::WithdrawA, a_amount, 0, 0, a_fee);
+    log_event(Event::WithdrawB, 0, b_amount, 0, b_fee);
+    log_event(Event::Burn, 0, 0, pool_token_amount, 0);
     Ok(())
 }
 
@@ -746,7 +700,6 @@ fn process_withdraw_one(
     let destination_info = next_account_info(account_info_iter)?;
     let admin_destination_info = next_account_info(account_info_iter)?;
     let token_program_info = next_account_info(account_info_iter)?;
-    let clock_sysvar_info = next_account_info(account_info_iter)?;
 
     if *base_token_info.key == *quote_token_info.key {
         return Err(SwapError::InvalidInput.into());
@@ -803,7 +756,7 @@ fn process_withdraw_one(
     );
 
     let pool_mint = utils::unpack_mint(&pool_mint_info.data.borrow())?;
-    let clock = Clock::from_account_info(clock_sysvar_info)?;
+    let clock = Clock::get()?;
     let base_token = utils::unpack_token_account(&base_token_info.data.borrow())?;
     let quote_token = utils::unpack_token_account(&quote_token_info.data.borrow())?;
 
@@ -876,33 +829,11 @@ fn process_withdraw_one(
     )?;
 
     if *base_token_info.key == token_swap.token_a.reserves {
-        log_event(
-            Event::WithdrawA,
-            clock.unix_timestamp,
-            token_amount,
-            0,
-            0,
-            dy_fee,
-        );
+        log_event(Event::WithdrawA, token_amount, 0, 0, dy_fee);
     } else {
-        log_event(
-            Event::WithdrawB,
-            clock.unix_timestamp,
-            0,
-            token_amount,
-            0,
-            dy_fee,
-        );
+        log_event(Event::WithdrawB, 0, token_amount, 0, dy_fee);
     };
-    log_event(
-        Event::Burn,
-        clock.unix_timestamp,
-        0,
-        0,
-        pool_token_amount,
-        0,
-    );
-
+    log_event(Event::Burn, 0, 0, pool_token_amount, 0);
     Ok(())
 }
 
@@ -1553,9 +1484,8 @@ mod tests {
             ) = accounts.setup_token_accounts(&user_key, &depositor_key, deposit_a, deposit_b, 0);
             assert_eq!(
                 Err(SwapError::InvalidInput.into()),
-                do_process_instruction(
+                do_process_instruction_at_time(
                     deposit(
-                        &SWAP_PROGRAM_ID,
                         &spl_token::id(),
                         &accounts.swap_key,
                         &accounts.authority_key,
@@ -1582,15 +1512,14 @@ mod tests {
                         &mut accounts.pool_mint_account,
                         &mut pool_account,
                         &mut Account::default(),
-                        &mut clock_account(ZERO_TS),
                     ],
+                    ZERO_TS,
                 )
             );
             assert_eq!(
                 Err(SwapError::InvalidInput.into()),
-                do_process_instruction(
+                do_process_instruction_at_time(
                     deposit(
-                        &SWAP_PROGRAM_ID,
                         &spl_token::id(),
                         &accounts.swap_key,
                         &accounts.authority_key,
@@ -1617,8 +1546,8 @@ mod tests {
                         &mut accounts.pool_mint_account,
                         &mut pool_account,
                         &mut Account::default(),
-                        &mut clock_account(ZERO_TS),
                     ],
+                    ZERO_TS,
                 )
             );
         }
@@ -1698,9 +1627,8 @@ mod tests {
             let wrong_key = pubkey_rand();
             assert_eq!(
                 Err(ProgramError::IncorrectProgramId),
-                do_process_instruction(
+                do_process_instruction_at_time(
                     deposit(
-                        &SWAP_PROGRAM_ID,
                         &wrong_key,
                         &accounts.swap_key,
                         &accounts.authority_key,
@@ -1727,8 +1655,8 @@ mod tests {
                         &mut accounts.pool_mint_account,
                         &mut pool_account,
                         &mut Account::default(),
-                        &mut clock_account(ZERO_TS),
                     ],
+                    ZERO_TS,
                 )
             );
         }
@@ -2240,7 +2168,6 @@ mod tests {
                 Err(ProgramError::IncorrectProgramId),
                 do_process_instruction(
                     withdraw(
-                        &SWAP_PROGRAM_ID,
                         &wrong_key,
                         &accounts.swap_key,
                         &accounts.authority_key,
@@ -2271,7 +2198,6 @@ mod tests {
                         &mut accounts.admin_fee_a_account,
                         &mut accounts.admin_fee_b_account,
                         &mut Account::default(),
-                        &mut clock_account(ZERO_TS),
                     ],
                 )
             );
@@ -2489,9 +2415,9 @@ mod tests {
             let swap_token_a = utils::unpack_token_account(&accounts.token_a_account.data).unwrap();
             let swap_token_b = utils::unpack_token_account(&accounts.token_b_account.data).unwrap();
             let pool_converter = PoolTokenConverter {
-                supply: original_lp_supply.into(),
-                token_a: original_reserve_a.into(),
-                token_b: original_reserve_b.into(),
+                supply: original_lp_supply,
+                token_a: original_reserve_a,
+                token_b: original_reserve_b,
                 fees: &DEFAULT_TEST_FEES,
             };
 
@@ -2613,9 +2539,8 @@ mod tests {
             let wrong_program_id = pubkey_rand();
             assert_eq!(
                 Err(ProgramError::IncorrectProgramId),
-                do_process_instruction(
+                do_process_instruction_at_time(
                     swap(
-                        &SWAP_PROGRAM_ID,
                         &wrong_program_id,
                         &accounts.swap_key,
                         &accounts.authority_key,
@@ -2639,8 +2564,8 @@ mod tests {
                         &mut token_b_account,
                         &mut accounts.admin_fee_b_account,
                         &mut Account::default(),
-                        &mut clock_account(ZERO_TS),
                     ],
+                    ZERO_TS,
                 ),
             );
         }
@@ -2683,9 +2608,8 @@ mod tests {
             ) = accounts.setup_token_accounts(&user_key, &swapper_key, initial_a, initial_b, 0);
             assert_eq!(
                 Err(SwapError::IncorrectSwapAccount.into()),
-                do_process_instruction(
+                do_process_instruction_at_time(
                     swap(
-                        &SWAP_PROGRAM_ID,
                         &spl_token::id(),
                         &accounts.swap_key,
                         &accounts.authority_key,
@@ -2709,8 +2633,8 @@ mod tests {
                         &mut token_b_account,
                         &mut accounts.admin_fee_b_account,
                         &mut Account::default(),
-                        &mut clock_account(ZERO_TS),
                     ],
+                    ZERO_TS,
                 ),
             );
         }
@@ -2727,9 +2651,8 @@ mod tests {
             ) = accounts.setup_token_accounts(&user_key, &swapper_key, initial_a, initial_b, 0);
             assert_eq!(
                 Err(SwapError::InvalidAdmin.into()),
-                do_process_instruction(
+                do_process_instruction_at_time(
                     swap(
-                        &SWAP_PROGRAM_ID,
                         &spl_token::id(),
                         &accounts.swap_key,
                         &accounts.authority_key,
@@ -2753,8 +2676,8 @@ mod tests {
                         &mut token_b_account,
                         &mut wrong_admin_account,
                         &mut Account::default(),
-                        &mut clock_account(ZERO_TS),
                     ],
+                    ZERO_TS,
                 ),
             );
         }
@@ -3260,9 +3183,8 @@ mod tests {
             let wrong_key = pubkey_rand();
             assert_eq!(
                 Err(ProgramError::IncorrectProgramId),
-                do_process_instruction(
+                do_process_instruction_at_time(
                     withdraw_one(
-                        &SWAP_PROGRAM_ID,
                         &wrong_key,
                         &accounts.swap_key,
                         &accounts.authority_key,
@@ -3288,8 +3210,8 @@ mod tests {
                         &mut token_a_account,
                         &mut accounts.admin_fee_a_account,
                         &mut Account::default(),
-                        &mut clock_account(ZERO_TS),
                     ],
+                    ZERO_TS,
                 )
             );
         }
@@ -3472,10 +3394,10 @@ mod tests {
             );
             let (withdraw_one_amount_before_fees, withdraw_one_trade_fee) = invariant
                 .compute_withdraw_one(
-                    withdraw_amount.into(),
-                    old_pool_mint.supply.into(),
-                    old_swap_token_a.amount.into(),
-                    old_swap_token_b.amount.into(),
+                    withdraw_amount,
+                    old_pool_mint.supply,
+                    old_swap_token_a.amount,
+                    old_swap_token_b.amount,
                     &DEFAULT_TEST_FEES,
                 )
                 .unwrap();

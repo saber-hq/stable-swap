@@ -8,3 +8,7 @@ node_modules
 lib/client/lib/*
 lib/client/yarn-error.log
 last-deploy.json
+
+stable-swap-program/fuzz/artifacts
+stable-swap-program/fuzz/corpus
+test-ledger

@@ -6,7 +6,7 @@ use solana_program::{
     program_error::ProgramError,
 };
 use solana_program::{
-    clock::Clock, msg, program_pack::Pack, program_stubs, pubkey::Pubkey, rent::Rent, sysvar::id,
+    clock::Clock, msg, program_pack::Pack, program_stubs, pubkey::Pubkey, rent::Rent,
 };
 use solana_sdk::account::{create_account_for_test, create_is_signer_account_infos, Account};
 use spl_token::{
@@ -15,7 +15,7 @@ use spl_token::{
 };
 
 /// Test program id for the swap program.
-pub const SWAP_PROGRAM_ID: Pubkey = Pubkey::new_from_array([2u8; 32]);
+pub static SWAP_PROGRAM_ID: Pubkey = crate::ID;
 
 /// Fees for testing
 pub const DEFAULT_TEST_FEES: Fees = Fees {
@@ -31,14 +31,6 @@ pub const DEFAULT_TEST_FEES: Fees = Fees {
 
 /// Default token decimals
 pub const DEFAULT_TOKEN_DECIMALS: u8 = 6;
-
-pub fn clock_account(ts: i64) -> Account {
-    let clock = Clock {
-        unix_timestamp: ts,
-        ..Default::default()
-    };
-    Account::new_data(1, &clock, &id()).unwrap()
-}
 
 pub fn pubkey_rand() -> Pubkey {
     Pubkey::new_unique()
@@ -96,16 +88,16 @@ impl SwapAccountInfo {
             &pool_mint_key,
             &mut pool_mint_account,
             &authority_key,
-            &user_key,
+            user_key,
             0,
         );
         let (token_a_mint_key, mut token_a_mint_account) =
-            create_mint(&spl_token::id(), &user_key, DEFAULT_TOKEN_DECIMALS, None);
+            create_mint(&spl_token::id(), user_key, DEFAULT_TOKEN_DECIMALS, None);
         let (token_a_key, token_a_account) = mint_token(
             &spl_token::id(),
             &token_a_mint_key,
             &mut token_a_mint_account,
-            &user_key,
+            user_key,
             &authority_key,
             token_a_amount,
         );
@@ -113,17 +105,17 @@ impl SwapAccountInfo {
             &spl_token::id(),
             &token_a_mint_key,
             &mut token_a_mint_account,
-            &user_key,
+            user_key,
             &authority_key,
             0,
         );
         let (token_b_mint_key, mut token_b_mint_account) =
-            create_mint(&spl_token::id(), &user_key, DEFAULT_TOKEN_DECIMALS, None);
+            create_mint(&spl_token::id(), user_key, DEFAULT_TOKEN_DECIMALS, None);
         let (token_b_key, token_b_account) = mint_token(
             &spl_token::id(),
             &token_b_mint_key,
             &mut token_b_mint_account,
-            &user_key,
+            user_key,
             &authority_key,
             token_b_amount,
         );
@@ -131,7 +123,7 @@ impl SwapAccountInfo {
             &spl_token::id(),
             &token_b_mint_key,
             &mut token_b_mint_account,
-            &user_key,
+            user_key,
             &authority_key,
             0,
         );
@@ -170,7 +162,6 @@ impl SwapAccountInfo {
     pub fn initialize_swap(&mut self) -> ProgramResult {
         do_process_instruction(
             initialize(
-                &SWAP_PROGRAM_ID,
                 &spl_token::id(),
                 &self.swap_key,
                 &self.authority_key,
@@ -186,8 +177,7 @@ impl SwapAccountInfo {
                 self.nonce,
                 self.initial_amp_factor,
                 self.fees,
-            )
-            .unwrap(),
+            )?,
             vec![
                 &mut self.swap_account,
                 &mut Account::default(),
@@ -201,7 +191,6 @@ impl SwapAccountInfo {
                 &mut self.pool_mint_account,
                 &mut self.pool_token_account,
                 &mut Account::default(),
-                &mut clock_account(ZERO_TS),
             ],
         )
     }
@@ -218,16 +207,16 @@ impl SwapAccountInfo {
             &spl_token::id(),
             &self.token_a_mint_key,
             &mut self.token_a_mint_account,
-            &mint_owner,
-            &account_owner,
+            mint_owner,
+            account_owner,
             a_amount,
         );
         let (token_b_key, token_b_account) = mint_token(
             &spl_token::id(),
             &self.token_b_mint_key,
             &mut self.token_b_mint_account,
-            &mint_owner,
-            &account_owner,
+            mint_owner,
+            account_owner,
             b_amount,
         );
         let (pool_key, pool_account) = mint_token(
@@ -235,7 +224,7 @@ impl SwapAccountInfo {
             &self.pool_mint_key,
             &mut self.pool_mint_account,
             &self.authority_key,
-            &account_owner,
+            account_owner,
             pool_amount,
         );
         (
@@ -301,11 +290,11 @@ impl SwapAccountInfo {
         &mut self,
         user_key: &Pubkey,
         user_source_key: &Pubkey,
-        mut user_source_account: &mut Account,
+        user_source_account: &mut Account,
         swap_source_key: &Pubkey,
         swap_destination_key: &Pubkey,
         user_destination_key: &Pubkey,
-        mut user_destination_account: &mut Account,
+        user_destination_account: &mut Account,
         amount_in: u64,
         minimum_amount_out: u64,
     ) -> ProgramResult {
@@ -316,17 +305,16 @@ impl SwapAccountInfo {
         let mut swap_destination_account = self.get_token_account(swap_destination_key).clone();
 
         // perform the swap
-        do_process_instruction(
+        do_process_instruction_at_time(
             swap(
-                &SWAP_PROGRAM_ID,
                 &spl_token::id(),
                 &self.swap_key,
                 &self.authority_key,
-                &user_key,
-                &user_source_key,
-                &swap_source_key,
-                &swap_destination_key,
-                &user_destination_key,
+                user_key,
+                user_source_key,
+                swap_source_key,
+                swap_destination_key,
+                user_destination_key,
                 &admin_destination_key,
                 amount_in,
                 minimum_amount_out,
@@ -336,14 +324,14 @@ impl SwapAccountInfo {
                 &mut self.swap_account,
                 &mut Account::default(),
                 &mut Account::default(),
-                &mut user_source_account,
+                user_source_account,
                 &mut swap_source_account,
                 &mut swap_destination_account,
-                &mut user_destination_account,
+                user_destination_account,
                 &mut admin_destination_account,
                 &mut Account::default(),
-                &mut clock_account(ZERO_TS),
             ],
+            ZERO_TS,
         )?;
 
         self.set_admin_fee_account_(&admin_destination_key, admin_destination_account);
@@ -357,29 +345,28 @@ impl SwapAccountInfo {
         &mut self,
         depositor_key: &Pubkey,
         depositor_token_a_key: &Pubkey,
-        mut depositor_token_a_account: &mut Account,
+        depositor_token_a_account: &mut Account,
         depositor_token_b_key: &Pubkey,
-        mut depositor_token_b_account: &mut Account,
+        depositor_token_b_account: &mut Account,
         depositor_pool_key: &Pubkey,
-        mut depositor_pool_account: &mut Account,
+        depositor_pool_account: &mut Account,
         amount_a: u64,
         amount_b: u64,
         min_mint_amount: u64,
     ) -> ProgramResult {
         // perform deposit
-        do_process_instruction(
+        do_process_instruction_at_time(
             deposit(
-                &SWAP_PROGRAM_ID,
                 &spl_token::id(),
                 &self.swap_key,
                 &self.authority_key,
-                &depositor_key,
-                &depositor_token_a_key,
-                &depositor_token_b_key,
+                depositor_key,
+                depositor_token_a_key,
+                depositor_token_b_key,
                 &self.token_a_key,
                 &self.token_b_key,
                 &self.pool_mint_key,
-                &depositor_pool_key,
+                depositor_pool_key,
                 amount_a,
                 amount_b,
                 min_mint_amount,
@@ -389,15 +376,15 @@ impl SwapAccountInfo {
                 &mut self.swap_account,
                 &mut Account::default(),
                 &mut Account::default(),
-                &mut depositor_token_a_account,
-                &mut depositor_token_b_account,
+                depositor_token_a_account,
+                depositor_token_b_account,
                 &mut self.token_a_account,
                 &mut self.token_b_account,
                 &mut self.pool_mint_account,
-                &mut depositor_pool_account,
+                depositor_pool_account,
                 &mut Account::default(),
-                &mut clock_account(ZERO_TS),
             ],
+            ZERO_TS,
         )
     }
 
@@ -405,11 +392,11 @@ impl SwapAccountInfo {
         &mut self,
         user_key: &Pubkey,
         pool_key: &Pubkey,
-        mut pool_account: &mut Account,
+        pool_account: &mut Account,
         token_a_key: &Pubkey,
-        mut token_a_account: &mut Account,
+        token_a_account: &mut Account,
         token_b_key: &Pubkey,
-        mut token_b_account: &mut Account,
+        token_b_account: &mut Account,
         pool_amount: u64,
         minimum_a_amount: u64,
         minimum_b_amount: u64,
@@ -417,17 +404,16 @@ impl SwapAccountInfo {
         // perform withdraw
         do_process_instruction(
             withdraw(
-                &SWAP_PROGRAM_ID,
                 &spl_token::id(),
                 &self.swap_key,
                 &self.authority_key,
-                &user_key,
+                user_key,
                 &self.pool_mint_key,
-                &pool_key,
+                pool_key,
                 &self.token_a_key,
                 &self.token_b_key,
-                &token_a_key,
-                &token_b_key,
+                token_a_key,
+                token_b_key,
                 &self.admin_fee_a_key,
                 &self.admin_fee_b_key,
                 pool_amount,
@@ -440,15 +426,14 @@ impl SwapAccountInfo {
                 &mut Account::default(),
                 &mut Account::default(),
                 &mut self.pool_mint_account,
-                &mut pool_account,
+                pool_account,
                 &mut self.token_a_account,
                 &mut self.token_b_account,
-                &mut token_a_account,
-                &mut token_b_account,
+                token_a_account,
+                token_b_account,
                 &mut self.admin_fee_a_account,
                 &mut self.admin_fee_b_account,
                 &mut Account::default(),
-                &mut clock_account(ZERO_TS),
             ],
         )?;
 
@@ -459,25 +444,24 @@ impl SwapAccountInfo {
         &mut self,
         user_key: &Pubkey,
         pool_key: &Pubkey,
-        mut pool_account: &mut Account,
+        pool_account: &mut Account,
         dest_token_key: &Pubkey,
-        mut dest_token_account: &mut Account,
+        dest_token_account: &mut Account,
         pool_amount: u64,
         minimum_amount: u64,
     ) -> ProgramResult {
         // perform withdraw_one
-        do_process_instruction(
+        do_process_instruction_at_time(
             withdraw_one(
-                &SWAP_PROGRAM_ID,
                 &spl_token::id(),
                 &self.swap_key,
                 &self.authority_key,
-                &user_key,
+                user_key,
                 &self.pool_mint_key,
-                &pool_key,
+                pool_key,
                 &self.token_a_key,
                 &self.token_b_key,
-                &dest_token_key,
+                dest_token_key,
                 &self.admin_fee_a_key,
                 pool_amount,
                 minimum_amount,
@@ -488,58 +472,45 @@ impl SwapAccountInfo {
                 &mut Account::default(),
                 &mut Account::default(),
                 &mut self.pool_mint_account,
-                &mut pool_account,
+                pool_account,
                 &mut self.token_a_account,
                 &mut self.token_b_account,
-                &mut dest_token_account,
+                dest_token_account,
                 &mut self.admin_fee_a_account,
                 &mut Account::default(),
-                &mut clock_account(ZERO_TS),
             ],
+            ZERO_TS,
         )
     }
 
     /** Admin functions **/
 
     pub fn ramp_a(&mut self, target_amp: u64, current_ts: i64, stop_ramp_ts: i64) -> ProgramResult {
-        do_process_instruction(
-            ramp_a(
-                &SWAP_PROGRAM_ID,
-                &self.swap_key,
-                &self.admin_key,
-                target_amp,
-                stop_ramp_ts,
-            )
-            .unwrap(),
-            vec![
-                &mut self.swap_account,
-                &mut self.admin_account,
-                &mut clock_account(current_ts),
-            ],
+        do_process_instruction_at_time(
+            ramp_a(&self.swap_key, &self.admin_key, target_amp, stop_ramp_ts).unwrap(),
+            vec![&mut self.swap_account, &mut self.admin_account],
+            current_ts,
         )
     }
 
     pub fn stop_ramp_a(&mut self, current_ts: i64) -> ProgramResult {
-        do_process_instruction(
-            stop_ramp_a(&SWAP_PROGRAM_ID, &self.swap_key, &self.admin_key).unwrap(),
-            vec![
-                &mut self.swap_account,
-                &mut self.admin_account,
-                &mut clock_account(current_ts),
-            ],
+        do_process_instruction_at_time(
+            stop_ramp_a(&self.swap_key, &self.admin_key).unwrap(),
+            vec![&mut self.swap_account, &mut self.admin_account],
+            current_ts,
         )
     }
 
     pub fn pause(&mut self) -> ProgramResult {
         do_process_instruction(
-            pause(&SWAP_PROGRAM_ID, &self.swap_key, &self.admin_key).unwrap(),
+            pause(&self.swap_key, &self.admin_key).unwrap(),
             vec![&mut self.swap_account, &mut self.admin_account],
         )
     }
 
     pub fn unpause(&mut self) -> ProgramResult {
         do_process_instruction(
-            unpause(&SWAP_PROGRAM_ID, &self.swap_key, &self.admin_key).unwrap(),
+            unpause(&self.swap_key, &self.admin_key).unwrap(),
             vec![&mut self.swap_account, &mut self.admin_account],
         )
     }
@@ -550,13 +521,7 @@ impl SwapAccountInfo {
         new_admin_fee_account: &Account,
     ) -> ProgramResult {
         do_process_instruction(
-            set_fee_account(
-                &SWAP_PROGRAM_ID,
-                &self.swap_key,
-                &self.admin_key,
-                new_admin_fee_key,
-            )
-            .unwrap(),
+            set_fee_account(&self.swap_key, &self.admin_key, new_admin_fee_key).unwrap(),
             vec![
                 &mut self.swap_account,
                 &mut self.admin_account,
@@ -566,44 +531,48 @@ impl SwapAccountInfo {
     }
 
     pub fn apply_new_admin(&mut self, current_ts: i64) -> ProgramResult {
-        do_process_instruction(
-            apply_new_admin(&SWAP_PROGRAM_ID, &self.swap_key, &self.admin_key).unwrap(),
-            vec![
-                &mut self.swap_account,
-                &mut self.admin_account,
-                &mut clock_account(current_ts),
-            ],
+        do_process_instruction_at_time(
+            apply_new_admin(&self.swap_key, &self.admin_key).unwrap(),
+            vec![&mut self.swap_account, &mut self.admin_account],
+            current_ts,
         )
     }
 
     pub fn commit_new_admin(&mut self, new_admin_key: &Pubkey, current_ts: i64) -> ProgramResult {
-        do_process_instruction(
-            commit_new_admin(
-                &SWAP_PROGRAM_ID,
-                &self.swap_key,
-                &self.admin_key,
-                new_admin_key,
-            )
-            .unwrap(),
+        do_process_instruction_at_time(
+            commit_new_admin(&self.swap_key, &self.admin_key, new_admin_key).unwrap(),
             vec![
                 &mut self.swap_account,
                 &mut self.admin_account,
                 &mut Account::default(),
-                &mut clock_account(current_ts),
             ],
+            current_ts,
         )
     }
 
     pub fn set_new_fees(&mut self, new_fees: Fees) -> ProgramResult {
         do_process_instruction(
-            set_new_fees(&SWAP_PROGRAM_ID, &self.swap_key, &self.admin_key, new_fees).unwrap(),
+            set_new_fees(&self.swap_key, &self.admin_key, new_fees).unwrap(),
             vec![&mut self.swap_account, &mut self.admin_account],
         )
     }
 }
 
-struct TestSyscallStubs {}
+struct TestSyscallStubs {
+    unix_timestamp: Option<i64>,
+}
 impl program_stubs::SyscallStubs for TestSyscallStubs {
+    fn sol_get_clock_sysvar(&self, var_addr: *mut u8) -> u64 {
+        let clock: Option<i64> = self.unix_timestamp;
+        unsafe {
+            *(var_addr as *mut _ as *mut Clock) = Clock {
+                unix_timestamp: clock.unwrap(),
+                ..Clock::default()
+            };
+        }
+        solana_program::entrypoint::SUCCESS
+    }
+
     fn sol_invoke_signed(
         &self,
         instruction: &Instruction,
@@ -625,7 +594,7 @@ impl program_stubs::SyscallStubs for TestSyscallStubs {
                     let mut new_account_info = account_info.clone();
                     for seeds in signers_seeds.iter() {
                         let signer =
-                            Pubkey::create_program_address(&seeds, &SWAP_PROGRAM_ID).unwrap();
+                            Pubkey::create_program_address(seeds, &SWAP_PROGRAM_ID).unwrap();
                         if *account_info.key == signer {
                             new_account_info.is_signer = true;
                         }
@@ -643,20 +612,32 @@ impl program_stubs::SyscallStubs for TestSyscallStubs {
     }
 }
 
-fn test_syscall_stubs() {
-    use std::sync::Once;
-    static ONCE: Once = Once::new();
-
-    ONCE.call_once(|| {
-        program_stubs::set_syscall_stubs(Box::new(TestSyscallStubs {}));
-    });
+fn test_syscall_stubs(unix_timestamp: Option<i64>) {
+    // only one test may run at a time
+    program_stubs::set_syscall_stubs(Box::new(TestSyscallStubs { unix_timestamp }));
 }
 
 pub fn do_process_instruction(
     instruction: Instruction,
     accounts: Vec<&mut Account>,
 ) -> ProgramResult {
-    test_syscall_stubs();
+    do_process_instruction_maybe_at_time(instruction, accounts, None)
+}
+
+pub fn do_process_instruction_at_time(
+    instruction: Instruction,
+    accounts: Vec<&mut Account>,
+    current_ts: i64,
+) -> ProgramResult {
+    do_process_instruction_maybe_at_time(instruction, accounts, Some(current_ts))
+}
+
+fn do_process_instruction_maybe_at_time(
+    instruction: Instruction,
+    accounts: Vec<&mut Account>,
+    current_ts: Option<i64>,
+) -> ProgramResult {
+    test_syscall_stubs(current_ts);
 
     // approximate the logic in the actual runtime which runs the instruction
     // and only updates accounts if the instruction is successful
@@ -710,7 +691,7 @@ fn account_minimum_balance() -> u64 {
 pub fn mint_token(
     program_id: &Pubkey,
     mint_key: &Pubkey,
-    mut mint_account: &mut Account,
+    mint_account: &mut Account,
     mint_authority_key: &Pubkey,
     account_owner_key: &Pubkey,
     amount: u64,
@@ -719,16 +700,16 @@ pub fn mint_token(
     let mut account_account = Account::new(
         account_minimum_balance(),
         SplAccount::get_packed_len(),
-        &program_id,
+        program_id,
     );
     let mut mint_authority_account = Account::default();
     let mut rent_sysvar_account = create_account_for_test(&Rent::free());
 
     do_process_instruction(
-        initialize_account(&program_id, &account_key, &mint_key, account_owner_key).unwrap(),
+        initialize_account(program_id, &account_key, mint_key, account_owner_key).unwrap(),
         vec![
             &mut account_account,
-            &mut mint_account,
+            mint_account,
             &mut mint_authority_account,
             &mut rent_sysvar_account,
         ],
@@ -738,16 +719,16 @@ pub fn mint_token(
     if amount > 0 {
         do_process_instruction(
             mint_to(
-                &program_id,
-                &mint_key,
+                program_id,
+                mint_key,
                 &account_key,
-                &mint_authority_key,
+                mint_authority_key,
                 &[],
                 amount,
             )
             .unwrap(),
             vec![
-                &mut mint_account,
+                mint_account,
                 &mut account_account,
                 &mut mint_authority_account,
             ],
@@ -768,13 +749,13 @@ pub fn create_mint(
     let mut mint_account = Account::new(
         mint_minimum_balance(),
         SplMint::get_packed_len(),
-        &program_id,
+        program_id,
     );
     let mut rent_sysvar_account = create_account_for_test(&Rent::free());
 
     do_process_instruction(
         initialize_mint(
-            &program_id,
+            program_id,
             &mint_key,
             authority_key,
             freeze_authority,

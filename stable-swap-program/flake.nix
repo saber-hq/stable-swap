@@ -3,25 +3,23 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
-    nixpkgs-stableswap.url = "github:stableswap/nixpkgs-stableswap";
-    nixpkgs-stableswap.inputs.nixpkgs.follows = "nixpkgs";
+    saber-overlay.url = "github:saber-hq/saber-overlay";
     flake-utils.url = "github:numtide/flake-utils";
   };
 
-  outputs = { self, nixpkgs, nixpkgs-stableswap, flake-utils }:
+  outputs = { self, nixpkgs, saber-overlay, flake-utils }:
     flake-utils.lib.eachSystem [
       "aarch64-darwin"
       "x86_64-darwin"
       "x86_64-linux"
     ] (system:
       let
-        pkgs = import nixpkgs {
-          inherit system;
-          overlays = [ nixpkgs-stableswap.overlay ];
-        };
+        pkgs = import nixpkgs { inherit system; }
+          // saber-overlay.packages.${system};
         env = import ./env.nix { inherit pkgs; };
       in {
-        devShell = import ./shell.nix { inherit pkgs; };
+        devShell = pkgs.mkShell { buildInputs = [ env ]; };
+        packages.ci = env;
         defaultPackage = env;
       });
 }

@@ -47,29 +47,3 @@ macro_rules! check_keys_condition_optional {
         }
     };
 }
-
-/// Checks if two pubkeys are equal, and if not, throws an error.
-macro_rules! check_token_keys_equal {
-    ($token: expr,$left:expr, $right:expr, $msg:expr, $err:expr) => {
-        check_token_keys_condition!($token, $left, $right, $msg, $err, $left == $right);
-    };
-}
-
-/// Checks if two pubkeys are not equal, and if not, throws an error.
-macro_rules! check_token_keys_not_equal {
-    ($token: expr,$left:expr, $right:expr, $msg:expr, $err:expr) => {
-        check_token_keys_condition!($token, $left, $right, $msg, $err, $left != $right);
-    };
-}
-
-macro_rules! check_token_keys_condition {
-    ($token:expr, $left:expr, $right:expr, $msg:expr, $err:expr, $continueExpr:expr) => {
-        if ($token.index == 0) {
-            check_keys_condition!($left, $right, concat!($msg, " A"), $err, $continueExpr);
-        } else if ($token.index == 1) {
-            check_keys_condition!($left, $right, concat!($msg, " B"), $err, $continueExpr);
-        } else {
-            check_keys_condition!($left, $right, concat!($msg), $err, $continueExpr);
-        }
-    };
-}

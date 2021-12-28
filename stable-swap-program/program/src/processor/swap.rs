@@ -1,5 +1,7 @@
 //! Module for processing non-admin pool instructions.
 
+use anchor_lang::prelude::*;
+
 use crate::{
     error::SwapError,
     fees::Fees,
@@ -23,6 +25,7 @@ use solana_program::{
     pubkey::Pubkey,
     sysvar::{clock::Clock, Sysvar},
 };
+use vipers::assert_keys_neq;
 
 use super::checks::*;
 use super::logging::*;
@@ -311,20 +314,17 @@ fn process_swap(
         return Err(SwapError::IsPaused.into());
     }
 
-    check_token_keys_not_equal!(
-        token_swap.token_a,
-        *source_info.key,
+    assert_keys_neq!(
+        source_info.key,
         token_swap.token_a.reserves,
-        "Source account cannot be one of swap's token accounts for token",
-        SwapError::InvalidInput
+        SwapError::InvalidInput,
+        "Source account cannot be one of swap's token accounts for token A",
     );
-
-    check_token_keys_not_equal!(
-        token_swap.token_b,
-        *source_info.key,
+    assert_keys_neq!(
+        source_info.key,
         token_swap.token_b.reserves,
-        "Source account cannot be one of swap's token accounts for token",
-        SwapError::InvalidInput
+        SwapError::InvalidInput,
+        "Source account cannot be one of swap's token accounts for token B",
     );
 
     check_swap_authority(

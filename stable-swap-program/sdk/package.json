@@ -10,7 +10,6 @@
   "bin": "bin/stableswap",
   "license": "UNLICENSED",
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
     "clean": "rm -rf dist",
     "lint": "eslint . --cache",
     "lint:ci": "eslint . --max-warnings=0",

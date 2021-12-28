@@ -16,7 +16,6 @@ jobs:
     defaults:
       run:
         working-directory: stable-swap-program
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
 
     steps:
       - run: ./do.sh test
@@ -26,7 +25,6 @@ jobs:
     defaults:
       run:
         working-directory: stable-swap-program
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
 
     steps:
       - uses: actions/checkout@v2
@@ -87,7 +85,6 @@ jobs:
     defaults:
       run:
         working-directory: stable-swap-program
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
 
     steps:
       - uses: actions/checkout@v2

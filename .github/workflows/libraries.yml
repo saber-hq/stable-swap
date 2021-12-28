@@ -13,7 +13,6 @@ env:
 jobs:
   doc:
     runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     steps:
       - uses: actions/checkout@v2
       - name: Install Rust nightly
@@ -29,7 +28,6 @@ jobs:
 
   test:
     runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     steps:
       - uses: actions/checkout@v2
       - name: Install Rust nightly

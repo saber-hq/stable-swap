@@ -6,7 +6,7 @@ use stable_swap_client::fees::Fees;
 use crate::{bn::U192, math::FeeCalculator};
 
 /// Number of coins
-const N_COINS: u8 = 2;
+pub const N_COINS: u8 = 2;
 /// Timestamp at 0
 pub const ZERO_TS: i64 = 0;
 /// Minimum ramp duration
@@ -81,7 +81,7 @@ impl StableSwap {
         )?;
         let denominator = d_init
             .checked_mul(ann.checked_sub(1)?.into())?
-            .checked_add(d_prod.checked_mul((N_COINS + 1).into())?)?;
+            .checked_add(d_prod.checked_mul((N_COINS.checked_add(1)?).into())?)?;
         numerator.checked_div(denominator)
     }
 
@@ -292,7 +292,7 @@ impl StableSwap {
             .checked_sub(1)?; // Withdraw less to account for rounding errors
         let dy_0 = swap_base_amount.checked_sub(new_y)?;
 
-        Some((dy, dy_0 - dy))
+        Some((dy, dy_0.checked_sub(dy)?))
     }
 
     /// Compute SwapResult after an exchange
@@ -328,7 +328,7 @@ impl StableSwap {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
+#[allow(clippy::unwrap_used, clippy::integer_arithmetic)]
 mod tests {
     use super::*;
     use crate::pool_converter::PoolTokenConverter;

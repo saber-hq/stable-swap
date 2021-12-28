@@ -1,8 +1,8 @@
 //! Big number types
-
 #![allow(clippy::assign_op_pattern)]
 #![allow(clippy::ptr_offset_with_cast)]
 #![allow(clippy::manual_range_contains)]
+#![allow(clippy::integer_arithmetic)]
 
 use borsh::{BorshDeserialize, BorshSerialize};
 use stable_swap_client::error::SwapError;

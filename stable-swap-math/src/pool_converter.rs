@@ -43,7 +43,7 @@ impl PoolTokenConverter<'_> {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
+#[allow(clippy::unwrap_used, clippy::integer_arithmetic)]
 mod tests {
 
     use crate::curve;

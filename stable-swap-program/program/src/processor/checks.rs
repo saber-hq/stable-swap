@@ -21,20 +21,21 @@ fn check_reserves_match(token: &SwapTokenInfo, reserves_info_key: &Pubkey) -> Pr
             reserves_info_key,
             token.reserves,
             SwapError::IncorrectSwapAccount,
-            "reserves A"
+            "Reserves A"
         );
     } else if token.index == 1 {
         assert_keys_eq!(
             reserves_info_key,
             token.reserves,
             SwapError::IncorrectSwapAccount,
-            "reserves B"
+            "Reserves B"
         );
     } else {
         assert_keys_eq!(
             reserves_info_key,
             token.reserves,
-            SwapError::IncorrectSwapAccount
+            SwapError::IncorrectSwapAccount,
+            "Reserves",
         );
     }
     Ok(())
@@ -48,7 +49,8 @@ pub fn check_has_admin_signer(
     assert_keys_eq!(
         expected_admin_key,
         admin_account_info.key,
-        SwapError::Unauthorized
+        SwapError::Unauthorized,
+        "Admin signer",
     );
     if !admin_account_info.is_signer {
         return Err(ProgramError::MissingRequiredSignature);
@@ -114,7 +116,8 @@ pub fn check_withdraw_token_accounts(
     assert_keys_eq!(
         admin_fee_dest_key,
         token.admin_fees,
-        SwapError::InvalidAdmin
+        SwapError::InvalidAdmin,
+        "Admin fee dest",
     );
     Ok(())
 }
@@ -129,7 +132,8 @@ pub fn check_swap_authority(
     assert_keys_eq!(
         swap_authority_key,
         swap_authority,
-        SwapError::InvalidProgramAddress
+        SwapError::InvalidProgramAddress,
+        "Swap authority",
     );
     Ok(())
 }
@@ -143,12 +147,14 @@ pub fn check_swap_token_destination_accounts(
     assert_keys_eq!(
         swap_destination_info_key,
         token.reserves,
-        SwapError::IncorrectSwapAccount
+        SwapError::IncorrectSwapAccount,
+        "Incorrect destination, expected",
     );
     assert_keys_eq!(
         admin_destination_info_key,
         token.admin_fees,
-        SwapError::InvalidAdmin
+        SwapError::InvalidAdmin,
+        "Admin fee",
     );
     Ok(())
 }

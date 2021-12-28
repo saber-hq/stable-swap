@@ -326,3 +326,629 @@ impl StableSwap {
         })
     }
 }
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used)]
+mod tests {
+    use super::*;
+    use crate::pool_converter::PoolTokenConverter;
+    use proptest::prelude::*;
+    use rand::Rng;
+    use sim::{Model, MODEL_FEE_DENOMINATOR, MODEL_FEE_NUMERATOR};
+    use std::cmp;
+
+    const MODEL_FEES: Fees = Fees {
+        admin_trade_fee_numerator: 0,
+        admin_trade_fee_denominator: 1,
+        admin_withdraw_fee_numerator: 0,
+        admin_withdraw_fee_denominator: 1,
+        trade_fee_numerator: MODEL_FEE_NUMERATOR,
+        trade_fee_denominator: MODEL_FEE_DENOMINATOR,
+        withdraw_fee_numerator: 0,
+        withdraw_fee_denominator: 1,
+    };
+
+    const RAMP_TICKS: i64 = 100000;
+
+    #[test]
+    fn test_ramp_amp_up() {
+        let mut rng = rand::thread_rng();
+        let initial_amp_factor = 100;
+        let target_amp_factor = initial_amp_factor * 2;
+        let start_ramp_ts = rng.gen_range(ZERO_TS..=i64::MAX - RAMP_TICKS);
+        let stop_ramp_ts = start_ramp_ts + MIN_RAMP_DURATION;
+        println!(
+            "start_ramp_ts: {}, stop_ramp_ts: {}",
+            start_ramp_ts, stop_ramp_ts
+        );
+
+        for tick in 0..RAMP_TICKS {
+            let current_ts = start_ramp_ts + tick;
+            let invariant = StableSwap::new(
+                initial_amp_factor,
+                target_amp_factor,
+                current_ts,
+                start_ramp_ts,
+                stop_ramp_ts,
+            );
+            let expected = if tick >= MIN_RAMP_DURATION {
+                target_amp_factor
+            } else {
+                initial_amp_factor + (initial_amp_factor * tick as u64 / MIN_RAMP_DURATION as u64)
+            };
+            assert_eq!(invariant.compute_amp_factor().unwrap(), expected);
+        }
+    }
+
+    #[test]
+    fn test_ramp_amp_down() {
+        let mut rng = rand::thread_rng();
+        let initial_amp_factor = 100;
+        let target_amp_factor = initial_amp_factor / 10;
+        let amp_range = initial_amp_factor - target_amp_factor;
+        let start_ramp_ts = rng.gen_range(ZERO_TS..=i64::MAX - RAMP_TICKS);
+        let stop_ramp_ts = start_ramp_ts + MIN_RAMP_DURATION;
+        println!(
+            "start_ramp_ts: {}, stop_ramp_ts: {}",
+            start_ramp_ts, stop_ramp_ts
+        );
+
+        for tick in 0..RAMP_TICKS {
+            let current_ts = start_ramp_ts + tick;
+            let invariant = StableSwap::new(
+                initial_amp_factor,
+                target_amp_factor,
+                current_ts,
+                start_ramp_ts,
+                stop_ramp_ts,
+            );
+            let expected = if tick >= MIN_RAMP_DURATION {
+                target_amp_factor
+            } else {
+                initial_amp_factor - (amp_range * tick as u64 / MIN_RAMP_DURATION as u64)
+            };
+            assert_eq!(invariant.compute_amp_factor().unwrap(), expected);
+        }
+    }
+
+    fn check_d(
+        model: &Model,
+        amount_a: u64,
+        amount_b: u64,
+        current_ts: i64,
+        start_ramp_ts: i64,
+        stop_ramp_ts: i64,
+    ) -> U192 {
+        let swap = StableSwap {
+            initial_amp_factor: model.amp_factor,
+            target_amp_factor: model.amp_factor,
+            current_ts,
+            start_ramp_ts,
+            stop_ramp_ts,
+        };
+        let d = swap.compute_d(amount_a, amount_b).unwrap();
+        assert_eq!(d, model.sim_d().into());
+        d
+    }
+
+    fn check_y(
+        model: &Model,
+        x: u64,
+        d: U192,
+        current_ts: i64,
+        start_ramp_ts: i64,
+        stop_ramp_ts: i64,
+    ) {
+        let swap = StableSwap {
+            initial_amp_factor: model.amp_factor,
+            target_amp_factor: model.amp_factor,
+            current_ts,
+            start_ramp_ts,
+            stop_ramp_ts,
+        };
+        assert_eq!(
+            swap.compute_y_raw(x.into(), d).unwrap().to_u128().unwrap(),
+            model.sim_y(0, 1, x.into())
+        )
+    }
+
+    proptest! {
+        #[test]
+        fn test_curve_math(
+            current_ts in ZERO_TS..i64::MAX,
+            amp_factor in MIN_AMP..MAX_AMP,
+            amount_a in 1..MAX_TOKENS_IN,    // Start at 1 to prevent divide by 0 when computing d
+            amount_b in 1..MAX_TOKENS_IN,    // Start at 1 to prevent divide by 0 when computing d
+        ) {
+            let start_ramp_ts = cmp::max(0, current_ts - MIN_RAMP_DURATION);
+            let stop_ramp_ts = cmp::min(i64::MAX, current_ts + MIN_RAMP_DURATION);
+            let model = Model::new(amp_factor.into(), vec![amount_a.into(), amount_b.into()], N_COINS.into());
+            let d = check_d(&model, amount_a, amount_b, current_ts, start_ramp_ts, stop_ramp_ts);
+            check_y(&model, amount_a, d, current_ts, start_ramp_ts, stop_ramp_ts);
+        }
+    }
+
+    #[test]
+    fn test_curve_math_specific() {
+        // Specific cases
+        let current_ts = ZERO_TS;
+        let start_ramp_ts = ZERO_TS;
+        let stop_ramp_ts = ZERO_TS;
+        let model_no_balance = Model::new(1, vec![0, 0], N_COINS.into());
+        check_d(
+            &model_no_balance,
+            0,
+            0,
+            current_ts,
+            start_ramp_ts,
+            stop_ramp_ts,
+        );
+
+        let amount_a: u64 = 1046129065254161082;
+        let amount_b: u64 = 1250710035549196829;
+        let model = Model::new(1188, vec![amount_a.into(), amount_b.into()], N_COINS.into());
+        let d = check_d(
+            &model,
+            amount_a,
+            amount_b,
+            current_ts,
+            start_ramp_ts,
+            stop_ramp_ts,
+        );
+        let amount_x: u64 = 2045250484898639148;
+        check_y(&model, amount_x, d, current_ts, start_ramp_ts, stop_ramp_ts);
+
+        let amount_a: u64 = 862538457714585493;
+        let amount_b: u64 = 492548187909826733;
+        let model = Model::new(9, vec![amount_a.into(), amount_b.into()], N_COINS.into());
+        let d = check_d(
+            &model,
+            amount_a,
+            amount_b,
+            current_ts,
+            start_ramp_ts,
+            stop_ramp_ts,
+        );
+        let amount_x: u64 = 8155777549389559399;
+        check_y(&model, amount_x, d, current_ts, start_ramp_ts, stop_ramp_ts);
+    }
+
+    #[test]
+    fn test_compute_mint_amount_for_deposit() {
+        let initial_amp_factor = MIN_AMP;
+        let target_amp_factor = MAX_AMP;
+        let current_ts = MIN_RAMP_DURATION / 2;
+        let start_ramp_ts = ZERO_TS;
+        let stop_ramp_ts = MIN_RAMP_DURATION;
+        let invariant = StableSwap::new(
+            initial_amp_factor,
+            target_amp_factor,
+            current_ts,
+            start_ramp_ts,
+            stop_ramp_ts,
+        );
+
+        let deposit_amount_a = MAX_TOKENS_IN;
+        let deposit_amount_b = MAX_TOKENS_IN;
+        let swap_amount_a = MAX_TOKENS_IN;
+        let swap_amount_b = MAX_TOKENS_IN;
+        let pool_token_supply = MAX_TOKENS_IN;
+        let actual_mint_amount = invariant
+            .compute_mint_amount_for_deposit(
+                deposit_amount_a,
+                deposit_amount_b,
+                swap_amount_a,
+                swap_amount_b,
+                pool_token_supply,
+                &MODEL_FEES,
+            )
+            .unwrap();
+        let expected_mint_amount = MAX_TOKENS_IN;
+        assert_eq!(actual_mint_amount, expected_mint_amount);
+    }
+
+    #[test]
+    fn test_curve_math_with_random_inputs() {
+        for _ in 0..100 {
+            let mut rng = rand::thread_rng();
+
+            let amp_factor: u64 = rng.gen_range(MIN_AMP..=MAX_AMP);
+            let amount_a: u64 = rng.gen_range(1..=MAX_TOKENS_IN);
+            let amount_b: u64 = rng.gen_range(1..=MAX_TOKENS_IN);
+            let start_ramp_ts: i64 = rng.gen_range(ZERO_TS..=i64::MAX);
+            let stop_ramp_ts: i64 = rng.gen_range(start_ramp_ts..=i64::MAX);
+            let current_ts: i64 = rng.gen_range(start_ramp_ts..=stop_ramp_ts);
+            println!("testing curve_math_with_random_inputs:");
+            println!(
+                "current_ts: {}, start_ramp_ts: {}, stop_ramp_ts: {}",
+                current_ts, start_ramp_ts, stop_ramp_ts
+            );
+            println!(
+                "amp_factor: {}, amount_a: {}, amount_b: {}",
+                amp_factor, amount_a, amount_b,
+            );
+
+            let model = Model::new(
+                amp_factor.into(),
+                vec![amount_a.into(), amount_b.into()],
+                N_COINS.into(),
+            );
+            let d = check_d(
+                &model,
+                amount_a,
+                amount_b,
+                current_ts,
+                start_ramp_ts,
+                stop_ramp_ts,
+            );
+            let amount_x: u64 = rng.gen_range(0..=amount_a);
+
+            println!("amount_x: {}", amount_x);
+            check_y(&model, amount_x, d, current_ts, start_ramp_ts, stop_ramp_ts);
+        }
+    }
+
+    fn check_swap(
+        initial_amp_factor: u64,
+        target_amp_factor: u64,
+        current_ts: i64,
+        start_ramp_ts: i64,
+        stop_ramp_ts: i64,
+        source_amount: u64,
+        swap_source_amount: u64,
+        swap_destination_amount: u64,
+    ) {
+        let swap = StableSwap::new(
+            initial_amp_factor,
+            target_amp_factor,
+            current_ts,
+            start_ramp_ts,
+            stop_ramp_ts,
+        );
+        let result = swap
+            .swap_to(
+                source_amount.into(),
+                swap_source_amount.into(),
+                swap_destination_amount.into(),
+                &MODEL_FEES,
+            )
+            .unwrap();
+        let model = Model::new(
+            swap.compute_amp_factor().unwrap(),
+            vec![swap_source_amount.into(), swap_destination_amount.into()],
+            N_COINS.into(),
+        );
+
+        assert_eq!(
+            result.amount_swapped,
+            model.sim_exchange(0, 1, source_amount.into())
+        );
+        assert_eq!(result.new_source_amount, swap_source_amount + source_amount);
+        assert_eq!(
+            result.new_destination_amount,
+            swap_destination_amount - result.amount_swapped
+        );
+    }
+
+    proptest! {
+        #[test]
+        fn test_swap_calculation(
+            current_ts in ZERO_TS..i64::MAX,
+            amp_factor in MIN_AMP..MAX_AMP,
+            source_amount in 0..MAX_TOKENS_IN,
+            swap_source_amount in 0..MAX_TOKENS_IN,
+            swap_destination_amount in 0..MAX_TOKENS_IN,
+        ) {
+            let start_ramp_ts = cmp::max(0, current_ts - MIN_RAMP_DURATION);
+            let stop_ramp_ts = cmp::min(i64::MAX, current_ts + MIN_RAMP_DURATION);
+            check_swap(
+                amp_factor,
+                amp_factor,
+                current_ts,
+                start_ramp_ts,
+                stop_ramp_ts,
+                source_amount,
+                swap_source_amount,
+                swap_destination_amount,
+            );
+        }
+    }
+
+    #[test]
+    fn test_swap_calculation_with_random_inputs() {
+        for _ in 0..100 {
+            let mut rng = rand::thread_rng();
+
+            let initial_amp_factor: u64 = rng.gen_range(MIN_AMP..=MAX_AMP);
+            let target_amp_factor: u64 = rng.gen_range(MIN_AMP..=MAX_AMP);
+            let start_ramp_ts: i64 = rng.gen_range(ZERO_TS..=i64::MAX);
+            let stop_ramp_ts: i64 = rng.gen_range(start_ramp_ts..=i64::MAX);
+            let current_ts: i64 = rng.gen_range(start_ramp_ts..=stop_ramp_ts);
+            let source_amount: u64 = rng.gen_range(1..=MAX_TOKENS_IN);
+            let swap_source_amount: u64 = rng.gen_range(1..=MAX_TOKENS_IN);
+            let swap_destination_amount: u64 = rng.gen_range(1..=MAX_TOKENS_IN);
+            println!("testing swap_calculation_with_random_inputs:");
+            println!(
+                "current_ts: {}, start_ramp_ts: {}, stop_ramp_ts: {}",
+                current_ts, start_ramp_ts, stop_ramp_ts
+            );
+            println!(
+                "initial_amp_factor: {}, target_amp_factor: {}, source_amount: {}, swap_source_amount: {}, swap_destination_amount: {}",
+                initial_amp_factor, target_amp_factor, source_amount, swap_source_amount, swap_destination_amount
+            );
+
+            check_swap(
+                initial_amp_factor,
+                target_amp_factor,
+                current_ts,
+                start_ramp_ts,
+                stop_ramp_ts,
+                source_amount,
+                swap_source_amount,
+                swap_destination_amount,
+            );
+        }
+    }
+
+    fn check_withdraw_one(
+        initial_amp_factor: u64,
+        target_amp_factor: u64,
+        current_ts: i64,
+        start_ramp_ts: i64,
+        stop_ramp_ts: i64,
+        pool_token_amount: u64,
+        pool_token_supply: u64,
+        swap_base_amount: u64,
+        swap_quote_amount: u64,
+    ) {
+        let swap = StableSwap::new(
+            initial_amp_factor,
+            target_amp_factor,
+            current_ts,
+            start_ramp_ts,
+            stop_ramp_ts,
+        );
+        let result = swap
+            .compute_withdraw_one(
+                pool_token_amount.into(),
+                pool_token_supply.into(),
+                swap_base_amount.into(),
+                swap_quote_amount.into(),
+                &MODEL_FEES,
+            )
+            .unwrap();
+        let model = Model::new_with_pool_tokens(
+            swap.compute_amp_factor().unwrap(),
+            vec![swap_base_amount.into(), swap_quote_amount.into()],
+            N_COINS.into(),
+            pool_token_supply.into(),
+        );
+        assert_eq!(
+            result.0,
+            model
+                .sim_calc_withdraw_one_coin(pool_token_amount.into(), 0)
+                .0
+        );
+        assert_eq!(
+            result.1,
+            model
+                .sim_calc_withdraw_one_coin(pool_token_amount.into(), 0)
+                .1
+        );
+    }
+
+    proptest! {
+        #[test]
+        fn test_compute_withdraw_one(
+            current_ts in ZERO_TS..i64::MAX,
+            amp_factor in MIN_AMP..MAX_AMP,
+            pool_token_amount in 1..MAX_TOKENS_IN / 2,
+            swap_base_amount in 1..MAX_TOKENS_IN / 2,
+            swap_quote_amount in 1..MAX_TOKENS_IN / 2,
+        ) {
+            let pool_token_supply = MAX_TOKENS_IN;
+            let start_ramp_ts = cmp::max(0, current_ts - MIN_RAMP_DURATION);
+            let stop_ramp_ts = cmp::min(i64::MAX, current_ts + MIN_RAMP_DURATION);
+            check_withdraw_one(
+                amp_factor,
+                amp_factor,
+                current_ts,
+                start_ramp_ts,
+                stop_ramp_ts,
+                pool_token_amount,
+                pool_token_supply,
+                swap_base_amount,
+                swap_quote_amount,
+            );
+        }
+    }
+
+    #[test]
+    fn test_compute_withdraw_one_with_random_inputs() {
+        for _ in 0..100 {
+            let mut rng = rand::thread_rng();
+
+            let initial_amp_factor: u64 = rng.gen_range(MIN_AMP..=MAX_AMP);
+            let target_amp_factor: u64 = rng.gen_range(MIN_AMP..=MAX_AMP);
+            let start_ramp_ts: i64 = rng.gen_range(ZERO_TS..=i64::MAX);
+            let stop_ramp_ts: i64 = rng.gen_range(start_ramp_ts..=i64::MAX);
+            let current_ts: i64 = rng.gen_range(start_ramp_ts..=stop_ramp_ts);
+            let swap_base_amount: u64 = rng.gen_range(1..=MAX_TOKENS_IN);
+            let swap_quote_amount: u64 = rng.gen_range(1..=MAX_TOKENS_IN);
+            let pool_token_supply = swap_base_amount + swap_quote_amount;
+            let pool_token_amount: u64 = rng.gen_range(1..=pool_token_supply);
+            println!("testing compute_withdraw_one_with_random_inputs:");
+            println!(
+                "current_ts: {}, start_ramp_ts: {}, stop_ramp_ts: {}",
+                current_ts, start_ramp_ts, stop_ramp_ts
+            );
+            println!(
+                "initial_amp_factor: {}, target_amp_factor: {}, swap_base_amount: {}, swap_quote_amount: {}, pool_token_amount: {}, pool_token_supply: {}",
+                initial_amp_factor, target_amp_factor,  swap_base_amount, swap_quote_amount, pool_token_amount, pool_token_supply
+            );
+
+            check_withdraw_one(
+                initial_amp_factor,
+                target_amp_factor,
+                current_ts,
+                start_ramp_ts,
+                stop_ramp_ts,
+                pool_token_amount,
+                pool_token_supply,
+                swap_base_amount,
+                swap_quote_amount,
+            );
+        }
+    }
+
+    proptest! {
+        #[test]
+        fn test_virtual_price_does_not_decrease_from_deposit(
+            current_ts in ZERO_TS..i64::MAX,
+            amp_factor in MIN_AMP..MAX_AMP,
+            deposit_amount_a in 0..MAX_TOKENS_IN,
+            deposit_amount_b in 0..MAX_TOKENS_IN,
+            swap_token_a_amount in 0..MAX_TOKENS_IN,
+            swap_token_b_amount in 0..MAX_TOKENS_IN,
+            pool_token_supply in 0..MAX_TOKENS_IN,
+        ) {
+            let deposit_amount_a = deposit_amount_a;
+            let deposit_amount_b = deposit_amount_b;
+            let swap_token_a_amount = swap_token_a_amount;
+            let swap_token_b_amount = swap_token_b_amount;
+            let pool_token_supply = pool_token_supply;
+
+            let start_ramp_ts = cmp::max(0, current_ts - MIN_RAMP_DURATION);
+            let stop_ramp_ts = cmp::min(i64::MAX, current_ts + MIN_RAMP_DURATION);
+            let invariant = StableSwap::new(amp_factor, amp_factor, current_ts, start_ramp_ts, stop_ramp_ts);
+            let d0 = invariant.compute_d(swap_token_a_amount, swap_token_b_amount).unwrap();
+
+            let mint_amount = invariant.compute_mint_amount_for_deposit(
+                    deposit_amount_a,
+                    deposit_amount_b,
+                    swap_token_a_amount,
+                    swap_token_b_amount,
+                    pool_token_supply,
+                    &MODEL_FEES,
+                );
+            prop_assume!(mint_amount.is_some());
+
+            let new_swap_token_a_amount = swap_token_a_amount + deposit_amount_a;
+            let new_swap_token_b_amount = swap_token_b_amount + deposit_amount_b;
+            let new_pool_token_supply = pool_token_supply + mint_amount.unwrap();
+            let d1 = invariant.compute_d(new_swap_token_a_amount, new_swap_token_b_amount).unwrap();
+
+            assert!(d0 < d1);
+            assert!(d0 / pool_token_supply <= d1 / new_pool_token_supply);
+        }
+    }
+
+    proptest! {
+        #[test]
+        fn test_virtual_price_does_not_decrease_from_swap(
+            current_ts in ZERO_TS..i64::MAX,
+            amp_factor in MIN_AMP..MAX_AMP,
+            source_token_amount in 0..MAX_TOKENS_IN,
+            swap_source_amount in 0..MAX_TOKENS_IN,
+            swap_destination_amount in 0..MAX_TOKENS_IN,
+        ) {
+            let source_token_amount = source_token_amount;
+            let swap_source_amount = swap_source_amount;
+            let swap_destination_amount = swap_destination_amount;
+
+            let start_ramp_ts = cmp::max(0, current_ts - MIN_RAMP_DURATION);
+            let stop_ramp_ts = cmp::min(i64::MAX, current_ts + MIN_RAMP_DURATION);
+            let invariant = StableSwap::new(amp_factor, amp_factor, current_ts, start_ramp_ts, stop_ramp_ts);
+            let d0 = invariant.compute_d(swap_source_amount, swap_destination_amount).unwrap();
+
+            let swap_result = invariant.swap_to(source_token_amount, swap_source_amount, swap_destination_amount, &MODEL_FEES);
+            prop_assume!(swap_result.is_some());
+
+            let swap_result = swap_result.unwrap();
+            let d1 = invariant.compute_d(swap_result.new_source_amount, swap_result.new_destination_amount).unwrap();
+
+            assert!(d0 <= d1);  // Pool token supply not changed on swaps
+        }
+    }
+
+    proptest! {
+        #[test]
+        fn test_virtual_price_does_not_decrease_from_withdraw(
+            current_ts in ZERO_TS..i64::MAX,
+            amp_factor in MIN_AMP..MAX_AMP,
+            (pool_token_supply, pool_token_amount) in total_and_intermediate(),
+            swap_token_a_amount in 0..MAX_TOKENS_IN,
+            swap_token_b_amount in 0..MAX_TOKENS_IN,
+        ) {
+            let swap_token_a_amount = swap_token_a_amount;
+            let swap_token_b_amount = swap_token_b_amount;
+            let pool_token_amount = pool_token_amount;
+            let pool_token_supply = pool_token_supply;
+
+            let start_ramp_ts = cmp::max(0, current_ts - MIN_RAMP_DURATION);
+            let stop_ramp_ts = cmp::min(i64::MAX, current_ts + MIN_RAMP_DURATION);
+            let invariant = StableSwap::new(amp_factor, amp_factor, current_ts, start_ramp_ts, stop_ramp_ts);
+            let d0 = invariant.compute_d(swap_token_a_amount, swap_token_b_amount).unwrap();
+
+            let converter = PoolTokenConverter {
+                supply: pool_token_supply,
+                token_a: swap_token_a_amount,
+                token_b: swap_token_b_amount,
+                fees: &MODEL_FEES,
+            };
+
+            // Make sure we will get at least one trading token out for each
+            // side, otherwise the calculation fails
+            prop_assume!((pool_token_amount as u128) * (swap_token_a_amount as u128) / (pool_token_supply as u128) >= 1);
+            prop_assume!((pool_token_amount as u128) * (swap_token_b_amount as u128) / (pool_token_supply as u128) >= 1);
+
+            let (withdraw_amount_a, _, _) = converter.token_a_rate(pool_token_amount).unwrap();
+            let (withdraw_amount_b, _, _) = converter.token_b_rate(pool_token_amount).unwrap();
+
+            let new_swap_token_a_amount = swap_token_a_amount - withdraw_amount_a;
+            let new_swap_token_b_amount = swap_token_b_amount - withdraw_amount_b;
+            let d1 = invariant.compute_d(new_swap_token_a_amount, new_swap_token_b_amount).unwrap();
+            let new_pool_token_supply = pool_token_supply - pool_token_amount;
+
+            assert!(d0 / pool_token_supply <= d1 / new_pool_token_supply);
+        }
+    }
+
+    proptest! {
+        #[test]
+        fn test_virtual_price_does_not_decrease_from_withdraw_one(
+            current_ts in ZERO_TS..i64::MAX,
+            amp_factor in MIN_AMP..MAX_AMP,
+            (pool_token_supply, pool_token_amount) in total_and_intermediate(),
+            base_token_amount in 0..MAX_TOKENS_IN,
+            quote_token_amount in 0..MAX_TOKENS_IN,
+        ) {
+            let base_token_amount = base_token_amount;
+            let quote_token_amount = quote_token_amount;
+            let pool_token_amount = pool_token_amount;
+            let pool_token_supply = pool_token_supply;
+
+            let start_ramp_ts = cmp::max(0, current_ts - MIN_RAMP_DURATION);
+            let stop_ramp_ts = cmp::min(i64::MAX, current_ts + MIN_RAMP_DURATION);
+            let invariant = StableSwap::new(amp_factor, amp_factor, current_ts, start_ramp_ts, stop_ramp_ts);
+            let d0 = invariant.compute_d(base_token_amount, quote_token_amount).unwrap();
+
+            prop_assume!(U192::from(pool_token_amount) * U192::from(base_token_amount) / U192::from(pool_token_supply) >= U192::from(1));
+            let (withdraw_amount, _) = invariant.compute_withdraw_one(pool_token_amount, pool_token_supply, base_token_amount, quote_token_amount, &MODEL_FEES).unwrap();
+
+            let new_base_token_amount = base_token_amount - withdraw_amount;
+            let d1 = invariant.compute_d(new_base_token_amount, quote_token_amount).unwrap();
+            let new_pool_token_supply = pool_token_supply - pool_token_amount;
+
+            assert!(d0 / pool_token_supply <= d1 / new_pool_token_supply);
+        }
+    }
+
+    prop_compose! {
+        pub fn total_and_intermediate()(total in 1..MAX_TOKENS_IN)
+                        (intermediate in 1..total, total in Just(total))
+                        -> (u64, u64) {
+           (total, intermediate)
+       }
+    }
+}

@@ -1,5 +1,6 @@
 import type { Network } from "@saberhq/solana-contrib";
 import { DEFAULT_NETWORK_CONFIG_MAP } from "@saberhq/solana-contrib";
+import { Percent } from "@saberhq/token-utils";
 import type {
   Cluster,
   Connection,
@@ -15,6 +16,25 @@ import {
 } from "@solana/web3.js";
 import * as fs from "fs/promises";
 import * as os from "os";
+
+import type { Fees } from "../src";
+import { DEFAULT_FEE } from "../src";
+
+// Initial amount in each swap token
+export const INITIAL_TOKEN_A_AMOUNT = LAMPORTS_PER_SOL;
+export const INITIAL_TOKEN_B_AMOUNT = LAMPORTS_PER_SOL;
+
+// Cluster configs
+export const CLUSTER_URL = "http://localhost:8899";
+export const BOOTSTRAP_TIMEOUT = 300000;
+// Pool configs
+export const AMP_FACTOR = 100;
+export const FEES: Fees = {
+  adminTrade: DEFAULT_FEE,
+  adminWithdraw: DEFAULT_FEE,
+  trade: new Percent(1, 4),
+  withdraw: DEFAULT_FEE,
+};
 
 export function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));

@@ -1,28 +1,25 @@
 { pkgs }:
 pkgs.buildEnv {
   name = "stableswap-env";
-  paths = with pkgs;
-    (pkgs.lib.optionals pkgs.stdenv.isLinux (with stableswap;
-      [
-        # solana
-        # anchor 
-        # spl-token-cli
-      ])) ++ [
-        cargo-deps
-        cargo-watch
+  paths = with pkgs; [
+    solana-install
+    anchor-0_19_0
 
-        # sdk
-        nodejs-16_x
-        (yarn.override { nodejs = nodejs-16_x; })
-        python3
+    cargo-deps
+    cargo-watch
+    cargo-fuzz
 
-        pkgconfig
-        openssl
-        jq
-        libiconv
-        stdenv
-        # libudev
+    # sdk
+    nodejs-16_x
+    (yarn.override { nodejs = nodejs-16_x; })
+    python3
 
-        # vagrant
-      ];
+    pkgconfig
+    openssl
+    jq
+    libiconv
+    stdenv
+    # libudev
+
+  ];
 }

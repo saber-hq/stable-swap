@@ -305,8 +305,8 @@ fn run_action(
             trade_direction,
             instruction_data,
         } => {
-            let token_a_account_pair = token_a_accounts.get_mut(&token_a_id).unwrap();
-            let token_b_account_pair = token_b_accounts.get_mut(&token_b_id).unwrap();
+            let token_a_account_pair = token_a_accounts.get_mut(token_a_id).unwrap();
+            let token_b_account_pair = token_b_accounts.get_mut(token_b_id).unwrap();
             match trade_direction {
                 TradeDirection::AtoB => stable_swap.swap_a_to_b(
                     Utc::now().timestamp(),
@@ -330,9 +330,9 @@ fn run_action(
             pool_token_id,
             instruction_data,
         } => {
-            let token_a_account_pair = token_a_accounts.get_mut(&token_a_id).unwrap();
-            let token_b_account_pair = token_b_accounts.get_mut(&token_b_id).unwrap();
-            let pool_token_account_pair = pool_accounts.get_mut(&pool_token_id).unwrap();
+            let token_a_account_pair = token_a_accounts.get_mut(token_a_id).unwrap();
+            let token_b_account_pair = token_b_accounts.get_mut(token_b_id).unwrap();
+            let pool_token_account_pair = pool_accounts.get_mut(pool_token_id).unwrap();
             stable_swap.deposit(
                 Utc::now().timestamp(),
                 &mut token_a_account_pair.0,
@@ -348,9 +348,9 @@ fn run_action(
             pool_token_id,
             instruction_data,
         } => {
-            let token_a_account_pair = token_a_accounts.get_mut(&token_a_id).unwrap();
-            let token_b_account_pair = token_b_accounts.get_mut(&token_b_id).unwrap();
-            let pool_token_account_pair = pool_accounts.get_mut(&pool_token_id).unwrap();
+            let token_a_account_pair = token_a_accounts.get_mut(token_a_id).unwrap();
+            let token_b_account_pair = token_b_accounts.get_mut(token_b_id).unwrap();
+            let pool_token_account_pair = pool_accounts.get_mut(pool_token_id).unwrap();
             stable_swap.withdraw(
                 Utc::now().timestamp(),
                 &mut pool_token_account_pair.0,
@@ -366,10 +366,10 @@ fn run_action(
             withdraw_token_type,
             instruction_data,
         } => {
-            let pool_token_account_pair = pool_accounts.get_mut(&pool_token_id).unwrap();
+            let pool_token_account_pair = pool_accounts.get_mut(pool_token_id).unwrap();
             match withdraw_token_type {
                 TokenType::TokenA => {
-                    let token_account_pair = token_a_accounts.get_mut(&token_id).unwrap();
+                    let token_account_pair = token_a_accounts.get_mut(token_id).unwrap();
 
                     stable_swap.withdraw_one(
                         Utc::now().timestamp(),
@@ -381,7 +381,7 @@ fn run_action(
                     )
                 }
                 TokenType::TokenB => {
-                    let token_account_pair = token_b_accounts.get_mut(&token_id).unwrap();
+                    let token_account_pair = token_b_accounts.get_mut(token_id).unwrap();
 
                     stable_swap.withdraw_one(
                         Utc::now().timestamp(),

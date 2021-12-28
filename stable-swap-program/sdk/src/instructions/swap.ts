@@ -56,6 +56,7 @@ export interface InitializeSwapInstruction {
   nonce: number;
   ampFactor: u64;
   fees?: Fees;
+  isPaused?: boolean;
 }
 
 export interface SwapInstruction {
@@ -204,7 +205,6 @@ export const initializeSwapInstruction = ({
     { pubkey: poolTokenMint, isSigner: false, isWritable: true },
     { pubkey: destinationPoolTokenAccount, isSigner: false, isWritable: true },
     { pubkey: config.tokenProgramID, isSigner: false, isWritable: false },
-    { pubkey: SYSVAR_CLOCK_PUBKEY, isSigner: false, isWritable: false },
   ];
   const dataLayout = BufferLayout.struct<{
     instruction: number;
@@ -379,7 +379,6 @@ export const withdrawInstruction = ({
     { pubkey: adminFeeAccountA, isSigner: false, isWritable: true },
     { pubkey: adminFeeAccountB, isSigner: false, isWritable: true },
     { pubkey: config.tokenProgramID, isSigner: false, isWritable: false },
-    { pubkey: SYSVAR_CLOCK_PUBKEY, isSigner: false, isWritable: false },
   ];
   return buildInstruction({
     config,

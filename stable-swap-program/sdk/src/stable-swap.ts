@@ -20,7 +20,7 @@ export class StableSwap {
    */
   constructor(
     public readonly config: StableSwapConfig,
-    public readonly state: StableSwapState
+    public state: StableSwapState
   ) {}
 
   /**
@@ -100,6 +100,19 @@ export class StableSwap {
       },
       state
     );
+  }
+
+  /**
+   * Reload StableSwap state
+   * @param connection
+   */
+  async reload(connection: Connection): Promise<void> {
+    const data = await loadProgramAccount(
+      connection,
+      this.config.swapAccount,
+      this.config.swapProgramID
+    );
+    this.state = decodeSwap(data);
   }
 
   /**

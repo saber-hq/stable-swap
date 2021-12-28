@@ -1,5 +1,6 @@
 //! Logging related helpers.
 
+use solana_program::log::sol_log_64;
 use solana_program::msg;
 use solana_program::pubkey::Pubkey;
 
@@ -23,7 +24,6 @@ pub enum Event {
 /// Log event
 pub fn log_event(
     event: Event,
-    timestamp: i64,
     token_a_amount: u64,
     token_b_amount: u64,
     pool_token_amount: u64,
@@ -37,6 +37,7 @@ pub fn log_event(
         Event::WithdrawA => "Event: WithdrawA",
         Event::WithdrawB => "Event: WithdrawB",
     });
+
     solana_program::log::sol_log_64(
         event as u64,
         token_a_amount,
@@ -44,7 +45,6 @@ pub fn log_event(
         pool_token_amount,
         fee,
     );
-    msg!("Timestamp: {}", timestamp);
 }
 
 pub fn log_keys_mismatch(msg: &str, left: Pubkey, right: Pubkey) {
@@ -73,5 +73,5 @@ pub fn log_keys_mismatch_optional(msg: &str, left: Option<Pubkey>, right: Option
 
 /// Log slippage error
 pub fn log_slippage_error(minimum_amount: u64, computed_amount: u64) {
-    msg!(0, 0, 0, minimum_amount, computed_amount);
+    sol_log_64(0, 0, 0, minimum_amount, computed_amount);
 }

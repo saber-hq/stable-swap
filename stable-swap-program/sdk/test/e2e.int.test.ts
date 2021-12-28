@@ -1,6 +1,5 @@
 import { SignerWallet } from "@saberhq/solana-contrib";
 import {
-  Percent,
   SPLToken,
   Token as SToken,
   TOKEN_PROGRAM_ID,
@@ -18,31 +17,20 @@ import { calculateVirtualPrice, StableSwap } from "../src";
 import type { IExchange } from "../src/entities/exchange";
 import { loadExchangeInfo } from "../src/entities/exchange";
 import { parseEventLogs } from "../src/events";
-import type { Fees } from "../src/state";
-import { DEFAULT_FEE } from "../src/state";
 import { deployTestTokens } from "../src/util/deployTestTokens";
 import { deployNewSwap } from "../src/util/initialize";
 import {
+  AMP_FACTOR,
+  BOOTSTRAP_TIMEOUT,
+  CLUSTER_URL,
+  FEES,
   getProgramDeploymentInfo,
+  INITIAL_TOKEN_A_AMOUNT,
+  INITIAL_TOKEN_B_AMOUNT,
   newKeypairWithLamports,
   sendAndConfirmTransactionWithTitle,
   sleep,
 } from "./helpers";
-
-// Cluster configs
-const CLUSTER_URL = "http://localhost:8899";
-const BOOTSTRAP_TIMEOUT = 300000;
-// Pool configs
-const AMP_FACTOR = 100;
-const FEES: Fees = {
-  adminTrade: DEFAULT_FEE,
-  adminWithdraw: DEFAULT_FEE,
-  trade: new Percent(1, 4),
-  withdraw: DEFAULT_FEE,
-};
-// Initial amount in each swap token
-const INITIAL_TOKEN_A_AMOUNT = LAMPORTS_PER_SOL;
-const INITIAL_TOKEN_B_AMOUNT = LAMPORTS_PER_SOL;
 
 describe("e2e test", () => {
   // Cluster connection

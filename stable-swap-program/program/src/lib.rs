@@ -3,16 +3,11 @@
 
 //! A Curve-like program for the Solana blockchain.
 
-pub mod bn;
-pub mod curve;
 pub mod entrypoint;
-pub mod error;
-pub mod fees;
-pub mod instruction;
-mod math;
-pub mod pool_converter;
 pub mod processor;
-pub mod state;
+
+pub use stable_swap_client::{error, fees, instruction, state};
+pub use stable_swap_math::{curve, math, pool_converter};
 
 // Export current solana-program types for downstream users who may also be
 // building with a different solana-program version

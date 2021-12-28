@@ -40,17 +40,20 @@ export const StableSwapLayout: Layout<{
   adminAccount: string;
   adminFeeAccountA: string;
   adminFeeAccountB: string;
+  initialAmpFactor: Buffer;
+  fees: RawFees;
+  futureAdminDeadline: number;
+  futureAdminAccount: string;
   isInitialized: boolean;
+  isPaused: boolean;
+  mintA: string;
+  mintB: string;
+  startRampTs: number;
+  stopRampTs: number;
+  targetAmpFactor: Buffer;
   tokenAccountA: string;
   tokenAccountB: string;
   tokenPool: string;
-  mintA: string;
-  mintB: string;
-  initialAmpFactor: Buffer;
-  targetAmpFactor: Buffer;
-  startRampTs: number;
-  stopRampTs: number;
-  fees: RawFees;
 }> = BufferLayout.struct([
   BufferLayout.u8("isInitialized"),
   BufferLayout.u8("isPaused"),

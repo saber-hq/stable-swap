@@ -263,7 +263,7 @@ export const createAdminCommitNewAdminInstruction = ({
   const keys = [
     { pubkey: config.swapAccount, isSigner: false, isWritable: true },
     { pubkey: adminAccount, isSigner: true, isWritable: false },
-    { pubkey: newAdminAccount, isSigner: true, isWritable: false },
+    { pubkey: newAdminAccount, isSigner: false, isWritable: false },
     { pubkey: SYSVAR_CLOCK_PUBKEY, isSigner: false, isWritable: false },
   ];
   const dataLayout = BufferLayout.struct<{

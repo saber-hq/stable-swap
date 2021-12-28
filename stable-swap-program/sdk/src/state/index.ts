@@ -10,6 +10,8 @@ export * from "./fees";
 export * from "./layout";
 
 export interface StableSwapState {
+  isPaused: boolean;
+
   /**
    * Mint account for pool token
    */
@@ -47,6 +49,9 @@ export interface StableSwapState {
    * Fee schedule
    */
   fees: Fees;
+
+  futureAdminDeadline?: number;
+  futureAdminAccount?: PublicKey;
 }
 
 /**
@@ -72,6 +77,8 @@ export const decodeSwap = (data: Buffer): StableSwapState => {
   const startRampTimestamp = stableSwapData.startRampTs;
   const stopRampTimestamp = stableSwapData.stopRampTs;
   const fees = decodeFees(stableSwapData.fees);
+  const futureAdminDeadline = stableSwapData.futureAdminDeadline;
+  const futureAdminAccount = new PublicKey(stableSwapData.futureAdminAccount);
   return {
     adminAccount,
     tokenA: {
@@ -86,9 +93,12 @@ export const decodeSwap = (data: Buffer): StableSwapState => {
     },
     poolTokenMint,
     initialAmpFactor,
+    isPaused: stableSwapData.isPaused,
     targetAmpFactor,
     startRampTimestamp,
     stopRampTimestamp,
     fees,
+    futureAdminDeadline,
+    futureAdminAccount,
   };
 };

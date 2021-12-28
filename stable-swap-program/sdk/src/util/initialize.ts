@@ -125,6 +125,7 @@ export const loadSwapFromInitializeArgs = (
 
     poolTokenMint: initializeArgs.poolTokenMint,
     initialAmpFactor: new u64(initializeArgs.ampFactor),
+    isPaused: initializeArgs.isPaused ?? false,
     targetAmpFactor: new u64(initializeArgs.ampFactor),
     startRampTimestamp: ZERO_TS,
     stopRampTimestamp: ZERO_TS,

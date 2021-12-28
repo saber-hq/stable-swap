@@ -1,7 +1,7 @@
 //! Helpers for working with swaps in a fuzzing environment
 
 use crate::native_account_data::NativeAccountData;
-use crate::native_processor::do_process_instruction;
+use crate::native_processor::*;
 use crate::native_token;
 
 use arbitrary::Arbitrary;
@@ -78,7 +78,6 @@ impl NativeStableSwap {
         );
 
         let init_instruction = initialize(
-            &stable_swap::id(),
             &spl_token::id(),
             &swap_account.key,
             &authority_account.key,
@@ -97,7 +96,7 @@ impl NativeStableSwap {
         )
         .unwrap();
 
-        do_process_instruction(
+        do_process_instruction_at_time(
             init_instruction,
             &[
                 swap_account.as_account_info(),
@@ -112,8 +111,8 @@ impl NativeStableSwap {
                 pool_mint_account.as_account_info(),
                 pool_token_account.as_account_info(),
                 token_program_account.as_account_info(),
-                NativeAccountData::new_clock(current_ts).as_account_info(),
             ],
+            current_ts,
         )
         .unwrap();
 
@@ -174,7 +173,6 @@ impl NativeStableSwap {
         instruction_data: SwapData,
     ) -> ProgramResult {
         let swap_instruction = swap(
-            &stable_swap::id(),
             &spl_token::id(),
             &self.swap_account.key,
             &self.authority_account.key,
@@ -189,7 +187,7 @@ impl NativeStableSwap {
         )
         .unwrap();
 
-        do_process_instruction(
+        do_process_instruction_at_time(
             swap_instruction,
             &[
                 self.swap_account.as_account_info(),
@@ -201,8 +199,8 @@ impl NativeStableSwap {
                 token_b_account.as_account_info(),
                 self.admin_fee_b_account.as_account_info(),
                 self.token_program_account.as_account_info(),
-                NativeAccountData::new_clock(current_ts).as_account_info(),
             ],
+            current_ts,
         )
     }
 
@@ -215,7 +213,6 @@ impl NativeStableSwap {
         instruction_data: SwapData,
     ) -> ProgramResult {
         let swap_instruction = swap(
-            &stable_swap::id(),
             &spl_token::id(),
             &self.swap_account.key,
             &self.authority_account.key,
@@ -230,7 +227,7 @@ impl NativeStableSwap {
         )
         .unwrap();
 
-        do_process_instruction(
+        do_process_instruction_at_time(
             swap_instruction,
             &[
                 self.swap_account.as_account_info(),
@@ -242,8 +239,8 @@ impl NativeStableSwap {
                 token_a_account.as_account_info(),
                 self.admin_fee_a_account.as_account_info(),
                 self.token_program_account.as_account_info(),
-                NativeAccountData::new_clock(current_ts).as_account_info(),
             ],
+            current_ts,
         )
     }
 
@@ -258,7 +255,6 @@ impl NativeStableSwap {
         instruction_data: DepositData,
     ) -> ProgramResult {
         let deposit_instruction = deposit(
-            &stable_swap::id(),
             &spl_token::id(),
             &self.swap_account.key,
             &self.authority_account.key,
@@ -275,7 +271,7 @@ impl NativeStableSwap {
         )
         .unwrap();
 
-        do_process_instruction(
+        do_process_instruction_at_time(
             deposit_instruction,
             &[
                 self.swap_account.as_account_info(),
@@ -288,8 +284,8 @@ impl NativeStableSwap {
                 self.pool_mint_account.as_account_info(),
                 pool_token_account.as_account_info(),
                 self.token_program_account.as_account_info(),
-                NativeAccountData::new_clock(current_ts).as_account_info(),
             ],
+            current_ts,
         )
     }
 
@@ -303,7 +299,6 @@ impl NativeStableSwap {
         instruction_data: WithdrawData,
     ) -> ProgramResult {
         let withdraw_instruction = withdraw(
-            &stable_swap::id(),
             &spl_token::id(),
             &self.swap_account.key,
             &self.authority_account.key,
@@ -322,7 +317,7 @@ impl NativeStableSwap {
         )
         .unwrap();
 
-        do_process_instruction(
+        do_process_instruction_at_time(
             withdraw_instruction,
             &[
                 self.swap_account.as_account_info(),
@@ -337,8 +332,8 @@ impl NativeStableSwap {
                 self.admin_fee_a_account.as_account_info(),
                 self.admin_fee_b_account.as_account_info(),
                 self.token_program_account.as_account_info(),
-                NativeAccountData::new_clock(current_ts).as_account_info(),
             ],
+            current_ts,
         )
     }
 
@@ -354,7 +349,6 @@ impl NativeStableSwap {
         match token_type {
             TokenType::TokenA => {
                 let withdraw_one_instruction = withdraw_one(
-                    &stable_swap::id(),
                     &spl_token::id(),
                     &self.swap_account.key,
                     &self.authority_account.key,
@@ -369,7 +363,7 @@ impl NativeStableSwap {
                     instruction_data.minimum_token_amount,
                 )
                 .unwrap();
-                do_process_instruction(
+                do_process_instruction_at_time(
                     withdraw_one_instruction,
                     &[
                         self.swap_account.as_account_info(),
@@ -382,13 +376,12 @@ impl NativeStableSwap {
                         token_account.as_account_info(),
                         self.admin_fee_a_account.as_account_info(),
                         self.token_program_account.as_account_info(),
-                        NativeAccountData::new_clock(current_ts).as_account_info(),
                     ],
+                    current_ts,
                 )
             }
             TokenType::TokenB => {
                 let withdraw_one_instruction = withdraw_one(
-                    &stable_swap::id(),
                     &spl_token::id(),
                     &self.swap_account.key,
                     &self.authority_account.key,
@@ -403,7 +396,7 @@ impl NativeStableSwap {
                     instruction_data.minimum_token_amount,
                 )
                 .unwrap();
-                do_process_instruction(
+                do_process_instruction_at_time(
                     withdraw_one_instruction,
                     &[
                         self.swap_account.as_account_info(),
@@ -416,8 +409,8 @@ impl NativeStableSwap {
                         token_account.as_account_info(),
                         self.admin_fee_b_account.as_account_info(),
                         self.token_program_account.as_account_info(),
-                        NativeAccountData::new_clock(current_ts).as_account_info(),
                     ],
+                    current_ts,
                 )
             }
         }
@@ -425,7 +418,6 @@ impl NativeStableSwap {
 
     pub fn ramp_a(&mut self, current_ts: i64, instruction_data: RampAData) -> ProgramResult {
         let ramp_a_instruction = ramp_a(
-            &stable_swap::id(),
             &self.swap_account.key,
             &self.admin_account.key,
             instruction_data.target_amp,
@@ -433,31 +425,27 @@ impl NativeStableSwap {
         )
         .unwrap();
 
-        do_process_instruction(
+        do_process_instruction_at_time(
             ramp_a_instruction,
             &[
                 self.swap_account.as_account_info(),
                 self.admin_account.as_account_info(),
-                NativeAccountData::new_clock(current_ts).as_account_info(),
             ],
+            current_ts,
         )
     }
 
     pub fn stop_ramp_a(&mut self, current_ts: i64) -> ProgramResult {
-        let stop_ramp_a_instruction = stop_ramp_a(
-            &stable_swap::id(),
-            &self.swap_account.key,
-            &self.admin_account.key,
-        )
-        .unwrap();
+        let stop_ramp_a_instruction =
+            stop_ramp_a(&self.swap_account.key, &self.admin_account.key).unwrap();
 
-        do_process_instruction(
+        do_process_instruction_at_time(
             stop_ramp_a_instruction,
             &[
                 self.swap_account.as_account_info(),
                 self.admin_account.as_account_info(),
-                NativeAccountData::new_clock(current_ts).as_account_info(),
             ],
+            current_ts,
         )
     }
 }

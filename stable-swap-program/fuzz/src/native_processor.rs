@@ -2,7 +2,7 @@ use crate::native_account_data::NativeAccountData;
 
 use lazy_static::lazy_static;
 use solana_program::{
-    account_info::AccountInfo, entrypoint::ProgramResult, instruction::Instruction,
+    account_info::AccountInfo, clock::Clock, entrypoint::ProgramResult, instruction::Instruction,
     program_error::ProgramError, program_stubs, pubkey::Pubkey,
 };
 
@@ -16,8 +16,21 @@ lazy_static! {
         .unwrap_or(0);
 }
 
-struct TestSyscallStubs {}
+struct TestSyscallStubs {
+    unix_timestamp: Option<i64>,
+}
 impl program_stubs::SyscallStubs for TestSyscallStubs {
+    fn sol_get_clock_sysvar(&self, var_addr: *mut u8) -> u64 {
+        let clock: Option<i64> = self.unix_timestamp;
+        unsafe {
+            *(var_addr as *mut _ as *mut Clock) = Clock {
+                unix_timestamp: clock.unwrap(),
+                ..Clock::default()
+            };
+        }
+        solana_program::entrypoint::SUCCESS
+    }
+
     fn sol_log(&self, message: &str) {
         if *VERBOSE >= 1 {
             println!("{}", message);
@@ -43,7 +56,7 @@ impl program_stubs::SyscallStubs for TestSyscallStubs {
                     let mut new_account_info = account_info.clone();
                     for seeds in signers_seeds.iter() {
                         let signer =
-                            Pubkey::create_program_address(&seeds, &stable_swap::id()).unwrap();
+                            Pubkey::create_program_address(seeds, &stable_swap::id()).unwrap();
                         if *account_info.key == signer {
                             new_account_info.is_signer = true;
                         }
@@ -61,17 +74,29 @@ impl program_stubs::SyscallStubs for TestSyscallStubs {
     }
 }
 
-fn test_syscall_stubs() {
-    use std::sync::Once;
-    static ONCE: Once = Once::new();
+fn test_syscall_stubs(unix_timestamp: Option<i64>) {
+    // only one test may run at a time
+    program_stubs::set_syscall_stubs(Box::new(TestSyscallStubs { unix_timestamp }));
+}
 
-    ONCE.call_once(|| {
-        program_stubs::set_syscall_stubs(Box::new(TestSyscallStubs {}));
-    });
+pub fn do_process_instruction_at_time(
+    instruction: Instruction,
+    accounts: &[AccountInfo],
+    current_ts: i64,
+) -> ProgramResult {
+    do_process_instruction_maybe_at_time(instruction, accounts, Some(current_ts))
 }
 
 pub fn do_process_instruction(instruction: Instruction, accounts: &[AccountInfo]) -> ProgramResult {
-    test_syscall_stubs();
+    do_process_instruction_maybe_at_time(instruction, accounts, None)
+}
+
+fn do_process_instruction_maybe_at_time(
+    instruction: Instruction,
+    accounts: &[AccountInfo],
+    current_ts: Option<i64>,
+) -> ProgramResult {
+    test_syscall_stubs(current_ts);
 
     // approximate the logic in the actual runtime which runs the instruction
     // and only updates accounts if the instruction is successful

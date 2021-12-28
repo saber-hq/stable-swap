@@ -3,7 +3,7 @@
 set -ex
 cd "$(dirname "$0")"
 
-solana_version="1.6.10"
+solana_version="1.8.11"
 export PATH="$HOME"/.local/share/solana/install/active_release/bin:"$PATH"
 
 usage() {
@@ -42,13 +42,13 @@ perform_action() {
             ./scripts/deploy-program.sh localnet
             yarn --cwd sdk test-int ${@:2}
         )
-    ;;
+        ;;
     help)
-            usage
-            exit
+        usage
+        exit
         ;;
     test)
-            cargo test-bpf --manifest-path program/Cargo.toml ${@:2}
+        cargo test-bpf --manifest-path program/Cargo.toml -- --test-threads 1 ${@:2}
         ;;
     update)
         (

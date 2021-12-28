@@ -1,0 +1,16 @@
+[package]
+name = "stable-swap-sim"
+version = "0.1.0"
+authors = ["michaelhly <michaelhly@gmail.com>"]
+description = "Calculations for the StableSwap invariant"
+license = "Apache-2.0"
+homepage = "https://saber.so"
+repository = "https://github.com/saber-hq/stable-swap"
+edition = "2018"
+keywords = ["solana", "saber"]
+
+[lib]
+name = "sim"
+
+[dependencies]
+pyo3 = "0.13.2"

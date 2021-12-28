@@ -16,6 +16,7 @@ fuzz = ["stable-swap-client/fuzz"]
 
 [dependencies]
 anchor-lang = ">=0.17"
+anchor-spl = ">=0.17"
 solana-program = "^1.6.10"
 spl-token = { version = "3.1.1", features = ["no-entrypoint"] }
 stable-swap-client = { path = "../../stable-swap-client", version = "^1" }

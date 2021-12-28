@@ -23,7 +23,7 @@ use solana_program::{
     pubkey::Pubkey,
     sysvar::{clock::Clock, Sysvar},
 };
-use vipers::{assert_keys_eq, assert_keys_neq};
+use vipers::{assert_keys_eq, assert_keys_neq, invariant};
 
 use super::checks::*;
 use super::logging::*;
@@ -122,9 +122,7 @@ fn process_initialize(
     }
 
     let token_swap = SwapInfo::unpack_unchecked(&swap_info.data.borrow())?;
-    if token_swap.is_initialized {
-        return Err(SwapError::AlreadyInUse.into());
-    }
+    invariant!(token_swap.is_initialized, AlreadyInUse);
     let swap_authority = utils::authority_id(program_id, swap_info.key, nonce)?;
     assert_keys_eq!(
         authority_info,
@@ -132,6 +130,16 @@ fn process_initialize(
         SwapError::InvalidProgramAddress,
         "Swap authority",
     );
+
+    assert_keys_eq!(admin_fee_a_info.owner, anchor_spl::token::ID);
+    assert_keys_eq!(admin_fee_b_info.owner, anchor_spl::token::ID);
+    assert_keys_eq!(token_a_mint_info.owner, anchor_spl::token::ID);
+    assert_keys_eq!(token_a_info.owner, anchor_spl::token::ID);
+    assert_keys_eq!(token_b_mint_info.owner, anchor_spl::token::ID);
+    assert_keys_eq!(token_b_info.owner, anchor_spl::token::ID);
+    assert_keys_eq!(pool_mint_info.owner, anchor_spl::token::ID);
+    assert_keys_eq!(destination_info.owner, anchor_spl::token::ID);
+    assert_keys_eq!(token_program_info, anchor_spl::token::ID);
 
     let destination = utils::unpack_token_account(&destination_info.data.borrow())?;
     let token_a = utils::unpack_token_account(&token_a_info.data.borrow())?;
@@ -156,39 +164,28 @@ fn process_initialize(
         "Initial LP destination authority",
     );
 
-    if token_a.mint == token_b.mint {
-        return Err(SwapError::RepeatedMint.into());
-    }
-    if token_b.amount == 0 {
-        return Err(SwapError::EmptySupply.into());
-    }
-    if token_a.amount == 0 {
-        return Err(SwapError::EmptySupply.into());
-    }
-    if token_a.delegate.is_some() {
-        return Err(SwapError::InvalidDelegate.into());
-    }
-    if token_b.delegate.is_some() {
-        return Err(SwapError::InvalidDelegate.into());
-    }
+    invariant!(token_a.mint != token_b.mint, RepeatedMint);
+
+    invariant!(token_a.amount != 0, EmptySupply);
+    invariant!(token_a.delegate.is_none(), InvalidDelegate);
     assert_keys_eq!(
         token_a.mint,
         token_a_mint_info,
         SwapError::IncorrectMint,
         "Mint A",
     );
+    invariant!(token_a.close_authority.is_none(), InvalidCloseAuthority);
+
+    invariant!(token_b.amount != 0, EmptySupply);
+    invariant!(token_b.delegate.is_none(), InvalidDelegate);
     assert_keys_eq!(
         token_b.mint,
         token_b_mint_info,
         SwapError::IncorrectMint,
         "Mint B",
     );
-    if token_a.close_authority.is_some() {
-        return Err(SwapError::InvalidCloseAuthority.into());
-    }
-    if token_b.close_authority.is_some() {
-        return Err(SwapError::InvalidCloseAuthority.into());
-    }
+    invariant!(token_b.close_authority.is_none(), InvalidCloseAuthority);
+
     let pool_mint = utils::unpack_mint(&pool_mint_info.data.borrow())?;
     assert_keys_eq!(
         pool_mint.mint_authority.unwrap(),
@@ -196,20 +193,20 @@ fn process_initialize(
         SwapError::InvalidOwner,
         "LP mint authority",
     );
-    if pool_mint.freeze_authority.is_some() {
-        return Err(SwapError::InvalidFreezeAuthority.into());
-    }
-    if pool_mint.supply != 0 {
-        return Err(SwapError::InvalidSupply.into());
-    }
+    invariant!(pool_mint.freeze_authority.is_none(), InvalidFreezeAuthority);
+    invariant!(pool_mint.supply == 0, InvalidSupply);
+
     let token_a_mint = utils::unpack_mint(&token_a_mint_info.data.borrow())?;
     let token_b_mint = utils::unpack_mint(&token_b_mint_info.data.borrow())?;
-    if token_a_mint.decimals != token_b_mint.decimals {
-        return Err(SwapError::MismatchedDecimals.into());
-    }
-    if pool_mint.decimals != token_a_mint.decimals {
-        return Err(SwapError::MismatchedDecimals.into());
-    }
+    invariant!(
+        token_a_mint.decimals == token_b_mint.decimals,
+        MismatchedDecimals
+    );
+    invariant!(
+        pool_mint.decimals == token_b_mint.decimals,
+        MismatchedDecimals
+    );
+
     let admin_fee_key_a = utils::unpack_token_account(&admin_fee_a_info.data.borrow())?;
     let admin_fee_key_b = utils::unpack_token_account(&admin_fee_b_info.data.borrow())?;
 

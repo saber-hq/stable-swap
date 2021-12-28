@@ -1724,6 +1724,7 @@ name = "stable-swap"
 version = "1.6.1"
 dependencies = [
  "anchor-lang",
+ "anchor-spl",
  "solana-program",
  "solana-sdk",
  "spl-token",

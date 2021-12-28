@@ -1,10 +1,11 @@
 name: Program
 
 on:
-  workflow_run:
-    workflows: ["Libraries"]
-    types:
-      - completed
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
 env:
   CARGO_TERM_COLOR: always
   SOLANA_VERSION: "1.8.11"

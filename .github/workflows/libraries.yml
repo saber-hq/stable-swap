@@ -1,10 +1,10 @@
 name: Libraries
 
 on:
-  workflow_run:
-    workflows: ["Pre-build Checks"]
-    types:
-      - completed
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
 
 env:
   CARGO_TERM_COLOR: always

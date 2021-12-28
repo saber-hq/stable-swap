@@ -3,11 +3,20 @@ solana_version = "1.8.11"
 
 [workspace]
 members = [
+    "fuzz",
+    "stable-swap-anchor/",
     "stable-swap-client/",
     "stable-swap-math/",
+    "stable-swap-math/sim",
     "stable-swap-program/program"
 ]
-exclude = ["fuzz", "stable-swap-anchor/", "stable-swap-math/sim"]
+exclude = [
+    "fuzz",
+    "stable-swap-anchor/",
+    "stable-swap-client/",
+    "stable-swap-math/",
+    "stable-swap-math/sim",
+]
 
 [provider]
 cluster = "localnet"

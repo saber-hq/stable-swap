@@ -1,5 +1,12 @@
 [workspace]
-members = ["fuzz", "stable-swap-anchor/", "stable-swap-client/", "stable-swap-math/", "stable-swap-math/sim", "stable-swap-program/program"]
+members = [
+    "fuzz",
+    "stable-swap-anchor/",
+    "stable-swap-client/",
+    "stable-swap-math/",
+    "stable-swap-math/sim",
+    "stable-swap-program/program"
+]
 
 [profile.release]
 lto = "fat"

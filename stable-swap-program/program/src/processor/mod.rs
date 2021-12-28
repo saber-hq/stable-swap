@@ -1,8 +1,5 @@
 //! Program state processor
 
-#[macro_use]
-mod macros;
-
 mod admin;
 mod checks;
 mod logging;

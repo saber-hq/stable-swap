@@ -2,7 +2,6 @@
 
 use solana_program::log::sol_log_64;
 use solana_program::msg;
-use solana_program::pubkey::Pubkey;
 
 /// Event enum
 #[derive(Debug)]
@@ -45,30 +44,6 @@ pub fn log_event(
         pool_token_amount,
         fee,
     );
-}
-
-pub fn log_keys_mismatch(msg: &str, left: Pubkey, right: Pubkey) {
-    msg!(msg);
-    msg!("Left:");
-    left.log();
-    msg!("Right:");
-    right.log();
-}
-
-pub fn log_keys_mismatch_optional(msg: &str, left: Option<Pubkey>, right: Option<Pubkey>) {
-    msg!(msg);
-    msg!("Left:");
-    if let Some(left_inner) = left {
-        left_inner.log();
-    } else {
-        msg!("left: missing");
-    }
-    msg!("Right:");
-    if let Some(right_inner) = right {
-        right_inner.log();
-    } else {
-        msg!("right: missing");
-    }
 }
 
 /// Log slippage error

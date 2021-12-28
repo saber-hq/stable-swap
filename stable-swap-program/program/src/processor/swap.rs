@@ -19,13 +19,11 @@ use solana_program::{
     account_info::{next_account_info, AccountInfo},
     entrypoint::ProgramResult,
     msg,
-    program_error::ProgramError,
-    program_option::COption,
     program_pack::Pack,
     pubkey::Pubkey,
     sysvar::{clock::Clock, Sysvar},
 };
-use vipers::assert_keys_neq;
+use vipers::{assert_keys_eq, assert_keys_neq};
 
 use super::checks::*;
 use super::logging::*;
@@ -128,34 +126,34 @@ fn process_initialize(
         return Err(SwapError::AlreadyInUse.into());
     }
     let swap_authority = utils::authority_id(program_id, swap_info.key, nonce)?;
-    check_keys_equal!(
-        *authority_info.key,
+    assert_keys_eq!(
+        authority_info,
         swap_authority,
+        SwapError::InvalidProgramAddress,
         "Swap authority",
-        SwapError::InvalidProgramAddress
     );
 
     let destination = utils::unpack_token_account(&destination_info.data.borrow())?;
     let token_a = utils::unpack_token_account(&token_a_info.data.borrow())?;
     let token_b = utils::unpack_token_account(&token_b_info.data.borrow())?;
 
-    check_keys_equal!(
-        *authority_info.key,
+    assert_keys_eq!(
+        authority_info,
         token_a.owner,
+        SwapError::InvalidOwner,
         "Token A authority",
-        SwapError::InvalidOwner
     );
-    check_keys_equal!(
-        *authority_info.key,
+    assert_keys_eq!(
+        authority_info,
         token_b.owner,
+        SwapError::InvalidOwner,
         "Token B authority",
-        SwapError::InvalidOwner
     );
-    check_keys_not_equal!(
-        *authority_info.key,
+    assert_keys_neq!(
+        authority_info,
         destination.owner,
+        SwapError::InvalidOutputOwner,
         "Initial LP destination authority",
-        SwapError::InvalidOutputOwner
     );
 
     if token_a.mint == token_b.mint {
@@ -173,17 +171,17 @@ fn process_initialize(
     if token_b.delegate.is_some() {
         return Err(SwapError::InvalidDelegate.into());
     }
-    check_keys_equal!(
+    assert_keys_eq!(
         token_a.mint,
-        *token_a_mint_info.key,
+        token_a_mint_info,
+        SwapError::IncorrectMint,
         "Mint A",
-        SwapError::IncorrectMint
     );
-    check_keys_equal!(
+    assert_keys_eq!(
         token_b.mint,
-        *token_b_mint_info.key,
+        token_b_mint_info,
+        SwapError::IncorrectMint,
         "Mint B",
-        SwapError::IncorrectMint
     );
     if token_a.close_authority.is_some() {
         return Err(SwapError::InvalidCloseAuthority.into());
@@ -192,11 +190,11 @@ fn process_initialize(
         return Err(SwapError::InvalidCloseAuthority.into());
     }
     let pool_mint = utils::unpack_mint(&pool_mint_info.data.borrow())?;
-    check_keys_equal_optional!(
-        pool_mint.mint_authority,
-        COption::Some(*authority_info.key),
+    assert_keys_eq!(
+        pool_mint.mint_authority.unwrap(),
+        authority_info,
+        SwapError::InvalidOwner,
         "LP mint authority",
-        SwapError::InvalidOwner
     );
     if pool_mint.freeze_authority.is_some() {
         return Err(SwapError::InvalidFreezeAuthority.into());
@@ -215,17 +213,17 @@ fn process_initialize(
     let admin_fee_key_a = utils::unpack_token_account(&admin_fee_a_info.data.borrow())?;
     let admin_fee_key_b = utils::unpack_token_account(&admin_fee_b_info.data.borrow())?;
 
-    check_keys_equal!(
+    assert_keys_eq!(
         token_a.mint,
         admin_fee_key_a.mint,
+        SwapError::InvalidAdmin,
         "Mint A",
-        SwapError::InvalidAdmin
     );
-    check_keys_equal!(
+    assert_keys_eq!(
         token_b.mint,
         admin_fee_key_b.mint,
+        SwapError::InvalidAdmin,
         "Mint B",
-        SwapError::InvalidAdmin
     );
 
     // amp_factor == initial_amp_factor == target_amp_factor on init
@@ -453,11 +451,11 @@ fn process_deposit(
     check_deposit_token_accounts(&token_swap.token_a, source_a_info.key, token_a_info.key)?;
     check_deposit_token_accounts(&token_swap.token_b, source_b_info.key, token_b_info.key)?;
 
-    check_keys_equal!(
-        *pool_mint_info.key,
+    assert_keys_eq!(
+        pool_mint_info,
         token_swap.pool_mint,
+        SwapError::IncorrectMint,
         "Mint A",
-        SwapError::IncorrectMint
     );
 
     let clock = Clock::get()?;
@@ -608,11 +606,11 @@ fn process_withdraw(
         admin_fee_dest_b_info.key,
     )?;
 
-    check_keys_equal!(
-        *pool_mint_info.key,
+    assert_keys_eq!(
+        pool_mint_info,
         token_swap.pool_mint,
+        SwapError::IncorrectMint,
         "Pool mint",
-        SwapError::IncorrectMint
     );
 
     let pool_mint = utils::unpack_mint(&pool_mint_info.data.borrow())?;
@@ -717,30 +715,30 @@ fn process_withdraw_one(
     )?;
 
     if *base_token_info.key == token_swap.token_a.reserves {
-        check_keys_equal!(
-            *quote_token_info.key,
+        assert_keys_eq!(
+            quote_token_info,
             token_swap.token_b.reserves,
+            SwapError::IncorrectSwapAccount,
             "Swap A -> B reserves",
-            SwapError::IncorrectSwapAccount
         );
-        check_keys_equal!(
-            *admin_destination_info.key,
+        assert_keys_eq!(
+            admin_destination_info,
             token_swap.token_a.admin_fees,
+            SwapError::InvalidAdmin,
             "Swap A -> B admin fee destination",
-            SwapError::InvalidAdmin
         );
     } else if *base_token_info.key == token_swap.token_b.reserves {
-        check_keys_equal!(
-            *quote_token_info.key,
+        assert_keys_eq!(
+            quote_token_info,
             token_swap.token_a.reserves,
+            SwapError::IncorrectSwapAccount,
             "Swap B -> A reserves",
-            SwapError::IncorrectSwapAccount
         );
-        check_keys_equal!(
-            *admin_destination_info.key,
+        assert_keys_eq!(
+            admin_destination_info,
             token_swap.token_b.admin_fees,
+            SwapError::InvalidAdmin,
             "Swap B -> A admin fee destination",
-            SwapError::InvalidAdmin
         );
     } else {
         msg!("Unknown base token:");
@@ -748,11 +746,11 @@ fn process_withdraw_one(
         return Err(SwapError::IncorrectSwapAccount.into());
     }
 
-    check_keys_equal!(
-        *pool_mint_info.key,
+    assert_keys_eq!(
+        pool_mint_info,
         token_swap.pool_mint,
+        SwapError::IncorrectMint,
         "Pool mint",
-        SwapError::IncorrectMint
     );
 
     let pool_mint = utils::unpack_mint(&pool_mint_info.data.borrow())?;

@@ -1,9 +1,12 @@
 //! Swap calculations and curve invariant implementation
 
-use num_traits::ToPrimitive;
-use stable_swap_client::fees::Fees;
-
 use crate::{bn::U192, math::FeeCalculator};
+use num_traits::ToPrimitive;
+use stable_swap_client::{
+    fees::Fees,
+    solana_program::{clock::Clock, sysvar::Sysvar},
+    state::SwapInfo,
+};
 
 /// Number of coins
 pub const N_COINS: u8 = 2;
@@ -18,7 +21,8 @@ pub const MAX_AMP: u64 = 1_000_000;
 /// Max number of tokens to swap at once.
 pub const MAX_TOKENS_IN: u64 = u64::MAX >> 4;
 
-/// Encodes all results of swapping from a source token to a destination token
+/// Encodes all results of swapping from a source token to a destination token.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct SwapResult {
     /// New amount of source token
     pub new_source_amount: u64,
@@ -32,7 +36,14 @@ pub struct SwapResult {
     pub fee: u64,
 }
 
-/// The StableSwap invariant calculator.
+/// The [StableSwap] invariant calculator.
+///
+/// This is primarily used to calculate two quantities:
+/// - `D`, the swap invariant, and
+/// - `Y`, the amount of tokens swapped in an instruction.
+///
+/// This calculator also contains several helper utilities for computing
+/// swap, withdraw, and deposit amounts.
 pub struct StableSwap {
     /// Initial amplification coefficient (A)
     initial_amp_factor: u64,
@@ -46,7 +57,29 @@ pub struct StableSwap {
     stop_ramp_ts: i64,
 }
 
+impl TryFrom<&SwapInfo> for StableSwap {
+    type Error = anyhow::Error;
+
+    fn try_from(info: &SwapInfo) -> anyhow::Result<Self> {
+        Ok(StableSwap::new_from_swap_info(
+            info,
+            Clock::get()?.unix_timestamp,
+        ))
+    }
+}
+
 impl StableSwap {
+    /// Constructs a new [StableSwap] from a [SwapInfo].
+    pub fn new_from_swap_info(info: &SwapInfo, current_ts: i64) -> StableSwap {
+        StableSwap::new(
+            info.initial_amp_factor,
+            info.target_amp_factor,
+            current_ts,
+            info.start_ramp_ts,
+            info.stop_ramp_ts,
+        )
+    }
+
     /// New StableSwap calculator
     pub fn new(
         initial_amp_factor: u64,

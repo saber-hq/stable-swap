@@ -17,7 +17,7 @@ pub struct PoolTokenConverter<'a> {
 }
 
 impl PoolTokenConverter<'_> {
-    /// A tokens for pool tokens
+    /// Computes the amount of token A backing the given amount of pool tokens.
     pub fn token_a_rate(&self, pool_tokens: u64) -> Option<(u64, u64, u64)> {
         let amount = (pool_tokens as u128)
             .checked_mul(self.token_a as u128)?
@@ -29,7 +29,7 @@ impl PoolTokenConverter<'_> {
         Some((amount.checked_sub(fee)?, fee, admin_fee))
     }
 
-    /// B tokens for pool tokens
+    /// Computes the amount of token B backing the given amount of pool tokens.
     pub fn token_b_rate(&self, pool_tokens: u64) -> Option<(u64, u64, u64)> {
         let amount = (pool_tokens as u128)
             .checked_mul(self.token_b as u128)?

@@ -67,7 +67,18 @@ impl From<&SaberSwap> for crate::curve::StableSwap {
 }
 
 impl SaberSwap {
-    /// Calculates the amount of pool tokens represented by the given amount of underlying tokens.
+    /// Calculates the amount of pool tokens represented by the given amount of virtual tokens.
+    ///
+    /// A virtual token is the denomination of virtual price. For example, if there is a virtual price of 1.04
+    /// on USDC-USDT LP, then 1 virtual token maps to 1/1.04 USDC-USDT LP tokens.
+    ///
+    /// This is useful for building assets that are backed by LP tokens.
+    /// An example of this is [Cashio](https://github.com/CashioApp/cashio), which
+    /// allows users to mint $CASH tokens based on the virtual price of underlying LP tokens.
+    ///
+    /// # Arguments
+    ///
+    /// - `virtual_amount` - The number of "virtual" underlying tokens.
     pub fn calculate_pool_tokens_from_virtual_amount(&self, virtual_amount: u64) -> Option<u64> {
         U192::from(virtual_amount)
             .checked_mul(self.lp_mint_supply.into())?

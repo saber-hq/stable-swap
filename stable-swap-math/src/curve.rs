@@ -8,21 +8,27 @@ use stable_swap_client::{
     state::SwapInfo,
 };
 
-/// Number of coins
+/// Number of coins in a swap.
+/// The Saber StableSwap only supports 2 tokens.
 pub const N_COINS: u8 = 2;
+
 /// Timestamp at 0
 pub const ZERO_TS: i64 = 0;
-/// Minimum ramp duration
-pub const MIN_RAMP_DURATION: i64 = 86400;
-/// Min amplification coefficient
+
+/// Minimum ramp duration, in seconds.
+pub const MIN_RAMP_DURATION: i64 = 86_400;
+
+/// Minimum amplification coefficient.
 pub const MIN_AMP: u64 = 1;
-/// Max amplification coefficient
+
+/// Maximum amplification coefficient.
 pub const MAX_AMP: u64 = 1_000_000;
-/// Max number of tokens to swap at once.
+
+/// Maximum number of tokens to swap at once.
 pub const MAX_TOKENS_IN: u64 = u64::MAX >> 4;
 
 /// Encodes all results of swapping from a source token to a destination token.
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct SwapResult {
     /// New amount of source token
     pub new_source_amount: u64,
@@ -44,6 +50,7 @@ pub struct SwapResult {
 ///
 /// This calculator also contains several helper utilities for computing
 /// swap, withdraw, and deposit amounts.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct StableSwap {
     /// Initial amplification coefficient (A)
     initial_amp_factor: u64,
@@ -80,7 +87,7 @@ impl StableSwap {
         )
     }
 
-    /// New StableSwap calculator
+    /// Constructs a new [StableSwap] invariant calculator.
     pub fn new(
         initial_amp_factor: u64,
         target_amp_factor: u64,

@@ -67,7 +67,7 @@ impl From<&SaberSwap> for crate::curve::StableSwap {
 }
 
 impl SaberSwap {
-    /// Calculates the amount of pool tokens represented by the given amount of scaled cash
+    /// Calculates the amount of pool tokens represented by the given amount of underlying tokens.
     pub fn calculate_pool_tokens_from_virtual_amount(&self, virtual_amount: u64) -> Option<u64> {
         U192::from(virtual_amount)
             .checked_mul(self.lp_mint_supply.into())?
@@ -95,7 +95,7 @@ impl SaberSwap {
 
     /// Computes D, which is the virtual price times the total supply of the pool.
     pub fn compute_d(&self) -> Option<U192> {
-        let calculator: StableSwap = self.into();
+        let calculator = StableSwap::from(self);
         calculator.compute_d(self.token_a_reserve, self.token_b_reserve)
     }
 }

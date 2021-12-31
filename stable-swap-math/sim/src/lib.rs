@@ -24,6 +24,7 @@ pub struct Model {
 }
 
 impl Model {
+    /// Constructs a new [`Model`].
     pub fn new(amp_factor: u64, balances: Vec<u64>, n_coins: u8) -> Model {
         let src_file = File::open(FILE_PATH);
         let mut src_file = match src_file {

@@ -380,7 +380,7 @@ pub struct Deposit<'info> {
     pub output_lp: AccountInfo<'info>,
 }
 
-/// Accounts for a 'swap' instruction.
+/// Accounts for a [swap] instruction.
 #[derive(Accounts)]
 pub struct Swap<'info> {
     /// The context of the user.
@@ -391,7 +391,7 @@ pub struct Swap<'info> {
     pub output: SwapOutput<'info>,
 }
 
-/// Accounts for a 'withdraw_one' instruction.
+/// Accounts for a [withdraw_one] instruction.
 #[derive(Accounts)]
 pub struct WithdrawOne<'info> {
     /// The context of the user.
@@ -416,7 +416,7 @@ pub struct WithdrawOne<'info> {
     pub output: SwapOutput<'info>,
 }
 
-/// Accounts for a 'withdraw' instruction.
+/// Accounts for a [withdraw] instruction.
 #[derive(Accounts)]
 pub struct Withdraw<'info> {
     /// The context of the user.
@@ -431,7 +431,7 @@ pub struct Withdraw<'info> {
     pub output_b: SwapOutput<'info>,
 }
 
-/// Accounts for a 'set_fee_account' instruction.
+/// Accounts for a [set_fee_account] instruction.
 #[derive(Accounts)]
 pub struct SetFeeAccount<'info> {
     /// The context of the admin user
@@ -440,7 +440,7 @@ pub struct SetFeeAccount<'info> {
     pub fee_account: AccountInfo<'info>,
 }
 
-/// Accounts for a 'apply_new_admin'.
+/// Accounts for a [apply_new_admin].
 #[derive(Accounts)]
 pub struct CommitNewAdmin<'info> {
     /// The context of the admin user
@@ -453,7 +453,7 @@ pub struct CommitNewAdmin<'info> {
 // Various accounts
 // --------------------------------
 
-/// Token accounts for the output of a StableSwap instruction.
+/// Token accounts for initializing a [SwapInfo].
 #[derive(Accounts)]
 pub struct InitToken<'info> {
     /// The token account for the pool's reserves of this token.
@@ -464,7 +464,7 @@ pub struct InitToken<'info> {
     pub mint: AccountInfo<'info>,
 }
 
-/// Token accounts for a 'swap' instruction.
+/// Token accounts for a [swap] instruction.
 #[derive(Accounts)]
 pub struct SwapToken<'info> {
     /// The token account associated with the user.
@@ -498,7 +498,7 @@ pub struct SwapUserContext<'info> {
 }
 
 /// Accounts for an instruction that requires admin permission.
-#[derive(Accounts, Clone)]
+#[derive(Accounts)]
 pub struct AdminUserContext<'info> {
     /// The public key of the admin account.
     pub admin: Signer<'info>,
@@ -507,7 +507,7 @@ pub struct AdminUserContext<'info> {
 }
 
 /// Accounts for an instruction that requires admin permission with the clock.
-#[derive(Accounts, Clone)]
+#[derive(Accounts)]
 pub struct AdminUserContextWithClock<'info> {
     /// The admin user context.
     pub admin_ctx: AdminUserContext<'info>,

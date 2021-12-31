@@ -40,6 +40,24 @@ impl PoolTokenConverter<'_> {
 
         Some((amount.checked_sub(fee)?, fee, admin_fee))
     }
+
+    /// Calculates the number of LP tokens that correspond to an amount of token A.
+    /// This does not take withdraw fees into account.
+    pub fn lp_tokens_for_a_excluding_fees(&self, token_a_amount: u64) -> Option<u64> {
+        (token_a_amount as u128)
+            .checked_mul(self.supply as u128)?
+            .checked_div(self.token_a as u128)?
+            .to_u64()
+    }
+
+    /// Calculates the number of LP tokens that correspond to an amount of token B.
+    /// This does not take withdraw fees into account.
+    pub fn lp_tokens_for_b_excluding_fees(&self, token_b_amount: u64) -> Option<u64> {
+        (token_b_amount as u128)
+            .checked_mul(self.supply as u128)?
+            .checked_div(self.token_b as u128)?
+            .to_u64()
+    }
 }
 
 #[cfg(test)]

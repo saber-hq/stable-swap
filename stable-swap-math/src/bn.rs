@@ -48,22 +48,22 @@ construct_uint! {
 }
 
 impl U256 {
-    /// Convert u256 to u64
+    /// Convert [U256] to u64
     pub fn to_u64(self) -> Option<u64> {
         self.try_to_u64().map_or_else(|_| None, Some)
     }
 
-    /// Convert u256 to u64
+    /// Convert [U256] to u64
     pub fn try_to_u64(self) -> Result<u64, SwapError> {
         self.try_into().map_err(|_| SwapError::ConversionFailure)
     }
 
-    /// Convert u256 to u128
+    /// Convert [U256] to u128
     pub fn to_u128(self) -> Option<u128> {
         self.try_to_u128().map_or_else(|_| None, Some)
     }
 
-    /// Convert u256 to u128
+    /// Convert [U256] to u128
     pub fn try_to_u128(self) -> Result<u128, SwapError> {
         self.try_into().map_err(|_| SwapError::ConversionFailure)
     }
@@ -93,22 +93,22 @@ construct_uint! {
 }
 
 impl U192 {
-    /// Convert u256 to u64
+    /// Convert [U192] to u64
     pub fn to_u64(self) -> Option<u64> {
         self.try_to_u64().map_or_else(|_| None, Some)
     }
 
-    /// Convert u256 to u64
+    /// Convert [U192] to u64
     pub fn try_to_u64(self) -> Result<u64, SwapError> {
         self.try_into().map_err(|_| SwapError::ConversionFailure)
     }
 
-    /// Convert u256 to u128
+    /// Convert [U192] to u128
     pub fn to_u128(self) -> Option<u128> {
         self.try_to_u128().map_or_else(|_| None, Some)
     }
 
-    /// Convert u256 to u128
+    /// Convert [U192] to u128
     pub fn try_to_u128(self) -> Result<u128, SwapError> {
         self.try_into().map_err(|_| SwapError::ConversionFailure)
     }

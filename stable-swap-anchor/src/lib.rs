@@ -345,9 +345,9 @@ pub fn set_new_fees<'a, 'b, 'c, 'info>(
     solana_program::program::invoke_signed(&ix, &ctx.to_account_infos(), ctx.signer_seeds)
 }
 
-/// --------------------------------
-/// Instructions
-/// --------------------------------
+// --------------------------------
+// Instructions
+// --------------------------------
 
 /// Accounts for an [initialize] instruction.
 #[derive(Accounts)]

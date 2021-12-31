@@ -1,31 +1,84 @@
 //! Utilities for getting the virtual price of a pool.
 
-use crate::bn::U192;
+use crate::{bn::U192, curve::StableSwap};
 
-/// A Saber swap.
+/// Utilities for calculating the virtual price of a Saber LP token.
+///
+/// This is especially useful for if you want to use a Saber LP token as collateral.
+///
+/// # Calculating liquidation value
+///
+/// To use a Saber LP token as collateral, you will need to fetch the prices
+/// of both of the tokens in the pool and get the min of the two. Then,
+/// use the [SaberSwap::calculate_virtual_price_of_pool_tokens] function to
+/// get the virtual price.
+///
+/// This virtual price is resilient to manipulations of the LP token price.
+///
+/// Hence, `min_lp_price = min_value * virtual_price`.
+///
+/// # Additional Reading
+/// - [Chainlink: Using Chainlink Oracles to Securely Utilize Curve LP Pools](https://blog.chain.link/using-chainlink-oracles-to-securely-utilize-curve-lp-pools/)
 #[derive(Copy, Clone, Default, Debug, PartialEq, Eq)]
 pub struct SaberSwap {
-    /// Initial amp factor.
+    /// Initial amp factor, or `A`.
+    ///
+    /// See [`StableSwap::compute_amp_factor`].
     pub initial_amp_factor: u64,
-    /// Target amp factor.
+    /// Target amp factor, or `A`.
+    ///
+    /// See [`StableSwap::compute_amp_factor`].
     pub target_amp_factor: u64,
     /// Current timestmap.
     pub current_ts: i64,
-    /// Start ramp timestamp.
+    /// Start ramp timestamp for calculating the amp factor, or `A`.
+    ///
+    /// See [`StableSwap::compute_amp_factor`].
     pub start_ramp_ts: i64,
-    /// Stop ramp timestamp.
+    /// Stop ramp timestamp for calculating the amp factor, or `A`.
+    ///
+    /// See [`StableSwap::compute_amp_factor`].
     pub stop_ramp_ts: i64,
 
     /// Total supply of LP tokens.
+    ///
+    /// This is `pool_mint.supply`, where `pool_mint` is an SPL Token Mint.
     pub lp_mint_supply: u64,
     /// Amount of token A.
+    ///
+    /// This is `token_a.reserve.amount`, where `token_a.reserve` is an SPL Token Token Account.
     pub token_a_reserve: u64,
     /// Amount of token B.
+    ///
+    /// This is `token_b.reserve.amount`, where `token_b.reserve` is an SPL Token Token Account.
     pub token_b_reserve: u64,
 }
 
+impl From<&SaberSwap> for crate::curve::StableSwap {
+    fn from(swap: &SaberSwap) -> Self {
+        crate::curve::StableSwap::new(
+            swap.initial_amp_factor,
+            swap.target_amp_factor,
+            swap.current_ts,
+            swap.start_ramp_ts,
+            swap.stop_ramp_ts,
+        )
+    }
+}
+
 impl SaberSwap {
-    /// Calculates the amount of pool tokens represented by the given amount of scaled cash
+    /// Calculates the amount of pool tokens represented by the given amount of virtual tokens.
+    ///
+    /// A virtual token is the denomination of virtual price. For example, if there is a virtual price of 1.04
+    /// on USDC-USDT LP, then 1 virtual token maps to 1/1.04 USDC-USDT LP tokens.
+    ///
+    /// This is useful for building assets that are backed by LP tokens.
+    /// An example of this is [Cashio](https://github.com/CashioApp/cashio), which
+    /// allows users to mint $CASH tokens based on the virtual price of underlying LP tokens.
+    ///
+    /// # Arguments
+    ///
+    /// - `virtual_amount` - The number of "virtual" underlying tokens.
     pub fn calculate_pool_tokens_from_virtual_amount(&self, virtual_amount: u64) -> Option<u64> {
         U192::from(virtual_amount)
             .checked_mul(self.lp_mint_supply.into())?
@@ -34,6 +87,16 @@ impl SaberSwap {
     }
 
     /// Calculates the virtual price of the given amount of pool tokens.
+    ///
+    /// The virtual price is defined as the current price of the pool LP token
+    /// relative to the underlying pool assets.
+    ///
+    /// The virtual price in the StableSwap algorithm is obtained through taking the invariance
+    /// of the pool, which by default takes every token as valued at 1.00 of the underlying.
+    /// You can get the virtual price of each pool by calling this function
+    /// for it.[^chainlink]
+    ///
+    /// [^chainlink]: Source: <https://blog.chain.link/using-chainlink-oracles-to-securely-utilize-curve-lp-pools/>
     pub fn calculate_virtual_price_of_pool_tokens(&self, pool_token_amount: u64) -> Option<u64> {
         self.compute_d()?
             .checked_mul(pool_token_amount.into())?
@@ -43,13 +106,7 @@ impl SaberSwap {
 
     /// Computes D, which is the virtual price times the total supply of the pool.
     pub fn compute_d(&self) -> Option<U192> {
-        let calculator = crate::curve::StableSwap::new(
-            self.initial_amp_factor,
-            self.target_amp_factor,
-            self.current_ts,
-            self.start_ramp_ts,
-            self.stop_ramp_ts,
-        );
+        let calculator = StableSwap::from(self);
         calculator.compute_d(self.token_a_reserve, self.token_b_reserve)
     }
 }

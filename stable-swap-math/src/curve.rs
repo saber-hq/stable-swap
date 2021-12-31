@@ -1,24 +1,34 @@
 //! Swap calculations and curve invariant implementation
 
-use num_traits::ToPrimitive;
-use stable_swap_client::fees::Fees;
-
 use crate::{bn::U192, math::FeeCalculator};
+use num_traits::ToPrimitive;
+use stable_swap_client::{
+    fees::Fees,
+    solana_program::{clock::Clock, program_error::ProgramError, sysvar::Sysvar},
+    state::SwapInfo,
+};
 
-/// Number of coins
+/// Number of coins in a swap.
+/// The Saber StableSwap only supports 2 tokens.
 pub const N_COINS: u8 = 2;
+
 /// Timestamp at 0
 pub const ZERO_TS: i64 = 0;
-/// Minimum ramp duration
-pub const MIN_RAMP_DURATION: i64 = 86400;
-/// Min amplification coefficient
+
+/// Minimum ramp duration, in seconds.
+pub const MIN_RAMP_DURATION: i64 = 86_400;
+
+/// Minimum amplification coefficient.
 pub const MIN_AMP: u64 = 1;
-/// Max amplification coefficient
+
+/// Maximum amplification coefficient.
 pub const MAX_AMP: u64 = 1_000_000;
-/// Max number of tokens to swap at once.
+
+/// Maximum number of tokens to swap at once.
 pub const MAX_TOKENS_IN: u64 = u64::MAX >> 4;
 
-/// Encodes all results of swapping from a source token to a destination token
+/// Encodes all results of swapping from a source token to a destination token.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct SwapResult {
     /// New amount of source token
     pub new_source_amount: u64,
@@ -32,7 +42,20 @@ pub struct SwapResult {
     pub fee: u64,
 }
 
-/// The StableSwap invariant calculator.
+/// The [StableSwap] invariant calculator.
+///
+/// This is primarily used to calculate two quantities:
+/// - `D`, the swap invariant, and
+/// - `Y`, the amount of tokens swapped in an instruction.
+///
+/// This calculator also contains several helper utilities for computing
+/// swap, withdraw, and deposit amounts.
+///
+/// # Resources:
+///
+/// - [Curve StableSwap paper](https://curve.fi/files/stableswap-paper.pdf)
+/// - [StableSwap Python model](https://github.com/saber-hq/stable-swap/blob/master/stable-swap-math/sim/simulation.py)
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct StableSwap {
     /// Initial amplification coefficient (A)
     initial_amp_factor: u64,
@@ -46,8 +69,30 @@ pub struct StableSwap {
     stop_ramp_ts: i64,
 }
 
+impl TryFrom<&SwapInfo> for StableSwap {
+    type Error = ProgramError;
+
+    fn try_from(info: &SwapInfo) -> Result<Self, ProgramError> {
+        Ok(StableSwap::new_from_swap_info(
+            info,
+            Clock::get()?.unix_timestamp,
+        ))
+    }
+}
+
 impl StableSwap {
-    /// New StableSwap calculator
+    /// Constructs a new [StableSwap] from a [SwapInfo].
+    pub fn new_from_swap_info(info: &SwapInfo, current_ts: i64) -> StableSwap {
+        StableSwap::new(
+            info.initial_amp_factor,
+            info.target_amp_factor,
+            current_ts,
+            info.start_ramp_ts,
+            info.stop_ramp_ts,
+        )
+    }
+
+    /// Constructs a new [StableSwap] invariant calculator.
     pub fn new(
         initial_amp_factor: u64,
         target_amp_factor: u64,
@@ -85,7 +130,15 @@ impl StableSwap {
         numerator.checked_div(denominator)
     }
 
-    /// Compute the amplification coefficient (A)
+    /// Compute the amplification coefficient (A).
+    ///
+    /// The amplification coefficient is used to determine the slippage incurred when
+    /// performing swaps. The lower it is, the closer the invariant is to the constant product[^stableswap].
+    ///
+    /// The amplication coefficient linearly increases with respect to time,
+    /// based on the [`SwapInfo::start_ramp_ts`] and [`SwapInfo::stop_ramp_ts`] parameters.
+    ///
+    /// [^stableswap]: [Egorov, "StableSwap," 2019.](https://curve.fi/files/stableswap-paper.pdf)
     pub fn compute_amp_factor(&self) -> Option<u64> {
         if self.current_ts < self.stop_ramp_ts {
             let time_range = self.stop_ramp_ts.checked_sub(self.start_ramp_ts)?;
@@ -119,9 +172,20 @@ impl StableSwap {
         }
     }
 
-    /// Compute stable swap invariant (D)
-    /// Equation:
+    /// Computes the Stable Swap invariant (D).
+    ///
+    /// The invariant is defined as follows:
+    ///
+    /// ```text
     /// A * sum(x_i) * n**n + D = A * D * n**n + D**(n+1) / (n**n * prod(x_i))
+    /// ```
+    ///
+    /// # Arguments
+    ///
+    /// - `amount_a` - The amount of token A owned by the LP pool. (i.e. token A reserves)
+    /// - `amount_b` - The amount of token B owned by the LP pool. (i.e. token B reserves)
+    ///
+    /// *For more info on reserves, see [stable_swap_client::state::SwapTokenInfo::reserves].*
     pub fn compute_d(&self, amount_a: u64, amount_b: u64) -> Option<U192> {
         let sum_x = amount_a.checked_add(amount_b)?; // sum(x_i), a.k.a S
         if sum_x == 0 {
@@ -158,7 +222,7 @@ impl StableSwap {
         }
     }
 
-    /// Compute the amount of pool tokens to mint after a deposit
+    /// Computes the amount of pool tokens to mint after a deposit.
     pub fn compute_mint_amount_for_deposit(
         &self,
         deposit_amount_a: u64,
@@ -203,10 +267,14 @@ impl StableSwap {
         }
     }
 
-    /// Compute swap amount `y` in proportion to `x`
-    /// Solve for y:
+    /// Compute the swap amount `y` in proportion to `x`.
+    ///
+    /// Solve for `y`:
+    ///
+    /// ```text
     /// y**2 + y * (sum' - (A*n**n - 1) * D / (A * n**n)) = D ** (n + 1) / (n ** (2 * n) * prod' * A)
     /// y**2 + b*y = c
+    /// ```
     #[allow(clippy::many_single_char_names)]
     pub fn compute_y_raw(&self, x: u64, d: U192) -> Option<U192> {
         let amp_factor = self.compute_amp_factor()?;
@@ -243,15 +311,17 @@ impl StableSwap {
         Some(y)
     }
 
-    /// Compute swap amount `y` in proportion to `x`
+    /// Computes the swap amount `y` in proportion to `x`.
     pub fn compute_y(&self, x: u64, d: U192) -> Option<u64> {
         self.compute_y_raw(x, d)?.to_u64()
     }
 
-    /// Calculate withdrawal amount when withdrawing only one type of token
+    /// Calculates the withdrawal amount when withdrawing only one type of token.
+    ///
     /// Calculation:
+    ///
     /// 1. Get current D
-    /// 2. Solve Eqn against y_i for D - _token_amount
+    /// 2. Solve Eqn against `y_i` for `D - _token_amount`
     pub fn compute_withdraw_one(
         &self,
         pool_token_amount: u64,

@@ -10,7 +10,6 @@ edition = "2021"
 keywords = ["solana", "saber", "math"]
 
 [dependencies]
-anyhow = "^1.0.52"
 borsh = "0.9.1"
 num-traits = "0.2"
 stable-swap-client = { path = "../stable-swap-client", version = "^1" }

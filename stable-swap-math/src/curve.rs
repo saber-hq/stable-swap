@@ -4,7 +4,7 @@ use crate::{bn::U192, math::FeeCalculator};
 use num_traits::ToPrimitive;
 use stable_swap_client::{
     fees::Fees,
-    solana_program::{clock::Clock, sysvar::Sysvar},
+    solana_program::{clock::Clock, program_error::ProgramError, sysvar::Sysvar},
     state::SwapInfo,
 };
 
@@ -70,9 +70,9 @@ pub struct StableSwap {
 }
 
 impl TryFrom<&SwapInfo> for StableSwap {
-    type Error = anyhow::Error;
+    type Error = ProgramError;
 
-    fn try_from(info: &SwapInfo) -> anyhow::Result<Self> {
+    fn try_from(info: &SwapInfo) -> Result<Self, ProgramError> {
         Ok(StableSwap::new_from_swap_info(
             info,
             Clock::get()?.unix_timestamp,

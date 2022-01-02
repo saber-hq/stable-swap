@@ -125,6 +125,7 @@ fn ramp_a(token_swap: &mut SwapInfo, target_amp: u64, stop_ramp_ts: i64) -> Prog
         return Err(SwapError::InvalidInput.into());
     }
 
+    msg!("Admin: Current A {}", current_amp);
     token_swap.initial_amp_factor = current_amp;
     token_swap.target_amp_factor = target_amp;
     token_swap.start_ramp_ts = clock.unix_timestamp;
@@ -183,16 +184,22 @@ fn set_fee_account<'a, 'b: 'a, I: Iterator<Item = &'a AccountInfo<'b>>>(
 
     let new_admin_fee_account =
         utils::unpack_token_account(&new_fee_account_info.data.borrow_mut())?;
+    msg!(
+        "Admin: New fee account owner {}",
+        new_admin_fee_account.owner
+    );
     if new_admin_fee_account.mint == token_swap.token_a.mint {
+        msg!("Admin: Old fee account A {}", token_swap.token_a.admin_fees);
         token_swap.token_a.admin_fees = *new_fee_account_info.key;
         msg!(
-            "Admin: Setting admin fee A account to {}",
+            "Admin: Fee account A set to {}",
             token_swap.token_a.admin_fees
         );
     } else if new_admin_fee_account.mint == token_swap.token_b.mint {
+        msg!("Admin: Old fee account B {}", token_swap.token_b.admin_fees);
         token_swap.token_b.admin_fees = *new_fee_account_info.key;
         msg!(
-            "Admin: Setting admin fee B account to {}",
+            "Admin: Fee account B set to {}",
             token_swap.token_b.admin_fees
         );
     } else {
@@ -212,6 +219,7 @@ fn apply_new_admin(token_swap: &mut SwapInfo) -> ProgramResult {
         return Err(SwapError::AdminDeadlineExceeded.into());
     }
 
+    msg!("Admin: old admin {}", token_swap.admin_key);
     token_swap.admin_key = token_swap.future_admin_key;
     token_swap.future_admin_key = Pubkey::default();
     token_swap.future_admin_deadline = ZERO_TS;
@@ -246,8 +254,9 @@ fn commit_new_admin<'a, 'b: 'a, I: Iterator<Item = &'a AccountInfo<'b>>>(
 
 /// Set new fees
 fn set_new_fees(token_swap: &mut SwapInfo, new_fees: &Fees) -> ProgramResult {
+    msg!("Admin: Old fees {:?}", token_swap.fees);
     token_swap.fees = *new_fees;
-    msg!("Admin: New fees set");
+    msg!("Admin: New fees {:?}", token_swap.fees);
     Ok(())
 }
 

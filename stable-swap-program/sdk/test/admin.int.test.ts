@@ -1,14 +1,16 @@
-import { SignerWallet } from "@saberhq/solana-contrib";
+import type { Provider } from "@saberhq/solana-contrib";
+import { SignerWallet, TransactionEnvelope } from "@saberhq/solana-contrib";
 import {
   createAdminApplyNewAdminInstruction,
   createAdminCommitNewAdminInstruction,
+  createAdminSetFeeAccountInstruction,
   deployNewSwap,
   StableSwap,
   SWAP_PROGRAM_ID,
   ZERO_TS,
 } from "@saberhq/stableswap-sdk";
-import { u64 } from "@saberhq/token-utils";
-import type { Signer } from "@solana/web3.js";
+import { getOrCreateATA, u64 } from "@saberhq/token-utils";
+import type { Signer, TransactionInstruction } from "@solana/web3.js";
 import {
   Connection,
   Keypair,
@@ -76,6 +78,44 @@ describe("admin test", () => {
 
     stableSwap = newSwap;
   }, BOOTSTRAP_TIMEOUT);
+
+  it("Set fee account", async () => {
+    const fetchedStableSwap = await StableSwap.load(
+      connection,
+      stableSwapAccount.publicKey,
+      stableSwapProgramId
+    );
+
+    const provider = new SignerWallet(owner).createProvider(connection);
+    const tokenOwner = Keypair.generate();
+    const { address: expectedFeeAccount, instruction } = await getOrCreateATA({
+      provider,
+      mint: fetchedStableSwap.state.tokenA.mint,
+      owner: tokenOwner.publicKey,
+    });
+
+    const instructions: TransactionInstruction[] = [];
+    if (instruction) {
+      instructions.push(instruction);
+    }
+    instructions.push(
+      createAdminSetFeeAccountInstruction({
+        config: fetchedStableSwap.config,
+        state: fetchedStableSwap.state,
+        tokenAccount: expectedFeeAccount,
+      })
+    );
+    const txEnv = new TransactionEnvelope(provider, instructions);
+    const pendingTx = await txEnv.send();
+    await pendingTx.wait();
+
+    const newSwap = await StableSwap.load(
+      connection,
+      stableSwap.config.swapAccount,
+      stableSwap.config.swapProgramID
+    );
+    expect(newSwap.state.tokenA.adminFeeAccount).toEqual(expectedFeeAccount);
+  });
 
   it("Commit new admin", async () => {
     const fetchedStableSwap = await StableSwap.load(

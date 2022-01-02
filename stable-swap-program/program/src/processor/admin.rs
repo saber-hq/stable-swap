@@ -199,7 +199,7 @@ fn set_fee_account<'a, 'b: 'a, I: Iterator<Item = &'a AccountInfo<'b>>>(
         msg!("Admin: Old fee account B {}", token_swap.token_b.admin_fees);
         token_swap.token_b.admin_fees = *new_fee_account_info.key;
         msg!(
-            "Admin: Admin fee B account set to {}",
+            "Admin: Fee account B set to {}",
             token_swap.token_b.admin_fees
         );
         msg!(

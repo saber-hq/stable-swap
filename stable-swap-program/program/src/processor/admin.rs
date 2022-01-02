@@ -184,6 +184,10 @@ fn set_fee_account<'a, 'b: 'a, I: Iterator<Item = &'a AccountInfo<'b>>>(
 
     let new_admin_fee_account =
         utils::unpack_token_account(&new_fee_account_info.data.borrow_mut())?;
+    msg!(
+        "Admin: New fee account owner {}",
+        new_admin_fee_account.owner
+    );
     if new_admin_fee_account.mint == token_swap.token_a.mint {
         msg!("Admin: Old fee account A {}", token_swap.token_a.admin_fees);
         token_swap.token_a.admin_fees = *new_fee_account_info.key;
@@ -191,10 +195,6 @@ fn set_fee_account<'a, 'b: 'a, I: Iterator<Item = &'a AccountInfo<'b>>>(
             "Admin: Fee account A set to {}",
             token_swap.token_a.admin_fees
         );
-        msg!(
-            "Admin: New fee account owner {}",
-            new_admin_fee_account.owner
-        )
     } else if new_admin_fee_account.mint == token_swap.token_b.mint {
         msg!("Admin: Old fee account B {}", token_swap.token_b.admin_fees);
         token_swap.token_b.admin_fees = *new_fee_account_info.key;
@@ -202,10 +202,6 @@ fn set_fee_account<'a, 'b: 'a, I: Iterator<Item = &'a AccountInfo<'b>>>(
             "Admin: Fee account B set to {}",
             token_swap.token_b.admin_fees
         );
-        msg!(
-            "Admin: New fee account owner {}",
-            new_admin_fee_account.owner
-        )
     } else {
         return Err(SwapError::InvalidAdmin.into());
     }

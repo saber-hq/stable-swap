@@ -99,11 +99,11 @@ pub struct SetFeeAccount<'info> {
     pub fee_account: AccountInfo<'info>,
 }
 
-/// Accounts for a [crate::apply_new_admin].
+/// Accounts for a [crate::apply_new_admin] instruction.
 #[derive(Accounts, Clone)]
 pub struct CommitNewAdmin<'info> {
     /// The context of the admin user
-    pub admin_with_clock: AdminUserContextWithClock<'info>,
+    pub admin_ctx: AdminUserContext<'info>,
     /// The account of the new admin
     pub new_admin: AccountInfo<'info>,
 }
@@ -153,8 +153,6 @@ pub struct SwapUserContext<'info> {
     pub user_authority: AccountInfo<'info>,
     /// The swap.
     pub swap: AccountInfo<'info>,
-    /// The clock
-    pub clock: AccountInfo<'info>,
 }
 
 /// Accounts for an instruction that requires admin permission.
@@ -166,13 +164,4 @@ pub struct AdminUserContext<'info> {
     pub admin: AccountInfo<'info>,
     /// The swap.
     pub swap: AccountInfo<'info>,
-}
-
-/// Accounts for an instruction that requires admin permission with the clock.
-#[derive(Accounts, Clone)]
-pub struct AdminUserContextWithClock<'info> {
-    /// The admin user context.
-    pub admin_ctx: AdminUserContext<'info>,
-    /// The clock
-    pub clock: AccountInfo<'info>,
 }

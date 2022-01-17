@@ -88,7 +88,6 @@ pub fn deposit<'a, 'b, 'c, 'info>(
         &ix,
         &[
             ctx.program,
-            ctx.accounts.user.clock,
             ctx.accounts.user.token_program,
             ctx.accounts.user.swap,
             ctx.accounts.user.swap_authority,
@@ -133,7 +132,6 @@ pub fn swap<'a, 'b, 'c, 'info>(
         &ix,
         &[
             ctx.program,
-            ctx.accounts.user.clock,
             ctx.accounts.user.token_program,
             ctx.accounts.user.swap,
             ctx.accounts.user.swap_authority,
@@ -178,7 +176,6 @@ pub fn withdraw_one<'a, 'b, 'c, 'info>(
         &ix,
         &[
             ctx.program,
-            ctx.accounts.user.clock,
             ctx.accounts.user.token_program,
             ctx.accounts.user.swap,
             ctx.accounts.user.swap_authority,
@@ -232,18 +229,18 @@ pub fn withdraw<'a, 'b, 'c, 'info>(
 
 /// Creates and invokes a [stable_swap_client::instruction::ramp_a] instruction.
 ///
-/// # Arguments:
+/// # Arguments
 ///
 /// * `target_amp` - Target amplification factor to ramp to.
 /// * `stop_ramp_ts` - Timestamp when ramp up/down should stop.
 pub fn ramp_a<'a, 'b, 'c, 'info>(
-    ctx: CpiContext<'a, 'b, 'c, 'info, AdminUserContextWithClock<'info>>,
+    ctx: CpiContext<'a, 'b, 'c, 'info, AdminUserContext<'info>>,
     target_amp: u64,
     stop_ramp_ts: i64,
 ) -> ProgramResult {
     let ix = stable_swap_client::instruction::ramp_a(
-        ctx.accounts.admin_ctx.swap.key,
-        ctx.accounts.admin_ctx.admin.key,
+        ctx.accounts.swap.key,
+        ctx.accounts.admin.key,
         target_amp,
         stop_ramp_ts,
     )?;
@@ -252,11 +249,11 @@ pub fn ramp_a<'a, 'b, 'c, 'info>(
 
 /// Creates and invokes a [stable_swap_client::instruction::stop_ramp_a] instruction.
 pub fn stop_ramp_a<'a, 'b, 'c, 'info>(
-    ctx: CpiContext<'a, 'b, 'c, 'info, AdminUserContextWithClock<'info>>,
+    ctx: CpiContext<'a, 'b, 'c, 'info, AdminUserContext<'info>>,
 ) -> ProgramResult {
     let ix = stable_swap_client::instruction::stop_ramp_a(
-        ctx.accounts.admin_ctx.swap.key,
-        ctx.accounts.admin_ctx.admin.key,
+        ctx.accounts.swap.key,
+        ctx.accounts.admin.key,
     )?;
     solana_program::program::invoke_signed(&ix, &ctx.to_account_infos(), ctx.signer_seeds)
 }
@@ -280,11 +277,11 @@ pub fn unpause<'a, 'b, 'c, 'info>(
 
 /// Creates and invokes a [stable_swap_client::instruction::apply_new_admin] instruction.
 pub fn apply_new_admin<'a, 'b, 'c, 'info>(
-    ctx: CpiContext<'a, 'b, 'c, 'info, AdminUserContextWithClock<'info>>,
+    ctx: CpiContext<'a, 'b, 'c, 'info, AdminUserContext<'info>>,
 ) -> ProgramResult {
     let ix = stable_swap_client::instruction::apply_new_admin(
-        ctx.accounts.admin_ctx.swap.key,
-        ctx.accounts.admin_ctx.admin.key,
+        ctx.accounts.swap.key,
+        ctx.accounts.admin.key,
     )?;
     solana_program::program::invoke_signed(&ix, &ctx.to_account_infos(), ctx.signer_seeds)
 }
@@ -296,7 +293,7 @@ pub fn apply_new_admin<'a, 'b, 'c, 'info>(
 pub fn commit_new_admin<'a, 'b, 'c, 'info>(
     ctx: CpiContext<'a, 'b, 'c, 'info, CommitNewAdmin<'info>>,
 ) -> ProgramResult {
-    let admin_ctx = &ctx.accounts.admin_with_clock.admin_ctx;
+    let admin_ctx = &ctx.accounts.admin_ctx;
     let ix = stable_swap_client::instruction::commit_new_admin(
         admin_ctx.swap.key,
         admin_ctx.admin.key,
@@ -318,9 +315,10 @@ pub fn set_fee_account<'a, 'b, 'c, 'info>(
 }
 
 /// Creates and invokes a [stable_swap_client::instruction::set_new_fees] instruction.
-/// # Arguments:
 ///
-/// * `fees` - new fees
+/// # Arguments
+///
+/// * `fees` - new [`stable_swap_client::fees::Fees`].
 pub fn set_new_fees<'a, 'b, 'c, 'info>(
     ctx: CpiContext<'a, 'b, 'c, 'info, AdminUserContext<'info>>,
     fees: stable_swap_client::fees::Fees,

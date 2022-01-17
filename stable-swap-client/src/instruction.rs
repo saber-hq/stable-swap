@@ -9,13 +9,12 @@ use solana_program::{
     program_error::ProgramError,
     program_pack::Pack,
     pubkey::Pubkey,
-    sysvar::clock,
 };
 use std::mem::size_of;
 
 /// Initialize instruction data
 #[repr(C)]
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 #[cfg_attr(feature = "fuzz", derive(arbitrary::Arbitrary))]
 pub struct InitializeData {
     /// Nonce used to create valid program address
@@ -28,7 +27,7 @@ pub struct InitializeData {
 
 /// Swap instruction data
 #[repr(C)]
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 #[cfg_attr(feature = "fuzz", derive(arbitrary::Arbitrary))]
 pub struct SwapData {
     /// SOURCE amount to transfer, output to DESTINATION is based on the exchange rate
@@ -39,7 +38,7 @@ pub struct SwapData {
 
 /// Deposit instruction data
 #[repr(C)]
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 #[cfg_attr(feature = "fuzz", derive(arbitrary::Arbitrary))]
 pub struct DepositData {
     /// Token A amount to deposit
@@ -52,7 +51,7 @@ pub struct DepositData {
 
 /// Withdraw instruction data
 #[repr(C)]
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 #[cfg_attr(feature = "fuzz", derive(arbitrary::Arbitrary))]
 pub struct WithdrawData {
     /// Amount of pool tokens to burn. User receives an output of token a
@@ -66,7 +65,7 @@ pub struct WithdrawData {
 
 /// Withdraw instruction data
 #[repr(C)]
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 #[cfg_attr(feature = "fuzz", derive(arbitrary::Arbitrary))]
 pub struct WithdrawOneData {
     /// Amount of pool tokens to burn. User receives an output of token a
@@ -78,7 +77,7 @@ pub struct WithdrawOneData {
 
 /// RampA instruction data
 #[repr(C)]
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 #[cfg_attr(feature = "fuzz", derive(arbitrary::Arbitrary))]
 pub struct RampAData {
     /// Amp. Coefficient to ramp to
@@ -89,7 +88,7 @@ pub struct RampAData {
 
 /// Admin only instructions.
 #[repr(C)]
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum AdminInstruction {
     /// Starts a ramp of A to the next value.
     ///
@@ -218,7 +217,6 @@ pub fn ramp_a(
     let accounts = vec![
         AccountMeta::new(*swap_pubkey, false),
         AccountMeta::new_readonly(*admin_pubkey, true),
-        AccountMeta::new_readonly(clock::id(), false),
     ];
 
     Ok(Instruction {
@@ -238,7 +236,6 @@ pub fn stop_ramp_a(
     let accounts = vec![
         AccountMeta::new(*swap_pubkey, false),
         AccountMeta::new_readonly(*admin_pubkey, true),
-        AccountMeta::new_readonly(clock::id(), false),
     ];
 
     Ok(Instruction {
@@ -290,7 +287,6 @@ pub fn apply_new_admin(
     let accounts = vec![
         AccountMeta::new(*swap_pubkey, false),
         AccountMeta::new_readonly(*admin_pubkey, true),
-        AccountMeta::new_readonly(clock::id(), false),
     ];
 
     Ok(Instruction {
@@ -312,7 +308,6 @@ pub fn commit_new_admin(
         AccountMeta::new(*swap_pubkey, false),
         AccountMeta::new_readonly(*admin_pubkey, true),
         AccountMeta::new_readonly(*new_admin_pubkey, false),
-        AccountMeta::new_readonly(clock::id(), false),
     ];
 
     Ok(Instruction {
@@ -390,7 +385,6 @@ pub enum SwapInstruction {
     ///   5. `[writable]` token_(A|B) DESTINATION Account assigned to USER as the owner.
     ///   6. `[writable]` token_(A|B) admin fee Account. Must have same mint as DESTINATION token.
     ///   7. `[]` Token program id
-    ///   8. `[]` Clock sysvar
     Swap(SwapData),
 
     ///   Deposit some tokens into the pool.  The output is a "pool" token representing ownership
@@ -405,7 +399,6 @@ pub enum SwapInstruction {
     ///   6. `[writable]` Pool MINT account, $authority is the owner.
     ///   7. `[writable]` Pool Account to deposit the generated tokens, user is the owner.
     ///   8. `[]` Token program id
-    ///   9. `[]` Clock sysvar
     Deposit(DepositData),
 
     ///   Withdraw tokens from the pool at the current ratio.
@@ -434,7 +427,6 @@ pub enum SwapInstruction {
     ///   6. `[writable]` token_(A|B) BASE token user Account to credit.
     ///   7. `[writable]` token_(A|B) admin fee Account. Must have same mint as BASE token.
     ///   8. `[]` Token program id
-    ///   9. `[]` Clock sysvar
     WithdrawOne(WithdrawOneData),
 }
 
@@ -632,7 +624,6 @@ pub fn deposit(
         AccountMeta::new(*pool_mint_pubkey, false),
         AccountMeta::new(*destination_pubkey, false),
         AccountMeta::new_readonly(*token_program_id, false),
-        AccountMeta::new_readonly(clock::id(), false),
     ];
 
     Ok(Instruction {
@@ -721,7 +712,6 @@ pub fn swap(
         AccountMeta::new(*destination_pubkey, false),
         AccountMeta::new(*admin_fee_destination_pubkey, false),
         AccountMeta::new_readonly(*token_program_id, false),
-        AccountMeta::new_readonly(clock::id(), false),
     ];
 
     Ok(Instruction {
@@ -764,7 +754,6 @@ pub fn withdraw_one(
         AccountMeta::new(*base_destination_pubkey, false),
         AccountMeta::new(*admin_fee_destination_pubkey, false),
         AccountMeta::new_readonly(*token_program_id, false),
-        AccountMeta::new_readonly(clock::id(), false),
     ];
 
     Ok(Instruction {

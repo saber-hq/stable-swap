@@ -27,6 +27,15 @@
 
 To use StableSwap with your frontend or Node.js project, use [the JavaScript SDK.](https://github.com/saber-hq/saber-common/tree/master/packages/stableswap-sdk)
 
+## Hacking
+
+Run
+
+```
+anchor build --program-name stable_swap
+./stable-swap/do.sh e2e-test
+```
+
 ## Archive
 
 The original Saber StableSwap program can be found on the [archive branch](https://github.com/saber-hq/stable-swap/tree/archive).

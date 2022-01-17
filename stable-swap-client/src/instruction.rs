@@ -94,14 +94,12 @@ pub enum AdminInstruction {
     ///
     /// 0. `[writable]` StableSwap
     /// 1. `[signer]` Admin account
-    /// 2. `[]` Clock sysvar
     RampA(RampAData),
 
     /// Cancels the pending ramp of A.
     ///
     /// 0. `[writable]` StableSwap
     /// 1. `[signer]` Admin account
-    /// 2. `[]` Clock sysvar
     StopRampA,
 
     /// Pauses swap, deposit, and withdraw_one.
@@ -127,7 +125,6 @@ pub enum AdminInstruction {
     ///
     /// 0. `[writable]` StableSwap
     /// 1. `[signer]` Admin account
-    /// 2. `[]` Clock sysvar
     ApplyNewAdmin,
 
     /// Commits a new admin. The admin must accept ownership within 3 days.
@@ -135,7 +132,6 @@ pub enum AdminInstruction {
     /// 0. `[writable]` StableSwap
     /// 1. `[signer]` Admin account
     /// 2. `[]` New admin account
-    /// 3. `[]` Clock sysvar
     CommitNewAdmin,
 
     /// Updates the swap fees.

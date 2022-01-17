@@ -501,7 +501,9 @@ pub struct SwapUserContext<'info> {
 #[derive(Accounts)]
 pub struct AdminUserContext<'info> {
     /// The public key of the admin account.
-    pub admin: Signer<'info>,
+    /// **Note: must be a signer.**
+    #[account(signer)]
+    pub admin: AccountInfo<'info>,
     /// The swap.
     pub swap: AccountInfo<'info>,
 }

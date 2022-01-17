@@ -3,9 +3,10 @@
 use anchor_lang::prelude::*;
 
 /// Accounts for an [crate::initialize] instruction.
-#[derive(Accounts)]
+#[derive(Accounts, Clone)]
 pub struct Initialize<'info> {
     /// The swap.
+    #[account(signer)]
     pub swap: AccountInfo<'info>,
     /// The authority of the swap.
     pub swap_authority: AccountInfo<'info>,
@@ -24,7 +25,7 @@ pub struct Initialize<'info> {
 }
 
 /// Accounts for a [crate::deposit] instruction.
-#[derive(Accounts)]
+#[derive(Accounts, Clone)]
 pub struct Deposit<'info> {
     /// The context of the user.
     pub user: SwapUserContext<'info>,
@@ -39,7 +40,7 @@ pub struct Deposit<'info> {
 }
 
 /// Accounts for a [crate::swap] instruction.
-#[derive(Accounts)]
+#[derive(Accounts, Clone)]
 pub struct Swap<'info> {
     /// The context of the user.
     pub user: SwapUserContext<'info>,
@@ -50,7 +51,7 @@ pub struct Swap<'info> {
 }
 
 /// Accounts for a [crate::withdraw_one] instruction.
-#[derive(Accounts)]
+#[derive(Accounts, Clone)]
 pub struct WithdrawOne<'info> {
     /// The context of the user.
     pub user: SwapUserContext<'info>,
@@ -75,7 +76,7 @@ pub struct WithdrawOne<'info> {
 }
 
 /// Accounts for a [crate::withdraw] instruction.
-#[derive(Accounts)]
+#[derive(Accounts, Clone)]
 pub struct Withdraw<'info> {
     /// The context of the user.
     pub user: SwapUserContext<'info>,
@@ -90,7 +91,7 @@ pub struct Withdraw<'info> {
 }
 
 /// Accounts for a [crate::set_fee_account] instruction.
-#[derive(Accounts)]
+#[derive(Accounts, Clone)]
 pub struct SetFeeAccount<'info> {
     /// The context of the admin user
     pub admin_ctx: AdminUserContext<'info>,
@@ -99,7 +100,7 @@ pub struct SetFeeAccount<'info> {
 }
 
 /// Accounts for a [crate::apply_new_admin].
-#[derive(Accounts)]
+#[derive(Accounts, Clone)]
 pub struct CommitNewAdmin<'info> {
     /// The context of the admin user
     pub admin_with_clock: AdminUserContextWithClock<'info>,
@@ -112,7 +113,7 @@ pub struct CommitNewAdmin<'info> {
 // --------------------------------
 
 /// Token accounts for initializing a [crate::SwapInfo].
-#[derive(Accounts)]
+#[derive(Accounts, Clone)]
 pub struct InitToken<'info> {
     /// The token account for the pool's reserves of this token.
     pub reserve: AccountInfo<'info>,
@@ -123,7 +124,7 @@ pub struct InitToken<'info> {
 }
 
 /// Token accounts for a [crate::swap] instruction.
-#[derive(Accounts)]
+#[derive(Accounts, Clone)]
 pub struct SwapToken<'info> {
     /// The token account associated with the user.
     pub user: AccountInfo<'info>,
@@ -132,7 +133,7 @@ pub struct SwapToken<'info> {
 }
 
 /// Token accounts for the output of a StableSwap instruction.
-#[derive(Accounts)]
+#[derive(Accounts, Clone)]
 pub struct SwapOutput<'info> {
     /// The token accounts of the user and the token.
     pub user_token: SwapToken<'info>,
@@ -141,13 +142,14 @@ pub struct SwapOutput<'info> {
 }
 
 /// Accounts for an instruction that interacts with the swap.
-#[derive(Accounts)]
+#[derive(Accounts, Clone)]
 pub struct SwapUserContext<'info> {
     /// The spl_token program.
     pub token_program: AccountInfo<'info>,
     /// The authority of the swap.
     pub swap_authority: AccountInfo<'info>,
     /// The authority of the user.
+    #[account(signer)]
     pub user_authority: AccountInfo<'info>,
     /// The swap.
     pub swap: AccountInfo<'info>,
@@ -156,7 +158,7 @@ pub struct SwapUserContext<'info> {
 }
 
 /// Accounts for an instruction that requires admin permission.
-#[derive(Accounts)]
+#[derive(Accounts, Clone)]
 pub struct AdminUserContext<'info> {
     /// The public key of the admin account.
     /// **Note: must be a signer.**
@@ -167,7 +169,7 @@ pub struct AdminUserContext<'info> {
 }
 
 /// Accounts for an instruction that requires admin permission with the clock.
-#[derive(Accounts)]
+#[derive(Accounts, Clone)]
 pub struct AdminUserContextWithClock<'info> {
     /// The admin user context.
     pub admin_ctx: AdminUserContext<'info>,

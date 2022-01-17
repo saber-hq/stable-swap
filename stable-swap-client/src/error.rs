@@ -9,7 +9,7 @@ use solana_program::{
 use thiserror::Error;
 
 /// Errors that may be returned by the StableSwap program.
-#[derive(Clone, Debug, Eq, Error, FromPrimitive, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Error, FromPrimitive)]
 pub enum SwapError {
     /// The account cannot be initialized because it is already being used.
     #[error("Swap account already in use")]

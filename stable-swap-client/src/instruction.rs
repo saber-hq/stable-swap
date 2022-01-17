@@ -356,73 +356,77 @@ pub fn set_new_fees(
 
 /// Instructions supported by the SwapInfo program.
 #[repr(C)]
-#[derive(Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "fuzz", derive(arbitrary::Arbitrary))]
 pub enum SwapInstruction {
-    ///   Initializes a new SwapInfo.
+    /// Initializes a new SwapInfo.
     ///
-    ///   0. `[writable, signer]` New StableSwap to create.
-    ///   1. `[]` $authority derived from `create_program_address(&[StableSwap account])`
-    ///   2. `[]` admin Account.
-    ///   3. `[]` admin_fee_a admin fee Account for token_a.
-    ///   4. `[]` admin_fee_b admin fee Account for token_b.
-    ///   5. `[]` token_a Account. Must be non zero, owned by $authority.
-    ///   6. `[]` token_b Account. Must be non zero, owned by $authority.
-    ///   7. `[writable]` Pool Token Mint. Must be empty, owned by $authority.
+    /// 0. `[writable, signer]` New StableSwap to create.
+    /// 1. `[]` $authority derived from `create_program_address(&[StableSwap account])`
+    /// 2. `[]` admin Account.
+    /// 3. `[]` admin_fee_a admin fee Account for token_a.
+    /// 4. `[]` admin_fee_b admin fee Account for token_b.
+    /// 5. `[]` token_a Account. Must be non zero, owned by $authority.
+    /// 6. `[]` token_b Account. Must be non zero, owned by $authority.
+    /// 7. `[writable]` Pool Token Mint. Must be empty, owned by $authority.
     Initialize(InitializeData),
 
-    ///   Swap the tokens in the pool.
+    /// Swap the tokens in the pool.
     ///
-    ///   0. `[]`StableSwap
-    ///   1. `[]` $authority
-    ///   2. `[writable]` token_(A|B) SOURCE Account, amount is transferable by $authority,
-    ///   3. `[writable]` token_(A|B) Base Account to swap INTO.  Must be the SOURCE token.
-    ///   4. `[writable]` token_(A|B) Base Account to swap FROM.  Must be the DESTINATION token.
-    ///   5. `[writable]` token_(A|B) DESTINATION Account assigned to USER as the owner.
-    ///   6. `[writable]` token_(A|B) admin fee Account. Must have same mint as DESTINATION token.
-    ///   7. `[]` Token program id
+    /// 0. `[]`StableSwap
+    /// 1. `[]` $authority
+    /// 2. `[signer]` User authority.
+    /// 3. `[writable]` token_(A|B) SOURCE Account, amount is transferable by $authority,
+    /// 4. `[writable]` token_(A|B) Base Account to swap INTO.  Must be the SOURCE token.
+    /// 5. `[writable]` token_(A|B) Base Account to swap FROM.  Must be the DESTINATION token.
+    /// 6. `[writable]` token_(A|B) DESTINATION Account assigned to USER as the owner.
+    /// 7. `[writable]` token_(A|B) admin fee Account. Must have same mint as DESTINATION token.
+    /// 8. `[]` Token program id
     Swap(SwapData),
 
-    ///   Deposit some tokens into the pool.  The output is a "pool" token representing ownership
-    ///   into the pool. Inputs are converted to the current ratio.
+    /// Deposit some tokens into the pool.  The output is a "pool" token representing ownership
+    /// into the pool. Inputs are converted to the current ratio.
     ///
-    ///   0. `[]`StableSwap
-    ///   1. `[]` $authority
-    ///   2. `[writable]` token_a $authority can transfer amount,
-    ///   3. `[writable]` token_b $authority can transfer amount,
-    ///   4. `[writable]` token_a Base Account to deposit into.
-    ///   5. `[writable]` token_b Base Account to deposit into.
-    ///   6. `[writable]` Pool MINT account, $authority is the owner.
-    ///   7. `[writable]` Pool Account to deposit the generated tokens, user is the owner.
-    ///   8. `[]` Token program id
+    /// 0. `[]`StableSwap
+    /// 1. `[]` $authority
+    /// 2. `[signer]` User authority.
+    /// 3. `[writable]` token_a $authority can transfer amount,
+    /// 4. `[writable]` token_b $authority can transfer amount,
+    /// 5. `[writable]` token_a Base Account to deposit into.
+    /// 6. `[writable]` token_b Base Account to deposit into.
+    /// 7. `[writable]` Pool MINT account, $authority is the owner.
+    /// 8. `[writable]` Pool Account to deposit the generated tokens, user is the owner.
+    /// 9. `[]` Token program id
     Deposit(DepositData),
 
-    ///   Withdraw tokens from the pool at the current ratio.
+    /// Withdraw tokens from the pool at the current ratio.
     ///
-    ///   0. `[]`StableSwap
-    ///   1. `[]` $authority
-    ///   2. `[writable]` Pool mint account, $authority is the owner
-    ///   3. `[writable]` SOURCE Pool account, amount is transferable by $authority.
-    ///   4. `[writable]` token_a Swap Account to withdraw FROM.
-    ///   5. `[writable]` token_b Swap Account to withdraw FROM.
-    ///   6. `[writable]` token_a user Account to credit.
-    ///   7. `[writable]` token_b user Account to credit.
-    ///   8. `[writable]` admin_fee_a admin fee Account for token_a.
-    ///   9. `[writable]` admin_fee_b admin fee Account for token_b.
-    ///   10. `[]` Token program id
+    /// 0. `[]`StableSwap
+    /// 1. `[]` $authority
+    /// 2. `[signer]` User authority.
+    /// 3. `[writable]` Pool mint account, $authority is the owner
+    /// 4. `[writable]` SOURCE Pool account, amount is transferable by $authority.
+    /// 5. `[writable]` token_a Swap Account to withdraw FROM.
+    /// 6. `[writable]` token_b Swap Account to withdraw FROM.
+    /// 7. `[writable]` token_a user Account to credit.
+    /// 8. `[writable]` token_b user Account to credit.
+    /// 9. `[writable]` admin_fee_a admin fee Account for token_a.
+    /// 10. `[writable]` admin_fee_b admin fee Account for token_b.
+    /// 11. `[]` Token program id
     Withdraw(WithdrawData),
 
-    ///   Withdraw one token from the pool at the current ratio.
+    /// Withdraw one token from the pool at the current ratio.
     ///
-    ///   0. `[]`StableSwap
-    ///   1. `[]` $authority
-    ///   2. `[writable]` Pool mint account, $authority is the owner
-    ///   3. `[writable]` SOURCE Pool account, amount is transferable by $authority.
-    ///   4. `[writable]` token_(A|B) BASE token Swap Account to withdraw FROM.
-    ///   5. `[writable]` token_(A|B) QUOTE token Swap Account to exchange to base token.
-    ///   6. `[writable]` token_(A|B) BASE token user Account to credit.
-    ///   7. `[writable]` token_(A|B) admin fee Account. Must have same mint as BASE token.
-    ///   8. `[]` Token program id
+    /// 0. `[]`StableSwap
+    /// 1. `[]` $authority
+    /// 2. `[signer]` User authority.
+    /// 3. `[writable]` Pool mint account, $authority is the owner
+    /// 4. `[writable]` SOURCE Pool account, amount is transferable by $authority.
+    /// 5. `[writable]` token_(A|B) BASE token Swap Account to withdraw FROM.
+    /// 6. `[writable]` token_(A|B) QUOTE token Swap Account to exchange to base token.
+    /// 7. `[writable]` token_(A|B) BASE token user Account to credit.
+    /// 8. `[writable]` token_(A|B) admin fee Account. Must have same mint as BASE token.
+    /// 9. `[]` Token program id
     WithdrawOne(WithdrawOneData),
 }
 

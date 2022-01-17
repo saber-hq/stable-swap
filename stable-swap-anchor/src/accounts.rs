@@ -2,7 +2,7 @@
 
 use anchor_lang::prelude::*;
 
-/// Accounts for an [initialize] instruction.
+/// Accounts for an [crate::initialize] instruction.
 #[derive(Accounts)]
 pub struct Initialize<'info> {
     /// The swap.
@@ -23,7 +23,7 @@ pub struct Initialize<'info> {
     pub token_program: AccountInfo<'info>,
 }
 
-/// Accounts for a [deposit] instruction.
+/// Accounts for a [crate::deposit] instruction.
 #[derive(Accounts)]
 pub struct Deposit<'info> {
     /// The context of the user.
@@ -38,7 +38,7 @@ pub struct Deposit<'info> {
     pub output_lp: AccountInfo<'info>,
 }
 
-/// Accounts for a [swap] instruction.
+/// Accounts for a [crate::swap] instruction.
 #[derive(Accounts)]
 pub struct Swap<'info> {
     /// The context of the user.
@@ -49,7 +49,7 @@ pub struct Swap<'info> {
     pub output: SwapOutput<'info>,
 }
 
-/// Accounts for a [withdraw_one] instruction.
+/// Accounts for a [crate::withdraw_one] instruction.
 #[derive(Accounts)]
 pub struct WithdrawOne<'info> {
     /// The context of the user.
@@ -74,7 +74,7 @@ pub struct WithdrawOne<'info> {
     pub output: SwapOutput<'info>,
 }
 
-/// Accounts for a [withdraw] instruction.
+/// Accounts for a [crate::withdraw] instruction.
 #[derive(Accounts)]
 pub struct Withdraw<'info> {
     /// The context of the user.
@@ -89,7 +89,7 @@ pub struct Withdraw<'info> {
     pub output_b: SwapOutput<'info>,
 }
 
-/// Accounts for a [set_fee_account] instruction.
+/// Accounts for a [crate::set_fee_account] instruction.
 #[derive(Accounts)]
 pub struct SetFeeAccount<'info> {
     /// The context of the admin user
@@ -98,7 +98,7 @@ pub struct SetFeeAccount<'info> {
     pub fee_account: AccountInfo<'info>,
 }
 
-/// Accounts for a [apply_new_admin].
+/// Accounts for a [crate::apply_new_admin].
 #[derive(Accounts)]
 pub struct CommitNewAdmin<'info> {
     /// The context of the admin user
@@ -111,7 +111,7 @@ pub struct CommitNewAdmin<'info> {
 // Various accounts
 // --------------------------------
 
-/// Token accounts for initializing a [SwapInfo].
+/// Token accounts for initializing a [crate::SwapInfo].
 #[derive(Accounts)]
 pub struct InitToken<'info> {
     /// The token account for the pool's reserves of this token.
@@ -122,7 +122,7 @@ pub struct InitToken<'info> {
     pub mint: AccountInfo<'info>,
 }
 
-/// Token accounts for a [swap] instruction.
+/// Token accounts for a [crate::swap] instruction.
 #[derive(Accounts)]
 pub struct SwapToken<'info> {
     /// The token account associated with the user.

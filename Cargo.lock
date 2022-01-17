@@ -174,18 +174,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "anchor-spl"
-version = "0.19.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "362427b7620190bae716daee6aaf2a12022b289c7b87673ad124a3c83bee85ac"
-dependencies = [
- "anchor-lang",
- "solana-program",
- "spl-associated-token-account",
- "spl-token",
-]
-
-[[package]]
 name = "anchor-syn"
 version = "0.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1662,16 +1650,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "spl-associated-token-account"
-version = "1.0.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "393e2240d521c3dd770806bff25c2c00d761ac962be106e14e22dd912007f428"
-dependencies = [
- "solana-program",
- "spl-token",
-]
-
-[[package]]
 name = "spl-token"
 version = "3.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1701,7 +1679,6 @@ name = "stable-swap-anchor"
 version = "1.6.7"
 dependencies = [
  "anchor-lang",
- "anchor-spl",
  "stable-swap-client",
 ]
 

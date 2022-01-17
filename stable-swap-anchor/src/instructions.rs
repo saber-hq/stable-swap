@@ -5,7 +5,9 @@ use anchor_lang::{prelude::*, solana_program};
 
 /// Creates and invokes a [stable_swap_client::instruction::initialize] instruction.
 ///
-/// # Arguments:
+/// # Arguments
+///
+/// See [stable_swap_client::instruction::InitializeData].
 ///
 /// * `nonce` - The nonce used to generate the swap_authority.
 /// * `amp_factor` - Amplification factor.
@@ -57,7 +59,9 @@ pub fn initialize<'a, 'b, 'c, 'info>(
 
 /// Creates and invokes a [stable_swap_client::instruction::deposit] instruction.
 ///
-/// # Arguments:
+/// # Arguments
+///
+/// See [stable_swap_client::instruction::DepositData].
 ///
 /// * `token_a_amount` - Amount of tokens of [`Deposit::input_a`] to deposit.
 /// * `token_b_amount` - Amount of tokens of [`Deposit::input_b`] to deposit.
@@ -106,7 +110,9 @@ pub fn deposit<'a, 'b, 'c, 'info>(
 
 /// Creates and invokes a [stable_swap_client::instruction::swap] instruction.
 ///
-/// # Arguments:
+/// # Arguments
+///
+/// See [stable_swap_client::instruction::SwapData].
 ///
 /// * `amount_in` - Amount of [`Swap::input`] tokens to swap.
 /// * `minimum_amount_out` - Minimum amount of [`Swap::output`] tokens to receive.
@@ -149,7 +155,9 @@ pub fn swap<'a, 'b, 'c, 'info>(
 
 /// Creates and invokes a [stable_swap_client::instruction::withdraw_one] instruction.
 ///
-/// # Arguments:
+/// # Arguments
+///
+/// See [stable_swap_client::instruction::WithdrawOneData].
 ///
 /// * `pool_token_amount` - Amount of LP tokens to withdraw.
 /// * `minimum_token_amount` - Minimum amount of tokens of [`WithdrawOne::output`] to withdraw.
@@ -194,7 +202,9 @@ pub fn withdraw_one<'a, 'b, 'c, 'info>(
 
 /// Creates and invokes a [stable_swap_client::instruction::withdraw] instruction.
 ///
-/// # Arguments:
+/// # Arguments
+///
+/// See [stable_swap_client::instruction::WithdrawData].
 ///
 /// * `pool_token_amount` - Amount of LP tokens to withdraw.
 /// * `minimum_token_a_amount` - Minimum amount of tokens of [`Withdraw::output_a`] to withdraw.
@@ -230,6 +240,8 @@ pub fn withdraw<'a, 'b, 'c, 'info>(
 /// Creates and invokes a [stable_swap_client::instruction::ramp_a] instruction.
 ///
 /// # Arguments
+///
+/// See [stable_swap_client::instruction::RampAData].
 ///
 /// * `target_amp` - Target amplification factor to ramp to.
 /// * `stop_ramp_ts` - Timestamp when ramp up/down should stop.
@@ -286,8 +298,9 @@ pub fn apply_new_admin<'a, 'b, 'c, 'info>(
     solana_program::program::invoke_signed(&ix, &ctx.to_account_infos(), ctx.signer_seeds)
 }
 
-/// Creates and invokes a [stable_swap_client::instruction::commit_new_admin] instruction.
-/// # Arguments:
+/// Creates and invokes a [stable_swap_client::instruction::commit_new_admin] instruction
+///
+/// # Arguments
 ///
 /// * `new_admin` - Public key of the new admin.
 pub fn commit_new_admin<'a, 'b, 'c, 'info>(

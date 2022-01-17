@@ -102,9 +102,9 @@ pub struct SetFeeAccount<'info> {
 /// Accounts for a [crate::apply_new_admin] instruction.
 #[derive(Accounts, Clone)]
 pub struct CommitNewAdmin<'info> {
-    /// The context of the admin user
+    /// The context of the admin user.
     pub admin_ctx: AdminUserContext<'info>,
-    /// The account of the new admin
+    /// The account of the new admin.
     pub new_admin: AccountInfo<'info>,
 }
 
@@ -159,7 +159,8 @@ pub struct SwapUserContext<'info> {
 #[derive(Accounts, Clone)]
 pub struct AdminUserContext<'info> {
     /// The public key of the admin account.
-    /// **Note: must be a signer.**
+    ///
+    /// *Note: must be a signer.*
     #[account(signer)]
     pub admin: AccountInfo<'info>,
     /// The swap.

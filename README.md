@@ -27,13 +27,14 @@
 
 To use StableSwap with your frontend or Node.js project, use [the JavaScript SDK.](https://github.com/saber-hq/saber-common/tree/master/packages/stableswap-sdk)
 
-## Hacking
+## Developing
 
-Run
+### Tests
+
+To run the tests, run:
 
 ```
-anchor build --program-name stable_swap
-./stable-swap/do.sh e2e-test
+./stable-swap-program/do.sh e2e-test
 ```
 
 ## Archive

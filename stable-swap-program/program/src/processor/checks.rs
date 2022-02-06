@@ -12,7 +12,7 @@ use solana_program::{
     account_info::AccountInfo, entrypoint::ProgramResult, program_error::ProgramError,
     pubkey::Pubkey,
 };
-use vipers::{assert_keys_eq, assert_keys_neq};
+use vipers::{assert_keys_eq, assert_keys_neq, invariant};
 
 /// Checks if the reserve of the swap is the given key.
 fn check_reserves_match(token: &SwapTokenInfo, reserves_info_key: &Pubkey) -> ProgramResult {
@@ -52,9 +52,10 @@ pub fn check_has_admin_signer(
         SwapError::Unauthorized,
         "Admin signer",
     );
-    if !admin_account_info.is_signer {
-        return Err(ProgramError::MissingRequiredSignature);
-    }
+    invariant!(
+        admin_account_info.is_signer,
+        ProgramError::MissingRequiredSignature
+    );
     Ok(())
 }
 

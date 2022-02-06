@@ -131,16 +131,6 @@ fn process_initialize(
         "Swap authority",
     );
 
-    assert_keys_eq!(admin_fee_a_info.owner, anchor_spl::token::ID);
-    assert_keys_eq!(admin_fee_b_info.owner, anchor_spl::token::ID);
-    assert_keys_eq!(token_a_mint_info.owner, anchor_spl::token::ID);
-    assert_keys_eq!(token_a_info.owner, anchor_spl::token::ID);
-    assert_keys_eq!(token_b_mint_info.owner, anchor_spl::token::ID);
-    assert_keys_eq!(token_b_info.owner, anchor_spl::token::ID);
-    assert_keys_eq!(pool_mint_info.owner, anchor_spl::token::ID);
-    assert_keys_eq!(destination_info.owner, anchor_spl::token::ID);
-    assert_keys_eq!(token_program_info, anchor_spl::token::ID);
-
     let destination = utils::unpack_token_account(&destination_info.data.borrow())?;
     let token_a = utils::unpack_token_account(&token_a_info.data.borrow())?;
     let token_b = utils::unpack_token_account(&token_b_info.data.borrow())?;
@@ -222,6 +212,16 @@ fn process_initialize(
         SwapError::InvalidAdmin,
         "Mint B",
     );
+
+    assert_keys_eq!(admin_fee_a_info.owner, anchor_spl::token::ID);
+    assert_keys_eq!(admin_fee_b_info.owner, anchor_spl::token::ID);
+    assert_keys_eq!(token_a_mint_info.owner, anchor_spl::token::ID);
+    assert_keys_eq!(token_a_info.owner, anchor_spl::token::ID);
+    assert_keys_eq!(token_b_mint_info.owner, anchor_spl::token::ID);
+    assert_keys_eq!(token_b_info.owner, anchor_spl::token::ID);
+    assert_keys_eq!(pool_mint_info.owner, anchor_spl::token::ID);
+    assert_keys_eq!(destination_info.owner, anchor_spl::token::ID);
+    assert_keys_eq!(token_program_info, anchor_spl::token::ID);
 
     // amp_factor == initial_amp_factor == target_amp_factor on init
     let invariant = StableSwap::new(amp_factor, amp_factor, ZERO_TS, ZERO_TS, ZERO_TS);
@@ -696,14 +696,10 @@ fn process_withdraw_one(
     let admin_destination_info = next_account_info(account_info_iter)?;
     let token_program_info = next_account_info(account_info_iter)?;
 
-    if *base_token_info.key == *quote_token_info.key {
-        return Err(SwapError::InvalidInput.into());
-    }
+    assert_keys_neq!(base_token_info, quote_token_info, SwapError::InvalidInput);
 
     let token_swap = SwapInfo::unpack(&swap_info.data.borrow())?;
-    if token_swap.is_paused {
-        return Err(SwapError::IsPaused.into());
-    }
+    invariant!(!token_swap.is_paused, SwapError::IsPaused);
     check_swap_authority(
         &token_swap,
         swap_info.key,

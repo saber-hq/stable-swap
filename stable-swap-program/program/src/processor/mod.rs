@@ -7,8 +7,6 @@ mod swap;
 mod token;
 mod utils;
 
-#[cfg(test)]
-#[allow(clippy::unwrap_used)]
 mod test_utils;
 
 use crate::instruction::AdminInstruction;

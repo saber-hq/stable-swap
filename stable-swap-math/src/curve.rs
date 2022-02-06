@@ -377,7 +377,8 @@ impl StableSwap {
             swap_source_amount.checked_add(source_amount)?,
             self.compute_d(swap_source_amount, swap_destination_amount)?,
         )?;
-        let dy = swap_destination_amount.checked_sub(y)?;
+        // https://github.com/curvefi/curve-contract/blob/b0bbf77f8f93c9c5f4e415bce9cd71f0cdee960e/contracts/pool-templates/base/SwapTemplateBase.vy#L466
+        let dy = swap_destination_amount.checked_sub(y)?.checked_sub(1)?;
         let dy_fee = fees.trade_fee(dy)?;
         let admin_fee = fees.admin_trade_fee(dy_fee)?;
 

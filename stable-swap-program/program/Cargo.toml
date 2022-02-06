@@ -1,6 +1,6 @@
 [package]
 name = "stable-swap"
-version = "1.6.1"
+version = "1.6.7"
 authors = ["michaelhly <michaelhly@gmail.com>"]
 edition = "2021"
 description = "Saber StableSwap program."
@@ -18,13 +18,13 @@ fuzz = ["stable-swap-client/fuzz"]
 anchor-lang = ">=0.17"
 anchor-spl = ">=0.17"
 solana-program = "^1.6.10"
-spl-token = { version = "3.1.1", features = ["no-entrypoint"] }
+spl-token = { version = "3.3.0", features = ["no-entrypoint"] }
 stable-swap-client = { path = "../../stable-swap-client", version = "^1" }
 stable-swap-math = { path = "../../stable-swap-math", version = "^1" }
 vipers = "^1.5.5"
 
 [dev-dependencies]
-solana-sdk = "^1.6.10"
+solana-sdk = "^1.9.5"
 
 [lib]
 name = "stable_swap"

@@ -313,14 +313,14 @@ fn run_action(
                     &mut token_a_account_pair.0,
                     &mut token_a_account_pair.1,
                     &mut token_b_account_pair.1,
-                    instruction_data.clone(),
+                    *instruction_data,
                 ),
                 TradeDirection::BtoA => stable_swap.swap_b_to_a(
                     Utc::now().timestamp(),
                     &mut token_b_account_pair.0,
                     &mut token_a_account_pair.1,
                     &mut token_b_account_pair.1,
-                    instruction_data.clone(),
+                    *instruction_data,
                 ),
             }
         }
@@ -339,7 +339,7 @@ fn run_action(
                 &mut token_a_account_pair.1,
                 &mut token_b_account_pair.1,
                 &mut pool_token_account_pair.1,
-                instruction_data.clone(),
+                *instruction_data,
             )
         }
         Action::Withdraw {
@@ -357,7 +357,7 @@ fn run_action(
                 &mut token_a_account_pair.1,
                 &mut token_b_account_pair.1,
                 &mut pool_token_account_pair.1,
-                instruction_data.clone(),
+                *instruction_data,
             )
         }
         Action::WithdrawOne {
@@ -377,7 +377,7 @@ fn run_action(
                         &mut token_account_pair.1,
                         &mut pool_token_account_pair.1,
                         TokenType::TokenA,
-                        instruction_data.clone(),
+                        *instruction_data,
                     )
                 }
                 TokenType::TokenB => {
@@ -389,13 +389,13 @@ fn run_action(
                         &mut token_account_pair.1,
                         &mut pool_token_account_pair.1,
                         TokenType::TokenB,
-                        instruction_data.clone(),
+                        *instruction_data,
                     )
                 }
             }
         }
         Action::RampA { instruction_data } => {
-            stable_swap.ramp_a(Utc::now().timestamp(), instruction_data.clone())
+            stable_swap.ramp_a(Utc::now().timestamp(), *instruction_data)
         }
         Action::StopRampA => stable_swap.stop_ramp_a(Utc::now().timestamp()),
     };

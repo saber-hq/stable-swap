@@ -8,7 +8,8 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
-  SOLANA_VERSION: "1.8.11"
+  SOLANA_VERSION: "1.8.14"
+  RUST_TOOLCHAIN: "1.58.1"
 
 jobs:
   unit-tests:
@@ -19,16 +20,19 @@ jobs:
 
       # Install Cachix
       - uses: cachix/install-nix-action@v16
-        with:
-          install_url: https://nixos-nix-install-tests.cachix.org/serve/i6laym9jw3wg9mw6ncyrk6gjx4l34vvx/install
-          install_options: "--tarball-url-prefix https://nixos-nix-install-tests.cachix.org/serve"
-          extra_nix_config: |
-            experimental-features = nix-command flakes
       - name: Setup Cachix
         uses: cachix/cachix-action@v10
         with:
           name: saber
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+
+      # Install Rust
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          override: true
+          profile: minimal
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
 
       # Install Solana
       - name: Cache Solana binaries
@@ -75,11 +79,6 @@ jobs:
 
       # Install Cachix
       - uses: cachix/install-nix-action@v16
-        with:
-          install_url: https://nixos-nix-install-tests.cachix.org/serve/i6laym9jw3wg9mw6ncyrk6gjx4l34vvx/install
-          install_options: "--tarball-url-prefix https://nixos-nix-install-tests.cachix.org/serve"
-          extra_nix_config: |
-            experimental-features = nix-command flakes
       - name: Setup Cachix
         uses: cachix/cachix-action@v10
         with:
@@ -104,13 +103,21 @@ jobs:
           echo "$HOME/.local/share/solana/install/active_release/bin" >> $GITHUB_PATH
           export PATH="/home/runner/.local/share/solana/install/active_release/bin:$PATH"
           solana --version
+
+      # Install Rust
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          override: true
+          profile: minimal
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
       - name: Cache Rust
         uses: Swatinem/rust-cache@v1
         with:
           key: ${{ runner.os }}-${{ env.SOLANA_VERSION }}
 
       - name: Build
-        run: nix shell .#ci --command anchor build
+        run: nix shell .#ci --command anchor build --program-name stable_swap
       - name: Run e2e tests
         working-directory: stable-swap-program
         run: nix shell ../#ci --command ./do.sh e2e-test
@@ -120,22 +127,18 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-      - name: Install Rust nightly
+      # Install Rust
+      - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
           override: true
           profile: minimal
-          toolchain: nightly-2021-12-25
+          toolchain: nightly-2022-02-01
       - name: Cache dependencies
         uses: Swatinem/rust-cache@v1
 
       # Install Cachix
       - uses: cachix/install-nix-action@v16
-        with:
-          install_url: https://nixos-nix-install-tests.cachix.org/serve/i6laym9jw3wg9mw6ncyrk6gjx4l34vvx/install
-          install_options: "--tarball-url-prefix https://nixos-nix-install-tests.cachix.org/serve"
-          extra_nix_config: |
-            experimental-features = nix-command flakes
       - name: Setup Cachix
         uses: cachix/cachix-action@v10
         with:

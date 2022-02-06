@@ -17,7 +17,7 @@ solana-install init 1.8.11
 To build the program, run:
 
 ```bash
-anchor build
+anchor build --program-name stable_swap
 ```
 
 ### Testing
@@ -50,7 +50,7 @@ To deploy, run:
 
 ```bash
 # On Vagrant/build environment only
-anchor build
+anchor build --program-name stable_swap
 
 # On your machine
 ./scripts/deploy-program.sh <cluster>

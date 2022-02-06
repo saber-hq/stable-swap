@@ -300,14 +300,14 @@ fn process_swap(
     let admin_destination_info = next_account_info(account_info_iter)?;
     let token_program_info = next_account_info(account_info_iter)?;
 
-    if *swap_source_info.key == *swap_destination_info.key {
-        return Err(SwapError::InvalidInput.into());
-    }
+    assert_keys_neq!(
+        swap_source_info,
+        swap_destination_info,
+        SwapError::InvalidInput
+    );
 
     let token_swap = SwapInfo::unpack(&swap_info.data.borrow())?;
-    if token_swap.is_paused {
-        return Err(SwapError::IsPaused.into());
-    }
+    invariant!(!token_swap.is_paused, SwapError::IsPaused);
 
     assert_keys_neq!(
         source_info.key,

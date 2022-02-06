@@ -1,4 +1,3 @@
-import type { Provider } from "@saberhq/solana-contrib";
 import { SignerWallet, TransactionEnvelope } from "@saberhq/solana-contrib";
 import {
   createAdminApplyNewAdminInstruction,

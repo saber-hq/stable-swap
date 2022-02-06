@@ -23,25 +23,25 @@
     "node": ">=12.x"
   },
   "devDependencies": {
-    "@babel/preset-env": "^7.16.5",
-    "@babel/preset-typescript": "^7.16.5",
-    "@saberhq/eslint-config": "^1.12.6",
-    "@saberhq/solana-contrib": "^1.12.6",
+    "@babel/preset-env": "^7.16.11",
+    "@babel/preset-typescript": "^7.16.7",
+    "@saberhq/eslint-config": "^1.12.36",
+    "@saberhq/solana-contrib": "^1.12.36",
     "@types/bs58": "^4.0.1",
-    "@types/jest": "^27.0.3",
-    "@types/node": "^17.0.5",
+    "@types/jest": "^27.4.0",
+    "@types/node": "^17.0.15",
     "b58": "^4.0.3",
-    "eslint": "^8.5.0",
-    "jest": "^27.4.5",
-    "lint-staged": ">=12.1.4",
+    "eslint": "^8.8.0",
+    "jest": "^27.5.0",
+    "lint-staged": ">=12.3.3",
     "prettier": "^2.5.1",
     "ts-node": "^10.4.0",
-    "typescript": "^4.5.4"
+    "typescript": "^4.5.5"
   },
   "dependencies": {
-    "@saberhq/stableswap-sdk": "^1.12.6",
-    "@saberhq/token-utils": "^1.12.6",
-    "@solana/web3.js": "^1.31.0",
+    "@saberhq/stableswap-sdk": "^1.12.36",
+    "@saberhq/token-utils": "^1.12.36",
+    "@solana/web3.js": "^1.33.0",
     "@types/bn.js": "^5.1.0",
     "@types/yargs": "^17.0.8",
     "bn.js": "^5.2.0",
@@ -51,6 +51,9 @@
   "lint-staged": {
     "*.{js,css,ts,tsx}": "prettier --write",
     "../**/*.{md,yml,yaml}": "prettier --write"
+  },
+  "resolutions": {
+    "@solana/buffer-layout": "^4"
   },
   "files": [
     "bin/",

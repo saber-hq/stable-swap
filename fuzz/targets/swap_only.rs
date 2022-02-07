@@ -93,10 +93,10 @@ fn run_swaps(argv: Vec<SwapArgs>) {
 
     let mut user_account = NativeAccountData::new_signer(0, system_program::id());
     let mut token_a_account =
-        stable_swap.create_token_a_account(user_account, INITIAL_USER_TOKEN_A_AMOUNT);
+        stable_swap.create_token_a_account(user_account.clone(), INITIAL_USER_TOKEN_A_AMOUNT);
     let mut token_b_account =
-        stable_swap.create_token_b_account(user_account, INITIAL_SWAP_TOKEN_B_AMOUNT);
-    let mut pool_token_account = stable_swap.create_pool_account(user_account);
+        stable_swap.create_token_b_account(user_account.clone(), INITIAL_SWAP_TOKEN_B_AMOUNT);
+    let mut pool_token_account = stable_swap.create_pool_account(user_account.clone());
 
     // to ensure that we never create or remove base tokens
     let before_total_token_a = INITIAL_SWAP_TOKEN_A_AMOUNT;
@@ -147,16 +147,16 @@ fn run_swap(
     let result = match trade_direction {
         TradeDirection::AtoB => stable_swap.swap_a_to_b(
             Utc::now().timestamp(),
-            &mut user_account,
-            &mut token_a_account,
-            &mut token_b_account,
+            user_account,
+            token_a_account,
+            token_b_account,
             *instruction_data,
         ),
         TradeDirection::BtoA => stable_swap.swap_b_to_a(
             Utc::now().timestamp(),
-            &mut user_account,
-            &mut token_a_account,
-            &mut token_b_account,
+            user_account,
+            token_a_account,
+            token_b_account,
             *instruction_data,
         ),
     };

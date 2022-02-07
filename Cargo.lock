@@ -1698,7 +1698,7 @@ dependencies = [
 
 [[package]]
 name = "stable-swap"
-version = "1.6.7"
+version = "1.6.9"
 dependencies = [
  "solana-program",
  "solana-sdk",
@@ -1717,7 +1717,7 @@ dependencies = [
 
 [[package]]
 name = "stable-swap-client"
-version = "1.6.8"
+version = "1.6.9"
 dependencies = [
  "arbitrary",
  "arrayref",
@@ -1730,7 +1730,7 @@ dependencies = [
 
 [[package]]
 name = "stable-swap-fuzz"
-version = "0.2.0"
+version = "1.6.9"
 dependencies = [
  "arbitrary",
  "chrono",
@@ -1744,7 +1744,7 @@ dependencies = [
 
 [[package]]
 name = "stable-swap-math"
-version = "1.6.8"
+version = "1.6.9"
 dependencies = [
  "borsh",
  "num-traits",

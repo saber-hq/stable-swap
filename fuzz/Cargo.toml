@@ -36,7 +36,7 @@ test = false
 doc = false
 
 [[bin]]
-name = "swap_only_test"
-path = "targets/swap_only.rs"
+name = "swaps_only_test"
+path = "targets/swaps_only.rs"
 test = false
 doc = false

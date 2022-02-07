@@ -31,6 +31,6 @@ stable-swap = { path = "../stable-swap-program/program", features = [
 
 [[bin]]
 name = "fuzz_test"
-path = "src/main.rs"
+path = "targets/full.rs"
 test = false
 doc = false

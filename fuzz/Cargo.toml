@@ -34,3 +34,9 @@ name = "fuzz_test"
 path = "targets/full.rs"
 test = false
 doc = false
+
+[[bin]]
+name = "swap_only_test"
+path = "targets/swap_only.rs"
+test = false
+doc = false

@@ -412,6 +412,16 @@ mod tests {
     use sim::{Model, MODEL_FEE_DENOMINATOR, MODEL_FEE_NUMERATOR};
     use std::cmp;
 
+    const ZERO_FEES: Fees = Fees {
+        admin_trade_fee_numerator: 0,
+        admin_trade_fee_denominator: 1000,
+        admin_withdraw_fee_numerator: 0,
+        admin_withdraw_fee_denominator: 1000,
+        trade_fee_numerator: 0,
+        trade_fee_denominator: 1000,
+        withdraw_fee_numerator: 0,
+        withdraw_fee_denominator: 1000,
+    };
     const MODEL_FEES: Fees = Fees {
         admin_trade_fee_numerator: 0,
         admin_trade_fee_denominator: 1,
@@ -797,7 +807,7 @@ mod tests {
                         swap_amount,
                         swap_token_account_a.balance,
                         swap_token_account_b.balance,
-                        &MODEL_FEES,
+                        &ZERO_FEES,
                     )
                     .unwrap();
 
@@ -817,7 +827,7 @@ mod tests {
                         swap_amount,
                         swap_token_account_b.balance,
                         swap_token_account_a.balance,
-                        &MODEL_FEES,
+                        &ZERO_FEES,
                     )
                     .unwrap();
 
@@ -971,6 +981,78 @@ mod tests {
             &mut swap_reserve_account_b,
             true,
             2097152,
+        );
+
+        assert!(
+            user_token_account_a.balance + user_token_account_b.balance
+                <= INITIAL_USER_TOKEN_AMOUNT * 2,
+        );
+    }
+
+    #[test]
+    fn test_swaps_does_not_result_in_more_tokens_specific_three() {
+        const AMP_FACTOR: u64 = 16215;
+        const INITIAL_SWAP_TOKEN_AMOUNT: u64 = 100_000_000_000;
+        const INITIAL_USER_TOKEN_AMOUNT: u64 = 1_000_000_000;
+
+        let mut user_token_account_a = MockTokenAccount {
+            balance: INITIAL_USER_TOKEN_AMOUNT,
+        };
+        let mut user_token_account_b = MockTokenAccount {
+            balance: INITIAL_USER_TOKEN_AMOUNT,
+        };
+        let mut swap_reserve_account_a = MockTokenAccount {
+            balance: INITIAL_SWAP_TOKEN_AMOUNT,
+        };
+        let mut swap_reserve_account_b = MockTokenAccount {
+            balance: INITIAL_SWAP_TOKEN_AMOUNT,
+        };
+
+        let stable_swap = StableSwap {
+            initial_amp_factor: AMP_FACTOR,
+            target_amp_factor: AMP_FACTOR,
+            current_ts: ZERO_TS,
+            start_ramp_ts: ZERO_TS,
+            stop_ramp_ts: ZERO_TS,
+        };
+        do_swap(
+            &stable_swap,
+            &mut user_token_account_a,
+            &mut user_token_account_b,
+            &mut swap_reserve_account_a,
+            &mut swap_reserve_account_b,
+            false,
+            788159744,
+        );
+        println!(
+            "a {:}, b {:}",
+            user_token_account_a.balance, user_token_account_b.balance
+        );
+        do_swap(
+            &stable_swap,
+            &mut user_token_account_a,
+            &mut user_token_account_b,
+            &mut swap_reserve_account_a,
+            &mut swap_reserve_account_b,
+            true,
+            1452,
+        );
+        println!(
+            "a {:}, b {:}",
+            user_token_account_a.balance, user_token_account_b.balance
+        );
+        do_swap(
+            &stable_swap,
+            &mut user_token_account_a,
+            &mut user_token_account_b,
+            &mut swap_reserve_account_a,
+            &mut swap_reserve_account_b,
+            true,
+            3145728,
+        );
+        println!(
+            "a {:}, b {:}",
+            user_token_account_a.balance, user_token_account_b.balance
         );
 
         assert!(

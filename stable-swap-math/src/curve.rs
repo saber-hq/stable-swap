@@ -903,7 +903,7 @@ mod tests {
 
         t.swap_b_to_a(33579101);
         t.swap_a_to_b(134937088);
-        assert!(t.user_token_balance_a + t.user_token_balance_b <= INITIAL_USER_TOKEN_AMOUNT * 2,);
+        assert!(t.user_token_balance_a + t.user_token_balance_b <= INITIAL_USER_TOKEN_AMOUNT * 2);
     }
 
     #[test]
@@ -930,6 +930,34 @@ mod tests {
 
         t.swap_b_to_a(33579101);
         t.swap_a_to_b(2097152);
+        assert!(t.user_token_balance_a + t.user_token_balance_b <= INITIAL_USER_TOKEN_AMOUNT * 2);
+    }
+
+    #[test]
+    fn test_swaps_does_not_result_in_more_tokens_specific_three() {
+        const AMP_FACTOR: u64 = 1220;
+        const INITIAL_SWAP_RESERVE_AMOUNT: u64 = 100_000_000_000;
+        const INITIAL_USER_TOKEN_AMOUNT: u64 = 1_000_000_000;
+
+        let stable_swap = StableSwap {
+            initial_amp_factor: AMP_FACTOR,
+            target_amp_factor: AMP_FACTOR,
+            current_ts: ZERO_TS,
+            start_ramp_ts: ZERO_TS,
+            stop_ramp_ts: ZERO_TS,
+        };
+
+        let mut t = SwapTest {
+            stable_swap: &stable_swap,
+            swap_reserve_balance_a: INITIAL_SWAP_RESERVE_AMOUNT,
+            swap_reserve_balance_b: INITIAL_SWAP_RESERVE_AMOUNT,
+            user_token_balance_a: INITIAL_USER_TOKEN_AMOUNT,
+            user_token_balance_b: INITIAL_USER_TOKEN_AMOUNT,
+        };
+
+        t.swap_b_to_a(65535);
+        t.swap_b_to_a(6133503);
+        t.swap_a_to_b(65535);
         assert!(t.user_token_balance_a + t.user_token_balance_b <= INITIAL_USER_TOKEN_AMOUNT * 2);
     }
 

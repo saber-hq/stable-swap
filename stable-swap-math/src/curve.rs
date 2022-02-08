@@ -782,75 +782,68 @@ mod tests {
     }
 
     #[derive(Debug)]
-    struct MockTokenAccount {
-        pub balance: u64,
+    struct SwapTest<'a> {
+        pub stable_swap: &'a StableSwap,
+        pub swap_reserve_balance_a: u64,
+        pub swap_reserve_balance_b: u64,
+        pub user_token_balance_a: u64,
+        pub user_token_balance_b: u64,
     }
 
-    fn do_swap(
-        stable_swap: &StableSwap,
-        user_token_account_a: &mut MockTokenAccount,
-        user_token_account_b: &mut MockTokenAccount,
-        swap_token_account_a: &mut MockTokenAccount,
-        swap_token_account_b: &mut MockTokenAccount,
-        swap_a_to_b: bool,
-        swap_amount: u64,
-    ) {
-        match swap_a_to_b {
-            true => {
-                let SwapResult {
-                    new_source_amount,
-                    new_destination_amount,
-                    amount_swapped,
-                    ..
-                } = stable_swap
-                    .swap_to(
-                        swap_amount,
-                        swap_token_account_a.balance,
-                        swap_token_account_b.balance,
-                        &ZERO_FEES,
-                    )
-                    .unwrap();
+    impl SwapTest<'_> {
+        pub fn swap_a_to_b(&mut self, swap_amount: u64) {
+            self.do_swap(true, swap_amount)
+        }
 
-                swap_token_account_a.balance = new_source_amount;
-                swap_token_account_b.balance = new_destination_amount;
-                user_token_account_a.balance -= swap_amount;
-                user_token_account_b.balance += amount_swapped;
-            }
-            false => {
-                let SwapResult {
-                    new_source_amount,
-                    new_destination_amount,
-                    amount_swapped,
-                    ..
-                } = stable_swap
-                    .swap_to(
-                        swap_amount,
-                        swap_token_account_b.balance,
-                        swap_token_account_a.balance,
-                        &ZERO_FEES,
-                    )
-                    .unwrap();
+        pub fn swap_b_to_a(&mut self, swap_amount: u64) {
+            self.do_swap(false, swap_amount)
+        }
 
-                swap_token_account_a.balance = new_destination_amount;
-                swap_token_account_b.balance = new_source_amount;
-                user_token_account_a.balance += amount_swapped;
-                user_token_account_b.balance -= swap_amount;
+        fn do_swap(&mut self, swap_a_to_b: bool, source_amount: u64) {
+            let (swap_source_amount, swap_dest_amount) = match swap_a_to_b {
+                true => (self.swap_reserve_balance_a, self.swap_reserve_balance_b),
+                false => (self.swap_reserve_balance_b, self.swap_reserve_balance_a),
+            };
+
+            let SwapResult {
+                new_source_amount,
+                new_destination_amount,
+                amount_swapped,
+                ..
+            } = self
+                .stable_swap
+                .swap_to(
+                    source_amount,
+                    swap_source_amount,
+                    swap_dest_amount,
+                    &ZERO_FEES,
+                )
+                .unwrap();
+
+            match swap_a_to_b {
+                true => {
+                    self.swap_reserve_balance_a = new_source_amount;
+                    self.swap_reserve_balance_b = new_destination_amount;
+                    self.user_token_balance_a -= source_amount;
+                    self.user_token_balance_b += amount_swapped;
+                }
+                false => {
+                    self.swap_reserve_balance_a = new_destination_amount;
+                    self.swap_reserve_balance_b = new_source_amount;
+                    self.user_token_balance_a += amount_swapped;
+                    self.user_token_balance_b -= source_amount;
+                }
             }
-        };
+        }
     }
 
     proptest! {
         #[test]
         fn test_swaps_does_not_result_in_more_tokens(
             amp_factor in MIN_AMP..=MAX_AMP,
-            initial_user_token_a_amount in 100_000_000..MAX_TOKENS_IN >> 16,
-            initial_user_token_b_amount in 100_000_000..MAX_TOKENS_IN >> 16,
+            initial_user_token_a_amount in 10_000_000..MAX_TOKENS_IN >> 16,
+            initial_user_token_b_amount in 10_000_000..MAX_TOKENS_IN >> 16,
         ) {
-
-            let mut user_token_account_a = MockTokenAccount { balance: initial_user_token_a_amount };
-            let mut user_token_account_b = MockTokenAccount { balance: initial_user_token_b_amount };
-            let mut swap_reserve_account_a = MockTokenAccount { balance: MAX_TOKENS_IN };
-            let mut swap_reserve_account_b = MockTokenAccount { balance: MAX_TOKENS_IN };
 
             let stable_swap = StableSwap {
                 initial_amp_factor: amp_factor,
@@ -859,52 +852,38 @@ mod tests {
                 start_ramp_ts: ZERO_TS,
                 stop_ramp_ts: ZERO_TS
             };
+            let mut t = SwapTest { stable_swap: &stable_swap, swap_reserve_balance_a: MAX_TOKENS_IN, swap_reserve_balance_b: MAX_TOKENS_IN, user_token_balance_a: initial_user_token_a_amount, user_token_balance_b: initial_user_token_b_amount };
 
             const ITERATIONS: u64 = 100;
             const SHRINK_MULTIPLIER: u64= 10;
 
-            // Swap a to b
             for i in 0..ITERATIONS {
-                let before_balance_a = user_token_account_a.balance;
-                let before_balance_b = user_token_account_b.balance;
+                let before_balance_a = t.user_token_balance_a;
+                let before_balance_b = t.user_token_balance_b;
                 let swap_amount = before_balance_a / ((i + 1) * SHRINK_MULTIPLIER);
-                do_swap(&stable_swap, &mut user_token_account_a, &mut user_token_account_b, &mut swap_reserve_account_a, &mut swap_reserve_account_b, true, swap_amount);
-                let after_balance = user_token_account_a.balance + user_token_account_b.balance;
+                t.swap_a_to_b(swap_amount);
+                let after_balance = t.user_token_balance_a + t.user_token_balance_b;
 
-                assert!(before_balance_a + before_balance_b >= after_balance, "before_a: {}, before_b: {}, after_a: {}, after_b: {}, swap: {:?}", before_balance_a, before_balance_b, user_token_account_a.balance, user_token_account_b.balance, stable_swap);
+                assert!(before_balance_a + before_balance_b >= after_balance, "before_a: {}, before_b: {}, after_a: {}, after_b: {}, swap: {:?}", before_balance_a, before_balance_b, t.user_token_balance_a, t.user_token_balance_b, stable_swap);
             }
 
-            // Swap b to a
             for i in 0..ITERATIONS {
-                let before_balance_a = user_token_account_a.balance;
-                let before_balance_b = user_token_account_b.balance;
+                let before_balance_a = t.user_token_balance_a;
+                let before_balance_b = t.user_token_balance_b;
                 let swap_amount = before_balance_a / ((i + 1) * SHRINK_MULTIPLIER);
-                do_swap(&stable_swap, &mut user_token_account_a, &mut user_token_account_b, &mut swap_reserve_account_a, &mut swap_reserve_account_b, false, swap_amount);
-                let after_balance = user_token_account_a.balance + user_token_account_b.balance;
+                t.swap_a_to_b(swap_amount);
+                let after_balance = t.user_token_balance_a + t.user_token_balance_b;
 
-                assert!(before_balance_a + before_balance_b >= after_balance, "before_a: {}, before_b: {}, after_a: {}, after_b: {}, swap: {:?}", before_balance_a, before_balance_b, user_token_account_a.balance, user_token_account_b.balance, stable_swap);
+                assert!(before_balance_a + before_balance_b >= after_balance, "before_a: {}, before_b: {}, after_a: {}, after_b: {}, swap: {:?}", before_balance_a, before_balance_b, t.user_token_balance_a, t.user_token_balance_b, stable_swap);
             }
         }
     }
 
     #[test]
     fn test_swaps_does_not_result_in_more_tokens_specific_one() {
-        const AMP_FACTOR: u64 = 488502;
-        const INITIAL_SWAP_TOKEN_AMOUNT: u64 = 100_000_000_000;
+        const AMP_FACTOR: u64 = 186512;
+        const INITIAL_SWAP_RESERVE_AMOUNT: u64 = 100_000_000_000;
         const INITIAL_USER_TOKEN_AMOUNT: u64 = 1_000_000_000;
-
-        let mut user_token_account_a = MockTokenAccount {
-            balance: INITIAL_USER_TOKEN_AMOUNT,
-        };
-        let mut user_token_account_b = MockTokenAccount {
-            balance: INITIAL_USER_TOKEN_AMOUNT,
-        };
-        let mut swap_reserve_account_a = MockTokenAccount {
-            balance: INITIAL_SWAP_TOKEN_AMOUNT,
-        };
-        let mut swap_reserve_account_b = MockTokenAccount {
-            balance: INITIAL_SWAP_TOKEN_AMOUNT,
-        };
 
         let stable_swap = StableSwap {
             initial_amp_factor: AMP_FACTOR,
@@ -913,153 +892,119 @@ mod tests {
             start_ramp_ts: ZERO_TS,
             stop_ramp_ts: ZERO_TS,
         };
-        do_swap(
-            &stable_swap,
-            &mut user_token_account_a,
-            &mut user_token_account_b,
-            &mut swap_reserve_account_a,
-            &mut swap_reserve_account_b,
-            true,
-            10681078,
-        );
-        do_swap(
-            &stable_swap,
-            &mut user_token_account_a,
-            &mut user_token_account_b,
-            &mut swap_reserve_account_a,
-            &mut swap_reserve_account_b,
-            true,
-            134937088,
-        );
 
-        assert!(
-            user_token_account_a.balance + user_token_account_b.balance
-                <= INITIAL_USER_TOKEN_AMOUNT * 2,
-        );
+        let mut t = SwapTest {
+            stable_swap: &stable_swap,
+            swap_reserve_balance_a: INITIAL_SWAP_RESERVE_AMOUNT,
+            swap_reserve_balance_b: INITIAL_SWAP_RESERVE_AMOUNT,
+            user_token_balance_a: INITIAL_USER_TOKEN_AMOUNT,
+            user_token_balance_b: INITIAL_USER_TOKEN_AMOUNT,
+        };
+
+        t.swap_b_to_a(33579101);
+        t.swap_a_to_b(134937088);
+        assert!(t.user_token_balance_a + t.user_token_balance_b <= INITIAL_USER_TOKEN_AMOUNT * 2,);
     }
 
-    #[test]
-    fn test_swaps_does_not_result_in_more_tokens_specific_two() {
-        const AMP_FACTOR: u64 = 260624;
-        const INITIAL_SWAP_TOKEN_AMOUNT: u64 = 100_000_000_000;
-        const INITIAL_USER_TOKEN_AMOUNT: u64 = 1_000_000_000;
+    // #[test]
+    // fn test_swaps_does_not_result_in_more_tokens_specific_two() {
+    //     const AMP_FACTOR: u64 = 260624;
+    //     const INITIAL_SWAP_TOKEN_AMOUNT: u64 = 100_000_000_000;
+    //     const INITIAL_USER_TOKEN_AMOUNT: u64 = 1_000_000_000;
 
-        let mut user_token_account_a = MockTokenAccount {
-            balance: INITIAL_USER_TOKEN_AMOUNT,
-        };
-        let mut user_token_account_b = MockTokenAccount {
-            balance: INITIAL_USER_TOKEN_AMOUNT,
-        };
-        let mut swap_reserve_account_a = MockTokenAccount {
-            balance: INITIAL_SWAP_TOKEN_AMOUNT,
-        };
-        let mut swap_reserve_account_b = MockTokenAccount {
-            balance: INITIAL_SWAP_TOKEN_AMOUNT,
-        };
+    //     let mut user_token_account_a = MockTokenAccount {
+    //         balance: INITIAL_USER_TOKEN_AMOUNT,
+    //     };
+    //     let mut user_token_account_b = MockTokenAccount {
+    //         balance: INITIAL_USER_TOKEN_AMOUNT,
+    //     };
+    //     let mut swap_reserve_account_a = MockTokenAccount {
+    //         balance: INITIAL_SWAP_TOKEN_AMOUNT,
+    //     };
+    //     let mut swap_reserve_account_b = MockTokenAccount {
+    //         balance: INITIAL_SWAP_TOKEN_AMOUNT,
+    //     };
 
-        let stable_swap = StableSwap {
-            initial_amp_factor: AMP_FACTOR,
-            target_amp_factor: AMP_FACTOR,
-            current_ts: ZERO_TS,
-            start_ramp_ts: ZERO_TS,
-            stop_ramp_ts: ZERO_TS,
-        };
-        do_swap(
-            &stable_swap,
-            &mut user_token_account_a,
-            &mut user_token_account_b,
-            &mut swap_reserve_account_a,
-            &mut swap_reserve_account_b,
-            false,
-            33579101,
-        );
-        do_swap(
-            &stable_swap,
-            &mut user_token_account_a,
-            &mut user_token_account_b,
-            &mut swap_reserve_account_a,
-            &mut swap_reserve_account_b,
-            true,
-            2097152,
-        );
+    //     let stable_swap = StableSwap {
+    //         initial_amp_factor: AMP_FACTOR,
+    //         target_amp_factor: AMP_FACTOR,
+    //         current_ts: ZERO_TS,
+    //         start_ramp_ts: ZERO_TS,
+    //         stop_ramp_ts: ZERO_TS,
+    //     };
 
-        assert!(
-            user_token_account_a.balance + user_token_account_b.balance
-                <= INITIAL_USER_TOKEN_AMOUNT * 2,
-        );
-    }
+    //     let t = SwapTest {
+    //         stable_swap: &stable_swap,
+    //         swap_reserve_account_a: &mut swap_reserve_account_a,
+    //         swap_reserve_account_b: &mut swap_reserve_account_b,
+    //         user_token_account_a: &mut user_token_account_a,
+    //         user_token_account_b: &mut user_token_account_b,
+    //     };
 
-    #[test]
-    fn test_swaps_does_not_result_in_more_tokens_specific_three() {
-        const AMP_FACTOR: u64 = 16215;
-        const INITIAL_SWAP_TOKEN_AMOUNT: u64 = 100_000_000_000;
-        const INITIAL_USER_TOKEN_AMOUNT: u64 = 1_000_000_000;
+    //     t.swap_b_to_a(33579101);
+    //     t.swap_a_to_b(2097152);
+    //     assert!(
+    //         user_token_account_a.balance + user_token_account_b.balance
+    //             <= INITIAL_USER_TOKEN_AMOUNT * 2,
+    //     );
+    // }
 
-        let mut user_token_account_a = MockTokenAccount {
-            balance: INITIAL_USER_TOKEN_AMOUNT,
-        };
-        let mut user_token_account_b = MockTokenAccount {
-            balance: INITIAL_USER_TOKEN_AMOUNT,
-        };
-        let mut swap_reserve_account_a = MockTokenAccount {
-            balance: INITIAL_SWAP_TOKEN_AMOUNT,
-        };
-        let mut swap_reserve_account_b = MockTokenAccount {
-            balance: INITIAL_SWAP_TOKEN_AMOUNT,
-        };
+    // #[test]
+    // fn test_swaps_does_not_result_in_more_tokens_specific_three() {
+    //     const AMP_FACTOR: u64 = 16215;
+    //     const INITIAL_SWAP_TOKEN_AMOUNT: u64 = 100_000_000_000;
+    //     const INITIAL_USER_TOKEN_AMOUNT: u64 = 1_000_000_000;
 
-        let stable_swap = StableSwap {
-            initial_amp_factor: AMP_FACTOR,
-            target_amp_factor: AMP_FACTOR,
-            current_ts: ZERO_TS,
-            start_ramp_ts: ZERO_TS,
-            stop_ramp_ts: ZERO_TS,
-        };
-        do_swap(
-            &stable_swap,
-            &mut user_token_account_a,
-            &mut user_token_account_b,
-            &mut swap_reserve_account_a,
-            &mut swap_reserve_account_b,
-            false,
-            788159744,
-        );
-        println!(
-            "a {:}, b {:}",
-            user_token_account_a.balance, user_token_account_b.balance
-        );
-        do_swap(
-            &stable_swap,
-            &mut user_token_account_a,
-            &mut user_token_account_b,
-            &mut swap_reserve_account_a,
-            &mut swap_reserve_account_b,
-            true,
-            1452,
-        );
-        println!(
-            "a {:}, b {:}",
-            user_token_account_a.balance, user_token_account_b.balance
-        );
-        do_swap(
-            &stable_swap,
-            &mut user_token_account_a,
-            &mut user_token_account_b,
-            &mut swap_reserve_account_a,
-            &mut swap_reserve_account_b,
-            true,
-            3145728,
-        );
-        println!(
-            "a {:}, b {:}",
-            user_token_account_a.balance, user_token_account_b.balance
-        );
+    //     let mut user_token_account_a = MockTokenAccount {
+    //         balance: INITIAL_USER_TOKEN_AMOUNT,
+    //     };
+    //     let mut user_token_account_b = MockTokenAccount {
+    //         balance: INITIAL_USER_TOKEN_AMOUNT,
+    //     };
+    //     let mut swap_reserve_account_a = MockTokenAccount {
+    //         balance: INITIAL_SWAP_TOKEN_AMOUNT,
+    //     };
+    //     let mut swap_reserve_account_b = MockTokenAccount {
+    //         balance: INITIAL_SWAP_TOKEN_AMOUNT,
+    //     };
 
-        assert!(
-            user_token_account_a.balance + user_token_account_b.balance
-                <= INITIAL_USER_TOKEN_AMOUNT * 2,
-        );
-    }
+    //     let stable_swap = StableSwap {
+    //         initial_amp_factor: AMP_FACTOR,
+    //         target_amp_factor: AMP_FACTOR,
+    //         current_ts: ZERO_TS,
+    //         start_ramp_ts: ZERO_TS,
+    //         stop_ramp_ts: ZERO_TS,
+    //     };
+
+    //     let mut t = SwapTest {
+    //         stable_swap: &stable_swap,
+    //         swap_reserve_account_a: &mut swap_reserve_account_a,
+    //         swap_reserve_account_b: &mut swap_reserve_account_b,
+    //         user_token_account_a: &mut user_token_account_a,
+    //         user_token_account_b: &mut user_token_account_b,
+    //     };
+
+    //     t.swap_b_to_a(788159744);
+    //     println!(
+    //         "a {:}, b {:}",
+    //         user_token_account_a.clone().balance,
+    //         &user_token_account_b.clone().balance
+    //     );
+    //     t.swap_a_to_b(1452);
+    //     println!(
+    //         "a {:}, b {:}",
+    //         user_token_account_a.balance, user_token_account_b.balance
+    //     );
+    //     t.swap_a_to_b(3145728);
+    //     println!(
+    //         "a {:}, b {:}",
+    //         user_token_account_a.balance, user_token_account_b.balance
+    //     );
+    //     assert!(
+    //         user_token_account_a.balance + user_token_account_b.balance
+    //             <= INITIAL_USER_TOKEN_AMOUNT * 2,
+    //     );
+    // }
 
     fn check_withdraw_one(
         initial_amp_factor: u64,

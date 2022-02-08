@@ -130,8 +130,8 @@ fn run_swap(
         println!("Current swap args: {:#?}", args);
     }
 
-    let initial_token_a_balance = get_token_balance(&token_a_account);
-    let initial_token_b_balance = get_token_balance(&token_b_account);
+    let initial_token_a_balance = get_token_balance(token_a_account);
+    let initial_token_b_balance = get_token_balance(token_b_account);
 
     let SwapArgs {
         trade_direction,
@@ -160,8 +160,8 @@ fn run_swap(
         ),
     };
 
-    let current_token_a_balance = get_token_balance(&token_a_account);
-    let current_token_b_balance = get_token_balance(&token_b_account);
+    let current_token_a_balance = get_token_balance(token_a_account);
+    let current_token_b_balance = get_token_balance(token_b_account);
     assert!(
         current_token_a_balance + current_token_b_balance
             <= initial_token_a_balance + initial_token_b_balance,

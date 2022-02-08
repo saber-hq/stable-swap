@@ -64,8 +64,8 @@ fn run_swaps(argv: Vec<SwapArgs>) {
     let admin_trade_fee_denominator = 10000;
     let admin_withdraw_fee_numerator = 0;
     let admin_withdraw_fee_denominator = 10000;
-    let trade_fee_numerator = 0;
-    let trade_fee_denominator = 10000;
+    let trade_fee_numerator = 4;
+    let trade_fee_denominator = 1000;
     let withdraw_fee_numerator = 0;
     let withdraw_fee_denominator = 10000;
     let fees = Fees {
@@ -94,7 +94,7 @@ fn run_swaps(argv: Vec<SwapArgs>) {
         stable_swap.create_token_b_account(user_account.clone(), INITIAL_USER_TOKEN_B_AMOUNT);
 
     let before_user_token_a = INITIAL_USER_TOKEN_A_AMOUNT;
-    let before_user_token_b = INITIAL_SWAP_TOKEN_B_AMOUNT;
+    let before_user_token_b = INITIAL_USER_TOKEN_B_AMOUNT;
 
     for args in argv {
         run_swap(

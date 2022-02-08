@@ -881,9 +881,9 @@ mod tests {
 
     #[test]
     fn test_swaps_does_not_result_in_more_tokens_specific_one() {
-        const AMP_FACTOR: u64 = 186512;
+        const AMP_FACTOR: u64 = 324449;
         const INITIAL_SWAP_RESERVE_AMOUNT: u64 = 100_000_000_000;
-        const INITIAL_USER_TOKEN_AMOUNT: u64 = 1_000_000_000;
+        const INITIAL_USER_TOKEN_AMOUNT: u64 = 10_000_000_000;
 
         let stable_swap = StableSwap {
             initial_amp_factor: AMP_FACTOR,
@@ -901,8 +901,9 @@ mod tests {
             user_token_balance_b: INITIAL_USER_TOKEN_AMOUNT,
         };
 
-        t.swap_b_to_a(33579101);
-        t.swap_a_to_b(134937088);
+        t.swap_a_to_b(2097152);
+        t.swap_a_to_b(8053063680);
+        t.swap_a_to_b(48);
         assert!(t.user_token_balance_a + t.user_token_balance_b <= INITIAL_USER_TOKEN_AMOUNT * 2);
     }
 

@@ -906,105 +906,32 @@ mod tests {
         assert!(t.user_token_balance_a + t.user_token_balance_b <= INITIAL_USER_TOKEN_AMOUNT * 2,);
     }
 
-    // #[test]
-    // fn test_swaps_does_not_result_in_more_tokens_specific_two() {
-    //     const AMP_FACTOR: u64 = 260624;
-    //     const INITIAL_SWAP_TOKEN_AMOUNT: u64 = 100_000_000_000;
-    //     const INITIAL_USER_TOKEN_AMOUNT: u64 = 1_000_000_000;
+    #[test]
+    fn test_swaps_does_not_result_in_more_tokens_specific_two() {
+        const AMP_FACTOR: u64 = 186512;
+        const INITIAL_SWAP_RESERVE_AMOUNT: u64 = 100_000_000_000;
+        const INITIAL_USER_TOKEN_AMOUNT: u64 = 1_000_000_000;
 
-    //     let mut user_token_account_a = MockTokenAccount {
-    //         balance: INITIAL_USER_TOKEN_AMOUNT,
-    //     };
-    //     let mut user_token_account_b = MockTokenAccount {
-    //         balance: INITIAL_USER_TOKEN_AMOUNT,
-    //     };
-    //     let mut swap_reserve_account_a = MockTokenAccount {
-    //         balance: INITIAL_SWAP_TOKEN_AMOUNT,
-    //     };
-    //     let mut swap_reserve_account_b = MockTokenAccount {
-    //         balance: INITIAL_SWAP_TOKEN_AMOUNT,
-    //     };
+        let stable_swap = StableSwap {
+            initial_amp_factor: AMP_FACTOR,
+            target_amp_factor: AMP_FACTOR,
+            current_ts: ZERO_TS,
+            start_ramp_ts: ZERO_TS,
+            stop_ramp_ts: ZERO_TS,
+        };
 
-    //     let stable_swap = StableSwap {
-    //         initial_amp_factor: AMP_FACTOR,
-    //         target_amp_factor: AMP_FACTOR,
-    //         current_ts: ZERO_TS,
-    //         start_ramp_ts: ZERO_TS,
-    //         stop_ramp_ts: ZERO_TS,
-    //     };
+        let mut t = SwapTest {
+            stable_swap: &stable_swap,
+            swap_reserve_balance_a: INITIAL_SWAP_RESERVE_AMOUNT,
+            swap_reserve_balance_b: INITIAL_SWAP_RESERVE_AMOUNT,
+            user_token_balance_a: INITIAL_USER_TOKEN_AMOUNT,
+            user_token_balance_b: INITIAL_USER_TOKEN_AMOUNT,
+        };
 
-    //     let t = SwapTest {
-    //         stable_swap: &stable_swap,
-    //         swap_reserve_account_a: &mut swap_reserve_account_a,
-    //         swap_reserve_account_b: &mut swap_reserve_account_b,
-    //         user_token_account_a: &mut user_token_account_a,
-    //         user_token_account_b: &mut user_token_account_b,
-    //     };
-
-    //     t.swap_b_to_a(33579101);
-    //     t.swap_a_to_b(2097152);
-    //     assert!(
-    //         user_token_account_a.balance + user_token_account_b.balance
-    //             <= INITIAL_USER_TOKEN_AMOUNT * 2,
-    //     );
-    // }
-
-    // #[test]
-    // fn test_swaps_does_not_result_in_more_tokens_specific_three() {
-    //     const AMP_FACTOR: u64 = 16215;
-    //     const INITIAL_SWAP_TOKEN_AMOUNT: u64 = 100_000_000_000;
-    //     const INITIAL_USER_TOKEN_AMOUNT: u64 = 1_000_000_000;
-
-    //     let mut user_token_account_a = MockTokenAccount {
-    //         balance: INITIAL_USER_TOKEN_AMOUNT,
-    //     };
-    //     let mut user_token_account_b = MockTokenAccount {
-    //         balance: INITIAL_USER_TOKEN_AMOUNT,
-    //     };
-    //     let mut swap_reserve_account_a = MockTokenAccount {
-    //         balance: INITIAL_SWAP_TOKEN_AMOUNT,
-    //     };
-    //     let mut swap_reserve_account_b = MockTokenAccount {
-    //         balance: INITIAL_SWAP_TOKEN_AMOUNT,
-    //     };
-
-    //     let stable_swap = StableSwap {
-    //         initial_amp_factor: AMP_FACTOR,
-    //         target_amp_factor: AMP_FACTOR,
-    //         current_ts: ZERO_TS,
-    //         start_ramp_ts: ZERO_TS,
-    //         stop_ramp_ts: ZERO_TS,
-    //     };
-
-    //     let mut t = SwapTest {
-    //         stable_swap: &stable_swap,
-    //         swap_reserve_account_a: &mut swap_reserve_account_a,
-    //         swap_reserve_account_b: &mut swap_reserve_account_b,
-    //         user_token_account_a: &mut user_token_account_a,
-    //         user_token_account_b: &mut user_token_account_b,
-    //     };
-
-    //     t.swap_b_to_a(788159744);
-    //     println!(
-    //         "a {:}, b {:}",
-    //         user_token_account_a.clone().balance,
-    //         &user_token_account_b.clone().balance
-    //     );
-    //     t.swap_a_to_b(1452);
-    //     println!(
-    //         "a {:}, b {:}",
-    //         user_token_account_a.balance, user_token_account_b.balance
-    //     );
-    //     t.swap_a_to_b(3145728);
-    //     println!(
-    //         "a {:}, b {:}",
-    //         user_token_account_a.balance, user_token_account_b.balance
-    //     );
-    //     assert!(
-    //         user_token_account_a.balance + user_token_account_b.balance
-    //             <= INITIAL_USER_TOKEN_AMOUNT * 2,
-    //     );
-    // }
+        t.swap_b_to_a(33579101);
+        t.swap_a_to_b(2097152);
+        assert!(t.user_token_balance_a + t.user_token_balance_b <= INITIAL_USER_TOKEN_AMOUNT * 2);
+    }
 
     fn check_withdraw_one(
         initial_amp_factor: u64,

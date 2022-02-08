@@ -1,0 +1,7 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc b340c86fe850c5795a66fd7ba1f606ecedb37fd819b16176c8bf0ed8c5c82eee # shrinks to current_ts = 0, amp_factor = 1, deposit_amount_a = 1080629387744087693, deposit_amount_b = 511085650789627788, swap_token_a_amount = 20266855739835941, swap_token_b_amount = 32097373911537805, pool_token_supply = 598173393203946206

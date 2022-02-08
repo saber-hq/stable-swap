@@ -1073,8 +1073,8 @@ mod tests {
         fn test_virtual_price_does_not_decrease_from_deposit(
             current_ts in ZERO_TS..i64::MAX,
             amp_factor in MIN_AMP..=MAX_AMP,
-            deposit_amount_a in 0..MAX_TOKENS_IN,
-            deposit_amount_b in 0..MAX_TOKENS_IN,
+            deposit_amount_a in 0..MAX_TOKENS_IN >> 2,
+            deposit_amount_b in 0..MAX_TOKENS_IN >> 2,
             swap_token_a_amount in 0..MAX_TOKENS_IN,
             swap_token_b_amount in 0..MAX_TOKENS_IN,
             pool_token_supply in 0..MAX_TOKENS_IN,

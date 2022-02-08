@@ -138,20 +138,25 @@ fn run_swap(
         instruction_data,
     } = args;
 
+    let ix_data_with_slippage_override = SwapData {
+        amount_in: instruction_data.amount_in,
+        minimum_amount_out: 0,
+    };
+
     let result = match trade_direction {
         TradeDirection::AtoB => stable_swap.swap_a_to_b(
             Utc::now().timestamp(),
             user_account,
             token_a_account,
             token_b_account,
-            *instruction_data,
+            ix_data_with_slippage_override,
         ),
         TradeDirection::BtoA => stable_swap.swap_b_to_a(
             Utc::now().timestamp(),
             user_account,
             token_a_account,
             token_b_account,
-            *instruction_data,
+            ix_data_with_slippage_override,
         ),
     };
 
@@ -167,7 +172,6 @@ fn run_swap(
     result
         .map_err(|e| {
             if !(e == SwapError::CalculationFailure.into()
-                || e == SwapError::ExceededSlippage.into()
                 || e == TokenError::InsufficientFunds.into())
             {
                 println!("{:?}", e);

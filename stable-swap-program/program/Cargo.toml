@@ -21,7 +21,7 @@ stable-swap-client = { path = "../../stable-swap-client", version = "^1" }
 stable-swap-math = { path = "../../stable-swap-math", version = "^1" }
 
 [dev-dependencies]
-solana-sdk = "^1.9.5"
+solana-sdk = "^1.9.8"
 
 [lib]
 name = "stable_swap"

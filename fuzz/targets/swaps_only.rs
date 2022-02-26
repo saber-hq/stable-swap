@@ -64,7 +64,7 @@ fn run_swaps(argv: Vec<SwapArgs>) {
     let admin_trade_fee_denominator = 10000;
     let admin_withdraw_fee_numerator = 0;
     let admin_withdraw_fee_denominator = 10000;
-    let trade_fee_numerator = 4;
+    let trade_fee_numerator = 0;
     let trade_fee_denominator = 1000;
     let withdraw_fee_numerator = 0;
     let withdraw_fee_denominator = 10000;
@@ -130,9 +130,6 @@ fn run_swap(
         println!("Current swap args: {:#?}", args);
     }
 
-    let initial_token_a_balance = get_token_balance(token_a_account);
-    let initial_token_b_balance = get_token_balance(token_b_account);
-
     let SwapArgs {
         trade_direction,
         instruction_data,
@@ -159,15 +156,6 @@ fn run_swap(
             ix_data_with_slippage_override,
         ),
     };
-
-    let current_token_a_balance = get_token_balance(token_a_account);
-    let current_token_b_balance = get_token_balance(token_b_account);
-    assert!(
-        current_token_a_balance + current_token_b_balance
-            <= initial_token_a_balance + initial_token_b_balance,
-        "initial_token_a_balance: {}, initial_token_b_balacne:{}, current_token_a_balance: {}, current_token_b_balance: {}",
-        initial_token_a_balance, initial_token_b_balance, current_token_a_balance, current_token_b_balance
-    );
 
     result
         .map_err(|e| {

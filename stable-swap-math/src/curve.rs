@@ -377,7 +377,8 @@ impl StableSwap {
             swap_source_amount.checked_add(source_amount)?,
             self.compute_d(swap_source_amount, swap_destination_amount)?,
         )?;
-        let dy = swap_destination_amount.checked_sub(y)?;
+        // https://github.com/curvefi/curve-contract/blob/b0bbf77f8f93c9c5f4e415bce9cd71f0cdee960e/contracts/pool-templates/base/SwapTemplateBase.vy#L466
+        let dy = swap_destination_amount.checked_sub(y)?.checked_sub(1)?;
         let dy_fee = fees.trade_fee(dy)?;
         let admin_fee = fees.admin_trade_fee(dy_fee)?;
 
@@ -411,6 +412,16 @@ mod tests {
     use sim::{Model, MODEL_FEE_DENOMINATOR, MODEL_FEE_NUMERATOR};
     use std::cmp;
 
+    const ZERO_FEES: Fees = Fees {
+        admin_trade_fee_numerator: 0,
+        admin_trade_fee_denominator: 1000,
+        admin_withdraw_fee_numerator: 0,
+        admin_withdraw_fee_denominator: 1000,
+        trade_fee_numerator: 0,
+        trade_fee_denominator: 1000,
+        withdraw_fee_numerator: 0,
+        withdraw_fee_denominator: 1000,
+    };
     const MODEL_FEES: Fees = Fees {
         admin_trade_fee_numerator: 0,
         admin_trade_fee_denominator: 1,
@@ -530,7 +541,7 @@ mod tests {
         #[test]
         fn test_curve_math(
             current_ts in ZERO_TS..i64::MAX,
-            amp_factor in MIN_AMP..MAX_AMP,
+            amp_factor in MIN_AMP..=MAX_AMP,
             amount_a in 1..MAX_TOKENS_IN,    // Start at 1 to prevent divide by 0 when computing d
             amount_b in 1..MAX_TOKENS_IN,    // Start at 1 to prevent divide by 0 when computing d
         ) {
@@ -689,9 +700,19 @@ mod tests {
             N_COINS,
         );
 
-        assert_eq!(
-            result.amount_swapped,
-            model.sim_exchange(0, 1, source_amount.into())
+        let expected_amount_swapped = model.sim_exchange(0, 1, source_amount.into());
+        let diff = (expected_amount_swapped as i128 - result.amount_swapped as i128).abs();
+        let tolerance = std::cmp::max(1, expected_amount_swapped as i128 / 1_000_000_000);
+        assert!(
+            diff <= tolerance,
+            "result={:?}, expected_amount_swapped={}, amp={}, source_amount={}, swap_source_amount={}, swap_destination_amount={}, diff={}",
+            result,
+            expected_amount_swapped,
+            swap.compute_amp_factor().unwrap(),
+            source_amount,
+            swap_source_amount,
+            swap_destination_amount,
+            diff
         );
         assert_eq!(result.new_source_amount, swap_source_amount + source_amount);
         assert_eq!(
@@ -704,7 +725,7 @@ mod tests {
         #[test]
         fn test_swap_calculation(
             current_ts in ZERO_TS..i64::MAX,
-            amp_factor in MIN_AMP..MAX_AMP,
+            amp_factor in MIN_AMP..=MAX_AMP,
             source_amount in 0..MAX_TOKENS_IN,
             swap_source_amount in 0..MAX_TOKENS_IN,
             swap_destination_amount in 0..MAX_TOKENS_IN,
@@ -760,6 +781,187 @@ mod tests {
         }
     }
 
+    #[derive(Debug)]
+    struct SwapTest<'a> {
+        pub stable_swap: &'a StableSwap,
+        pub swap_reserve_balance_a: u64,
+        pub swap_reserve_balance_b: u64,
+        pub user_token_balance_a: u64,
+        pub user_token_balance_b: u64,
+    }
+
+    impl SwapTest<'_> {
+        pub fn swap_a_to_b(&mut self, swap_amount: u64) {
+            self.do_swap(true, swap_amount)
+        }
+
+        pub fn swap_b_to_a(&mut self, swap_amount: u64) {
+            self.do_swap(false, swap_amount)
+        }
+
+        fn do_swap(&mut self, swap_a_to_b: bool, source_amount: u64) {
+            let (swap_source_amount, swap_dest_amount) = match swap_a_to_b {
+                true => (self.swap_reserve_balance_a, self.swap_reserve_balance_b),
+                false => (self.swap_reserve_balance_b, self.swap_reserve_balance_a),
+            };
+
+            let SwapResult {
+                new_source_amount,
+                new_destination_amount,
+                amount_swapped,
+                ..
+            } = self
+                .stable_swap
+                .swap_to(
+                    source_amount,
+                    swap_source_amount,
+                    swap_dest_amount,
+                    &ZERO_FEES,
+                )
+                .unwrap();
+
+            match swap_a_to_b {
+                true => {
+                    self.swap_reserve_balance_a = new_source_amount;
+                    self.swap_reserve_balance_b = new_destination_amount;
+                    self.user_token_balance_a -= source_amount;
+                    self.user_token_balance_b += amount_swapped;
+                }
+                false => {
+                    self.swap_reserve_balance_a = new_destination_amount;
+                    self.swap_reserve_balance_b = new_source_amount;
+                    self.user_token_balance_a += amount_swapped;
+                    self.user_token_balance_b -= source_amount;
+                }
+            }
+        }
+    }
+
+    proptest! {
+        #[test]
+        fn test_swaps_does_not_result_in_more_tokens(
+            amp_factor in MIN_AMP..=MAX_AMP,
+            initial_user_token_a_amount in 10_000_000..MAX_TOKENS_IN >> 16,
+            initial_user_token_b_amount in 10_000_000..MAX_TOKENS_IN >> 16,
+        ) {
+
+            let stable_swap = StableSwap {
+                initial_amp_factor: amp_factor,
+                target_amp_factor: amp_factor,
+                current_ts: ZERO_TS,
+                start_ramp_ts: ZERO_TS,
+                stop_ramp_ts: ZERO_TS
+            };
+            let mut t = SwapTest { stable_swap: &stable_swap, swap_reserve_balance_a: MAX_TOKENS_IN, swap_reserve_balance_b: MAX_TOKENS_IN, user_token_balance_a: initial_user_token_a_amount, user_token_balance_b: initial_user_token_b_amount };
+
+            const ITERATIONS: u64 = 100;
+            const SHRINK_MULTIPLIER: u64= 10;
+
+            for i in 0..ITERATIONS {
+                let before_balance_a = t.user_token_balance_a;
+                let before_balance_b = t.user_token_balance_b;
+                let swap_amount = before_balance_a / ((i + 1) * SHRINK_MULTIPLIER);
+                t.swap_a_to_b(swap_amount);
+                let after_balance = t.user_token_balance_a + t.user_token_balance_b;
+
+                assert!(before_balance_a + before_balance_b >= after_balance, "before_a: {}, before_b: {}, after_a: {}, after_b: {}, swap: {:?}", before_balance_a, before_balance_b, t.user_token_balance_a, t.user_token_balance_b, stable_swap);
+            }
+
+            for i in 0..ITERATIONS {
+                let before_balance_a = t.user_token_balance_a;
+                let before_balance_b = t.user_token_balance_b;
+                let swap_amount = before_balance_a / ((i + 1) * SHRINK_MULTIPLIER);
+                t.swap_a_to_b(swap_amount);
+                let after_balance = t.user_token_balance_a + t.user_token_balance_b;
+
+                assert!(before_balance_a + before_balance_b >= after_balance, "before_a: {}, before_b: {}, after_a: {}, after_b: {}, swap: {:?}", before_balance_a, before_balance_b, t.user_token_balance_a, t.user_token_balance_b, stable_swap);
+            }
+        }
+    }
+
+    #[test]
+    fn test_swaps_does_not_result_in_more_tokens_specific_one() {
+        const AMP_FACTOR: u64 = 324449;
+        const INITIAL_SWAP_RESERVE_AMOUNT: u64 = 100_000_000_000;
+        const INITIAL_USER_TOKEN_AMOUNT: u64 = 10_000_000_000;
+
+        let stable_swap = StableSwap {
+            initial_amp_factor: AMP_FACTOR,
+            target_amp_factor: AMP_FACTOR,
+            current_ts: ZERO_TS,
+            start_ramp_ts: ZERO_TS,
+            stop_ramp_ts: ZERO_TS,
+        };
+
+        let mut t = SwapTest {
+            stable_swap: &stable_swap,
+            swap_reserve_balance_a: INITIAL_SWAP_RESERVE_AMOUNT,
+            swap_reserve_balance_b: INITIAL_SWAP_RESERVE_AMOUNT,
+            user_token_balance_a: INITIAL_USER_TOKEN_AMOUNT,
+            user_token_balance_b: INITIAL_USER_TOKEN_AMOUNT,
+        };
+
+        t.swap_a_to_b(2097152);
+        t.swap_a_to_b(8053063680);
+        t.swap_a_to_b(48);
+        assert!(t.user_token_balance_a + t.user_token_balance_b <= INITIAL_USER_TOKEN_AMOUNT * 2);
+    }
+
+    #[test]
+    fn test_swaps_does_not_result_in_more_tokens_specific_two() {
+        const AMP_FACTOR: u64 = 186512;
+        const INITIAL_SWAP_RESERVE_AMOUNT: u64 = 100_000_000_000;
+        const INITIAL_USER_TOKEN_AMOUNT: u64 = 1_000_000_000;
+
+        let stable_swap = StableSwap {
+            initial_amp_factor: AMP_FACTOR,
+            target_amp_factor: AMP_FACTOR,
+            current_ts: ZERO_TS,
+            start_ramp_ts: ZERO_TS,
+            stop_ramp_ts: ZERO_TS,
+        };
+
+        let mut t = SwapTest {
+            stable_swap: &stable_swap,
+            swap_reserve_balance_a: INITIAL_SWAP_RESERVE_AMOUNT,
+            swap_reserve_balance_b: INITIAL_SWAP_RESERVE_AMOUNT,
+            user_token_balance_a: INITIAL_USER_TOKEN_AMOUNT,
+            user_token_balance_b: INITIAL_USER_TOKEN_AMOUNT,
+        };
+
+        t.swap_b_to_a(33579101);
+        t.swap_a_to_b(2097152);
+        assert!(t.user_token_balance_a + t.user_token_balance_b <= INITIAL_USER_TOKEN_AMOUNT * 2);
+    }
+
+    #[test]
+    fn test_swaps_does_not_result_in_more_tokens_specific_three() {
+        const AMP_FACTOR: u64 = 1220;
+        const INITIAL_SWAP_RESERVE_AMOUNT: u64 = 100_000_000_000;
+        const INITIAL_USER_TOKEN_AMOUNT: u64 = 1_000_000_000;
+
+        let stable_swap = StableSwap {
+            initial_amp_factor: AMP_FACTOR,
+            target_amp_factor: AMP_FACTOR,
+            current_ts: ZERO_TS,
+            start_ramp_ts: ZERO_TS,
+            stop_ramp_ts: ZERO_TS,
+        };
+
+        let mut t = SwapTest {
+            stable_swap: &stable_swap,
+            swap_reserve_balance_a: INITIAL_SWAP_RESERVE_AMOUNT,
+            swap_reserve_balance_b: INITIAL_SWAP_RESERVE_AMOUNT,
+            user_token_balance_a: INITIAL_USER_TOKEN_AMOUNT,
+            user_token_balance_b: INITIAL_USER_TOKEN_AMOUNT,
+        };
+
+        t.swap_b_to_a(65535);
+        t.swap_b_to_a(6133503);
+        t.swap_a_to_b(65535);
+        assert!(t.user_token_balance_a + t.user_token_balance_b <= INITIAL_USER_TOKEN_AMOUNT * 2);
+    }
+
     fn check_withdraw_one(
         initial_amp_factor: u64,
         target_amp_factor: u64,
@@ -807,7 +1009,7 @@ mod tests {
         #[test]
         fn test_compute_withdraw_one(
             current_ts in ZERO_TS..i64::MAX,
-            amp_factor in MIN_AMP..MAX_AMP,
+            amp_factor in MIN_AMP..=MAX_AMP,
             pool_token_amount in 1..MAX_TOKENS_IN / 2,
             swap_base_amount in 1..MAX_TOKENS_IN / 2,
             swap_quote_amount in 1..MAX_TOKENS_IN / 2,
@@ -871,9 +1073,9 @@ mod tests {
         #[test]
         fn test_virtual_price_does_not_decrease_from_deposit(
             current_ts in ZERO_TS..i64::MAX,
-            amp_factor in MIN_AMP..MAX_AMP,
-            deposit_amount_a in 0..MAX_TOKENS_IN,
-            deposit_amount_b in 0..MAX_TOKENS_IN,
+            amp_factor in MIN_AMP..=MAX_AMP,
+            deposit_amount_a in 0..MAX_TOKENS_IN >> 2,
+            deposit_amount_b in 0..MAX_TOKENS_IN >> 2,
             swap_token_a_amount in 0..MAX_TOKENS_IN,
             swap_token_b_amount in 0..MAX_TOKENS_IN,
             pool_token_supply in 0..MAX_TOKENS_IN,
@@ -913,7 +1115,7 @@ mod tests {
         #[test]
         fn test_virtual_price_does_not_decrease_from_swap(
             current_ts in ZERO_TS..i64::MAX,
-            amp_factor in MIN_AMP..MAX_AMP,
+            amp_factor in MIN_AMP..=MAX_AMP,
             source_token_amount in 0..MAX_TOKENS_IN,
             swap_source_amount in 0..MAX_TOKENS_IN,
             swap_destination_amount in 0..MAX_TOKENS_IN,
@@ -941,7 +1143,7 @@ mod tests {
         #[test]
         fn test_virtual_price_does_not_decrease_from_withdraw(
             current_ts in ZERO_TS..i64::MAX,
-            amp_factor in MIN_AMP..MAX_AMP,
+            amp_factor in MIN_AMP..=MAX_AMP,
             (pool_token_supply, pool_token_amount) in total_and_intermediate(),
             swap_token_a_amount in 0..MAX_TOKENS_IN,
             swap_token_b_amount in 0..MAX_TOKENS_IN,

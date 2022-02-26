@@ -122,34 +122,35 @@ jobs:
         working-directory: stable-swap-program
         run: nix shell ../#ci --command ./do.sh e2e-test
 
-  fuzz:
-    runs-on: ubuntu-latest
+  ## FIXME(michael): ERROR: no interesting inputs were found. Is the code instrumented for coverage? Exiting.
+  ## fuzz:
+  ##   runs-on: ubuntu-latest
 
-    steps:
-      - uses: actions/checkout@v2
-      # Install Rust
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          override: true
-          profile: minimal
-          toolchain: nightly-2022-02-01
-      - name: Cache dependencies
-        uses: Swatinem/rust-cache@v1
+  ##   steps:
+  ##     - uses: actions/checkout@v2
+  ##     # Install Rust
+  ##     - name: Install Rust
+  ##       uses: actions-rs/toolchain@v1
+  ##       with:
+  ##         override: true
+  ##         profile: minimal
+  ##         toolchain: nightly-2022-02-01
+  ##     - name: Cache dependencies
+  ##       uses: Swatinem/rust-cache@v1
 
-      # Install Cachix
-      - uses: cachix/install-nix-action@v16
-      - name: Setup Cachix
-        uses: cachix/cachix-action@v10
-        with:
-          name: saber
-          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+  ##     # Install Cachix
+  ##     - uses: cachix/install-nix-action@v16
+  ##     - name: Setup Cachix
+  ##       uses: cachix/cachix-action@v10
+  ##       with:
+  ##         name: saber
+  ##         authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
 
-      - name: Build
-        run: nix shell .#ci --command cargo fuzz build --dev fuzz_test
-        env:
-          RUSTFLAGS: "-Znew-llvm-pass-manager=no"
-      - name: Run fuzz test
-        run: nix shell .#ci --command cargo fuzz run --dev fuzz_test -- -max_total_time=180
-        env:
-          RUSTFLAGS: "-Znew-llvm-pass-manager=no"
+  ##     - name: Build
+  ##       run: nix shell .#ci --command cargo fuzz build --dev fuzz_test
+  ##       env:
+  ##         RUSTFLAGS: "-Znew-llvm-pass-manager=no"
+  ##     - name: Run fuzz test
+  ##       run: nix shell .#ci --command cargo fuzz run --dev fuzz_test -- -max_total_time=180
+  ##       env:
+  ##         RUSTFLAGS: "-Znew-llvm-pass-manager=no"

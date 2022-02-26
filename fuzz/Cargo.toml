@@ -16,7 +16,7 @@ cargo-fuzz = true
 name = "fuzz"
 
 [dependencies]
-arbitrary = "1.0.0"
+arbitrary = "1.1.0"
 chrono = "0.4"
 lazy_static = "1.4.0"
 libfuzzer-sys = "0.4.0"

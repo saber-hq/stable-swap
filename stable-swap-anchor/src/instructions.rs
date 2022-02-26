@@ -17,7 +17,7 @@ pub fn initialize<'a, 'b, 'c, 'info>(
     nonce: u8,
     amp_factor: u64,
     fees: stable_swap_client::fees::Fees,
-) -> ProgramResult {
+) -> Result<()> {
     let ix = stable_swap_client::instruction::initialize(
         // token program ID is verified by the stable swap program
         ctx.accounts.token_program.key,
@@ -54,7 +54,8 @@ pub fn initialize<'a, 'b, 'c, 'info>(
             ctx.accounts.token_program,
         ],
         ctx.signer_seeds,
-    )
+    )?;
+    Ok(())
 }
 
 /// Creates and invokes a [stable_swap_client::instruction::deposit] instruction.
@@ -71,7 +72,7 @@ pub fn deposit<'a, 'b, 'c, 'info>(
     token_a_amount: u64,
     token_b_amount: u64,
     min_mint_amount: u64,
-) -> ProgramResult {
+) -> Result<()> {
     let ix = stable_swap_client::instruction::deposit(
         // token program ID is verified by the stable swap program
         ctx.accounts.user.token_program.key,
@@ -105,7 +106,8 @@ pub fn deposit<'a, 'b, 'c, 'info>(
             ctx.accounts.output_lp,
         ],
         ctx.signer_seeds,
-    )
+    )?;
+    Ok(())
 }
 
 /// Creates and invokes a [stable_swap_client::instruction::swap] instruction.
@@ -120,7 +122,7 @@ pub fn swap<'a, 'b, 'c, 'info>(
     ctx: CpiContext<'a, 'b, 'c, 'info, Swap<'info>>,
     amount_in: u64,
     minimum_amount_out: u64,
-) -> ProgramResult {
+) -> Result<()> {
     let ix = stable_swap_client::instruction::swap(
         ctx.accounts.user.token_program.key,
         ctx.accounts.user.swap.key,
@@ -150,7 +152,8 @@ pub fn swap<'a, 'b, 'c, 'info>(
             ctx.accounts.output.fees,
         ],
         ctx.signer_seeds,
-    )
+    )?;
+    Ok(())
 }
 
 /// Creates and invokes a [stable_swap_client::instruction::withdraw_one] instruction.
@@ -165,7 +168,7 @@ pub fn withdraw_one<'a, 'b, 'c, 'info>(
     ctx: CpiContext<'a, 'b, 'c, 'info, WithdrawOne<'info>>,
     pool_token_amount: u64,
     minimum_token_amount: u64,
-) -> ProgramResult {
+) -> Result<()> {
     let ix = stable_swap_client::instruction::withdraw_one(
         ctx.accounts.user.token_program.key,
         ctx.accounts.user.swap.key,
@@ -197,7 +200,8 @@ pub fn withdraw_one<'a, 'b, 'c, 'info>(
             ctx.accounts.output.fees,
         ],
         ctx.signer_seeds,
-    )
+    )?;
+    Ok(())
 }
 
 /// Creates and invokes a [stable_swap_client::instruction::withdraw] instruction.
@@ -214,7 +218,7 @@ pub fn withdraw<'a, 'b, 'c, 'info>(
     pool_token_amount: u64,
     minimum_token_a_amount: u64,
     minimum_token_b_amount: u64,
-) -> ProgramResult {
+) -> Result<()> {
     let ix = stable_swap_client::instruction::withdraw(
         // token program ID is verified by the stable swap program
         ctx.accounts.user.token_program.key,
@@ -234,7 +238,8 @@ pub fn withdraw<'a, 'b, 'c, 'info>(
         minimum_token_a_amount,
         minimum_token_b_amount,
     )?;
-    solana_program::program::invoke_signed(&ix, &ctx.to_account_infos(), ctx.signer_seeds)
+    solana_program::program::invoke_signed(&ix, &ctx.to_account_infos(), ctx.signer_seeds)?;
+    Ok(())
 }
 
 /// Creates and invokes a [stable_swap_client::instruction::ramp_a] instruction.
@@ -249,53 +254,58 @@ pub fn ramp_a<'a, 'b, 'c, 'info>(
     ctx: CpiContext<'a, 'b, 'c, 'info, AdminUserContext<'info>>,
     target_amp: u64,
     stop_ramp_ts: i64,
-) -> ProgramResult {
+) -> Result<()> {
     let ix = stable_swap_client::instruction::ramp_a(
         ctx.accounts.swap.key,
         ctx.accounts.admin.key,
         target_amp,
         stop_ramp_ts,
     )?;
-    solana_program::program::invoke_signed(&ix, &ctx.to_account_infos(), ctx.signer_seeds)
+    solana_program::program::invoke_signed(&ix, &ctx.to_account_infos(), ctx.signer_seeds)?;
+    Ok(())
 }
 
 /// Creates and invokes a [stable_swap_client::instruction::stop_ramp_a] instruction.
 pub fn stop_ramp_a<'a, 'b, 'c, 'info>(
     ctx: CpiContext<'a, 'b, 'c, 'info, AdminUserContext<'info>>,
-) -> ProgramResult {
+) -> Result<()> {
     let ix = stable_swap_client::instruction::stop_ramp_a(
         ctx.accounts.swap.key,
         ctx.accounts.admin.key,
     )?;
-    solana_program::program::invoke_signed(&ix, &ctx.to_account_infos(), ctx.signer_seeds)
+    solana_program::program::invoke_signed(&ix, &ctx.to_account_infos(), ctx.signer_seeds)?;
+    Ok(())
 }
 
 /// Creates and invokes a [stable_swap_client::instruction::pause] instruction.
 pub fn pause<'a, 'b, 'c, 'info>(
     ctx: CpiContext<'a, 'b, 'c, 'info, AdminUserContext<'info>>,
-) -> ProgramResult {
+) -> Result<()> {
     let ix = stable_swap_client::instruction::pause(ctx.accounts.swap.key, ctx.accounts.admin.key)?;
-    solana_program::program::invoke_signed(&ix, &ctx.to_account_infos(), ctx.signer_seeds)
+    solana_program::program::invoke_signed(&ix, &ctx.to_account_infos(), ctx.signer_seeds)?;
+    Ok(())
 }
 
 /// Creates and invokes a [stable_swap_client::instruction::unpause] instruction.
 pub fn unpause<'a, 'b, 'c, 'info>(
     ctx: CpiContext<'a, 'b, 'c, 'info, AdminUserContext<'info>>,
-) -> ProgramResult {
+) -> Result<()> {
     let ix =
         stable_swap_client::instruction::unpause(ctx.accounts.swap.key, ctx.accounts.admin.key)?;
-    solana_program::program::invoke_signed(&ix, &ctx.to_account_infos(), ctx.signer_seeds)
+    solana_program::program::invoke_signed(&ix, &ctx.to_account_infos(), ctx.signer_seeds)?;
+    Ok(())
 }
 
 /// Creates and invokes a [stable_swap_client::instruction::apply_new_admin] instruction.
 pub fn apply_new_admin<'a, 'b, 'c, 'info>(
     ctx: CpiContext<'a, 'b, 'c, 'info, AdminUserContext<'info>>,
-) -> ProgramResult {
+) -> Result<()> {
     let ix = stable_swap_client::instruction::apply_new_admin(
         ctx.accounts.swap.key,
         ctx.accounts.admin.key,
     )?;
-    solana_program::program::invoke_signed(&ix, &ctx.to_account_infos(), ctx.signer_seeds)
+    solana_program::program::invoke_signed(&ix, &ctx.to_account_infos(), ctx.signer_seeds)?;
+    Ok(())
 }
 
 /// Creates and invokes a [stable_swap_client::instruction::commit_new_admin] instruction
@@ -305,26 +315,28 @@ pub fn apply_new_admin<'a, 'b, 'c, 'info>(
 /// * `new_admin` - Public key of the new admin.
 pub fn commit_new_admin<'a, 'b, 'c, 'info>(
     ctx: CpiContext<'a, 'b, 'c, 'info, CommitNewAdmin<'info>>,
-) -> ProgramResult {
+) -> Result<()> {
     let admin_ctx = &ctx.accounts.admin_ctx;
     let ix = stable_swap_client::instruction::commit_new_admin(
         admin_ctx.swap.key,
         admin_ctx.admin.key,
         ctx.accounts.new_admin.key,
     )?;
-    solana_program::program::invoke_signed(&ix, &ctx.to_account_infos(), ctx.signer_seeds)
+    solana_program::program::invoke_signed(&ix, &ctx.to_account_infos(), ctx.signer_seeds)?;
+    Ok(())
 }
 
 /// Creates and invokes a [stable_swap_client::instruction::set_fee_account] instruction.
 pub fn set_fee_account<'a, 'b, 'c, 'info>(
     ctx: CpiContext<'a, 'b, 'c, 'info, SetFeeAccount<'info>>,
-) -> ProgramResult {
+) -> Result<()> {
     let ix = stable_swap_client::instruction::set_fee_account(
         ctx.accounts.admin_ctx.swap.key,
         ctx.accounts.admin_ctx.admin.key,
         ctx.accounts.fee_account.to_account_info().key,
     )?;
-    solana_program::program::invoke_signed(&ix, &ctx.to_account_infos(), ctx.signer_seeds)
+    solana_program::program::invoke_signed(&ix, &ctx.to_account_infos(), ctx.signer_seeds)?;
+    Ok(())
 }
 
 /// Creates and invokes a [stable_swap_client::instruction::set_new_fees] instruction.
@@ -335,11 +347,12 @@ pub fn set_fee_account<'a, 'b, 'c, 'info>(
 pub fn set_new_fees<'a, 'b, 'c, 'info>(
     ctx: CpiContext<'a, 'b, 'c, 'info, AdminUserContext<'info>>,
     fees: stable_swap_client::fees::Fees,
-) -> ProgramResult {
+) -> Result<()> {
     let ix = stable_swap_client::instruction::set_new_fees(
         ctx.accounts.swap.key,
         ctx.accounts.admin.key,
         fees,
     )?;
-    solana_program::program::invoke_signed(&ix, &ctx.to_account_infos(), ctx.signer_seeds)
+    solana_program::program::invoke_signed(&ix, &ctx.to_account_infos(), ctx.signer_seeds)?;
+    Ok(())
 }

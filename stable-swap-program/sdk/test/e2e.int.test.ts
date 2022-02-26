@@ -444,7 +444,7 @@ describe("e2e test", () => {
     expect(info.amount.toNumber()).toBe(
       oldSwapTokenB.amount.toNumber() + SWAP_AMOUNT_IN
     );
-    const EXPECTED_AMOUNT_OUT = 75001; // EXPECTED_AMOUNT_OUT = SWAP_AMOUNT_IN * (1 - FEES)
+    const EXPECTED_AMOUNT_OUT = 75000; // EXPECTED_AMOUNT_OUT = SWAP_AMOUNT_IN * (1 - FEES)
     info = await mintA.getAccountInfo(userAccountA);
     expect(info.amount.toNumber()).toBe(EXPECTED_AMOUNT_OUT);
     info = await mintA.getAccountInfo(tokenAccountA);
@@ -458,7 +458,7 @@ describe("e2e test", () => {
         type: "SwapBToA",
         tokenAAmount: new u64(EXPECTED_AMOUNT_OUT),
         tokenBAmount: new u64(SWAP_AMOUNT_IN),
-        fee: new u64(0x61a8),
+        fee: new u64(0x61a7),
       },
     ]);
   });

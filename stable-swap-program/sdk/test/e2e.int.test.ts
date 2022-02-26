@@ -392,7 +392,7 @@ describe("e2e test", () => {
         type: "SwapAToB",
         tokenAAmount: new u64(SWAP_AMOUNT_IN),
         tokenBAmount: new u64(EXPECTED_AMOUNT_OUT),
-        fee: new u64(0x61a8),
+        fee: new u64(0x61a7),
       },
     ]);
   });
@@ -458,7 +458,7 @@ describe("e2e test", () => {
         type: "SwapBToA",
         tokenAAmount: new u64(EXPECTED_AMOUNT_OUT),
         tokenBAmount: new u64(SWAP_AMOUNT_IN),
-        fee: new u64(0x61a7),
+        fee: new u64(0x61a8),
       },
     ]);
   });

@@ -1,4 +1,4 @@
-anchor_version = "0.20.1"
+anchor_version = "0.22.0"
 solana_version = "1.8.14"
 
 [workspace]

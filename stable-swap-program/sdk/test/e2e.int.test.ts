@@ -14,7 +14,7 @@ import {
   TOKEN_PROGRAM_ID,
   u64,
 } from "@saberhq/token-utils";
-import type { ConfirmedTransaction, PublicKey, Signer } from "@solana/web3.js";
+import type { PublicKey, Signer, TransactionResponse } from "@solana/web3.js";
 import {
   Connection,
   Keypair,
@@ -203,7 +203,7 @@ describe("e2e test", () => {
     // Make sure all token accounts are created and approved
     await sleep(500);
 
-    let txReceipt: ConfirmedTransaction | null = null;
+    let txReceipt: TransactionResponse | null = null;
     // Depositing into swap
     const txn = new Transaction().add(
       stableSwap.deposit({
@@ -223,7 +223,9 @@ describe("e2e test", () => {
       payer,
       owner
     );
-    txReceipt = await connection.getConfirmedTransaction(txSig, "confirmed");
+    txReceipt = await connection.getTransaction(txSig, {
+      commitment: "confirmed",
+    });
 
     let info = await mintA.getAccountInfo(userAccountA);
     expect(info.amount.toNumber()).toBe(0);
@@ -292,7 +294,9 @@ describe("e2e test", () => {
       payer,
       owner
     );
-    txReceipt = await connection.getConfirmedTransaction(txSig, "confirmed");
+    txReceipt = await connection.getTransaction(txSig, {
+      commitment: "confirmed",
+    });
 
     let info = await mintA.getAccountInfo(userAccountA);
     expect(info.amount.toNumber()).toBe(expectedWithdrawA);
@@ -362,7 +366,9 @@ describe("e2e test", () => {
       payer,
       owner
     );
-    txReceipt = await connection.getConfirmedTransaction(txSig, "confirmed");
+    txReceipt = await connection.getTransaction(txSig, {
+      commitment: "confirmed",
+    });
     // Make sure swap was complete
     await sleep(500);
 
@@ -425,7 +431,9 @@ describe("e2e test", () => {
       payer,
       owner
     );
-    txReceipt = await connection.getConfirmedTransaction(txSig, "confirmed");
+    txReceipt = await connection.getTransaction(txSig, {
+      commitment: "confirmed",
+    });
 
     // Make sure swap was complete
     await sleep(500);
@@ -487,7 +495,9 @@ describe("e2e test", () => {
         payer,
         owner
       );
-      txReceipt = await connection.getConfirmedTransaction(txSig, "confirmed");
+      txReceipt = await connection.getTransaction(txSig, {
+        commitment: "confirmed",
+      });
     } catch (e) {
       console.error(e);
       throw e;
@@ -555,7 +565,9 @@ describe("e2e test", () => {
         payer,
         owner
       );
-      txReceipt = await connection.getConfirmedTransaction(txSig, "confirmed");
+      txReceipt = await connection.getTransaction(txSig, {
+        commitment: "confirmed",
+      });
     } catch (e) {
       console.error(e);
       throw e;

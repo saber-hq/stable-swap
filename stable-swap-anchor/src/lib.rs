@@ -21,11 +21,11 @@ declare_id!("SSwpkEEcbUqx4vtoEByFjSkhKdCT862DNVb52nZg1UZ");
 pub struct StableSwap;
 
 impl anchor_lang::AccountDeserialize for StableSwap {
-    fn try_deserialize(buf: &mut &[u8]) -> Result<Self, ProgramError> {
+    fn try_deserialize(buf: &mut &[u8]) -> Result<Self> {
         StableSwap::try_deserialize_unchecked(buf)
     }
 
-    fn try_deserialize_unchecked(_buf: &mut &[u8]) -> Result<Self, ProgramError> {
+    fn try_deserialize_unchecked(_buf: &mut &[u8]) -> Result<Self> {
         Ok(StableSwap)
     }
 }

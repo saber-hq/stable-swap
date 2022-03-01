@@ -12,6 +12,12 @@
     An automated market maker for mean-reverting trading pairs.
 </div>
 
+## Documentation
+
+Detailed information on how to build on Saber can be found on the [Saber developer documentation website](https://docs.saber.so/docs/developing/overview).
+
+Automatically generated documentation for Rust Crates is available below.
+
 ## Rust Crates
 
 | Package              | Description                                                                          | Version                                                                                                         | Docs                                                                                           |
@@ -28,6 +34,7 @@
 To use StableSwap with your frontend or Node.js project, use [the JavaScript SDK.](https://github.com/saber-hq/saber-common/tree/master/packages/stableswap-sdk)
 
 ## Audit
+
 Saber's [stable-swap-program](https://github.com/saber-hq/stable-swap/tree/master/stable-swap-program) has been audited by [Bramah Systems](https://www.bramah.systems/). View the audit report [here](https://github.com/saber-hq/stable-swap/blob/master/audit/bramah-systems.pdf).
 
 ## Developing

@@ -14,6 +14,10 @@ Saber is the leading StableSwap exchange on [Solana](https://solana.com/https://
 
 The program is deployed at the same address on `mainnet-beta`, `devnet`, and `testnet`.
 
+## Documentation
+
+Detailed information on how to build on Saber can be found on the [Saber developer documentation website](https://docs.saber.so/docs/developing/overview).
+
 ## License
 
 Saber StableSwap is licensed under the Apache License, Version 2.0.

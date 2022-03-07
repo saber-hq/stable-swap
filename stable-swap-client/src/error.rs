@@ -98,6 +98,9 @@ pub enum SwapError {
     /// Token mint decimals must be the same.
     #[error("Token mints must have same decimals")]
     MismatchedDecimals,
+    /// Exchange rate override cannot be x/0 or 0/x, where x != 0
+    #[error("Exchange rate override cannot be 0 or infinity")]
+    InvalidExchangeRateOverride,
 }
 
 impl From<SwapError> for ProgramError {
@@ -173,6 +176,9 @@ impl PrintProgramError for SwapError {
             SwapError::NoActiveTransfer => msg!("Error: No active admin transfer in progress"),
             SwapError::AdminDeadlineExceeded => msg!("Error: Admin transfer deadline exceeded"),
             SwapError::MismatchedDecimals => msg!("Error: Token mints must have same decimals"),
+            SwapError::InvalidExchangeRateOverride => {
+                msg!("Error: Exchange rate override cannot be 0 or infinity")
+            }
         }
     }
 }

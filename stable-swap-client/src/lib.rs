@@ -6,6 +6,7 @@
 
 pub mod error;
 pub mod fees;
+pub mod fraction;
 pub mod instruction;
 pub mod state;
 

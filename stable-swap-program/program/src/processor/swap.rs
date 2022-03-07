@@ -10,6 +10,7 @@ use crate::{
     processor::utils,
     state::{SwapInfo, SwapTokenInfo},
 };
+use stable_swap_client::fraction::Fraction;
 use stable_swap_math::curve::{StableSwap, MAX_AMP, MIN_AMP, ZERO_TS};
 use stable_swap_math::math::FeeCalculator;
 
@@ -267,6 +268,14 @@ fn process_initialize(
         },
         pool_mint: *pool_mint_info.key,
         fees,
+        token_a_exchange_rate_override: Fraction {
+            numerator: 0,
+            denominator: 0,
+        },
+        token_b_exchange_rate_override: Fraction {
+            numerator: 0,
+            denominator: 0,
+        },
     };
     SwapInfo::pack(obj, &mut swap_info.data.borrow_mut())?;
 

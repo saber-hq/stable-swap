@@ -14,6 +14,7 @@ use spl_token::{
     instruction::{initialize_account, initialize_mint, mint_to},
     state::{Account as SplAccount, Mint as SplMint},
 };
+use stable_swap_client::fraction::Fraction;
 
 /// Test program id for the swap program.
 pub static SWAP_PROGRAM_ID: Pubkey = crate::ID;
@@ -554,6 +555,36 @@ impl SwapAccountInfo {
     pub fn set_new_fees(&mut self, new_fees: Fees) -> ProgramResult {
         do_process_instruction(
             set_new_fees(&self.swap_key, &self.admin_key, new_fees).unwrap(),
+            vec![&mut self.swap_account, &mut self.admin_account],
+        )
+    }
+
+    pub fn set_token_a_exchange_rate_override(
+        &mut self,
+        exchange_rate_override: Fraction,
+    ) -> ProgramResult {
+        do_process_instruction(
+            set_token_a_exchange_rate_override(
+                &self.swap_key,
+                &self.admin_key,
+                exchange_rate_override,
+            )
+            .unwrap(),
+            vec![&mut self.swap_account, &mut self.admin_account],
+        )
+    }
+
+    pub fn set_token_b_exchange_rate_override(
+        &mut self,
+        exchange_rate_override: Fraction,
+    ) -> ProgramResult {
+        do_process_instruction(
+            set_token_b_exchange_rate_override(
+                &self.swap_key,
+                &self.admin_key,
+                exchange_rate_override,
+            )
+            .unwrap(),
             vec![&mut self.swap_account, &mut self.admin_account],
         )
     }

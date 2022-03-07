@@ -14,7 +14,7 @@ use solana_program::{
     pubkey::Pubkey,
     sysvar::{clock::Clock, Sysvar},
 };
-use stable_swap_client::fees::Fees;
+use stable_swap_client::{fees::Fees, fraction::Fraction};
 use stable_swap_math::curve::{StableSwap, MAX_AMP, MIN_AMP, MIN_RAMP_DURATION, ZERO_TS};
 
 use super::checks::check_has_admin_signer;
@@ -68,6 +68,14 @@ pub fn process_admin_instruction(
         AdminInstruction::SetNewFees(new_fees) => {
             msg!("Instruction: SetNewFees");
             set_new_fees(token_swap, &new_fees)
+        }
+        AdminInstruction::SetTokenAExchangeRateOverride(exchange_rate_override) => {
+            msg!("Instruction: SetTokenAExchangeRateOverride");
+            set_exchange_rate_override(token_swap, Token::A, exchange_rate_override)
+        }
+        AdminInstruction::SetTokenBExchangeRateOverride(exchange_rate_override) => {
+            msg!("Instruction: SetTokenBExchangeRateOverride");
+            set_exchange_rate_override(token_swap, Token::B, exchange_rate_override)
         }
     })?;
 
@@ -257,6 +265,49 @@ fn set_new_fees(token_swap: &mut SwapInfo, new_fees: &Fees) -> ProgramResult {
     msg!("Admin: Old fees {:?}", token_swap.fees);
     token_swap.fees = *new_fees;
     msg!("Admin: New fees {:?}", token_swap.fees);
+    Ok(())
+}
+
+enum Token {
+    A,
+    B,
+}
+
+/// Set new exchange rate overrides
+fn set_exchange_rate_override(
+    token_swap: &mut SwapInfo,
+    token: Token,
+    exchange_rate_override: Fraction,
+) -> ProgramResult {
+    if (exchange_rate_override.denominator == 0) != (exchange_rate_override.numerator == 0) {
+        return Err(SwapError::InvalidExchangeRateOverride.into());
+    }
+
+    match token {
+        Token::A => {
+            msg!(
+                "Admin: Old token A exchange rate override {:?}",
+                token_swap.token_a_exchange_rate_override
+            );
+            token_swap.token_a_exchange_rate_override = exchange_rate_override;
+            msg!(
+                "Admin: New token A exchange rate override {:?}",
+                exchange_rate_override
+            );
+        }
+        Token::B => {
+            msg!(
+                "Admin: Old token B exchange rate override {:?}",
+                token_swap.token_b_exchange_rate_override
+            );
+            token_swap.token_b_exchange_rate_override = exchange_rate_override;
+            msg!(
+                "Admin: New token B exchange rate override {:?}",
+                exchange_rate_override
+            );
+        }
+    }
+
     Ok(())
 }
 
@@ -813,5 +864,125 @@ mod tests {
             let swap_info = SwapInfo::unpack(&accounts.swap_account.data).unwrap();
             assert_eq!(swap_info.fees, new_fees);
         }
+    }
+
+    fn exchange_rate_override_test_helper(
+        set_exchange_rate_override: &dyn Fn(&mut SwapAccountInfo, Fraction) -> ProgramResult,
+        get_exchange_rate_override: &dyn Fn(&SwapInfo) -> Fraction,
+        get_other_exchange_rate_override: &dyn Fn(&SwapInfo) -> Fraction,
+    ) {
+        let user_key = pubkey_rand();
+        let amp_factor = MIN_AMP * 100;
+        let mut accounts = SwapAccountInfo::new(
+            &user_key,
+            amp_factor,
+            DEFAULT_TOKEN_A_AMOUNT,
+            DEFAULT_TOKEN_B_AMOUNT,
+            DEFAULT_TEST_FEES,
+        );
+
+        let valid_exchange_rate = Fraction {
+            numerator: 1,
+            denominator: 2,
+        };
+
+        // swap not initialized
+        {
+            assert_eq!(
+                Err(ProgramError::UninitializedAccount),
+                set_exchange_rate_override(&mut accounts, valid_exchange_rate),
+            );
+        }
+
+        accounts.initialize_swap().unwrap();
+
+        // unauthorized account
+        {
+            let old_admin_key = accounts.admin_key;
+            let fake_admin_key = pubkey_rand();
+            accounts.admin_key = fake_admin_key;
+            assert_eq!(
+                Err(SwapError::Unauthorized.into()),
+                set_exchange_rate_override(&mut accounts, valid_exchange_rate),
+            );
+            accounts.admin_key = old_admin_key;
+        }
+
+        // valid call
+        {
+            set_exchange_rate_override(&mut accounts, valid_exchange_rate).unwrap();
+
+            let swap_info = SwapInfo::unpack(&accounts.swap_account.data).unwrap();
+            assert_eq!(get_exchange_rate_override(&swap_info), valid_exchange_rate);
+            assert_eq!(
+                get_other_exchange_rate_override(&swap_info),
+                Fraction {
+                    numerator: 0,
+                    denominator: 0
+                },
+            );
+        }
+
+        // invalid call: numerator is 0
+        {
+            assert_eq!(
+                Err(SwapError::InvalidExchangeRateOverride.into()),
+                set_exchange_rate_override(
+                    &mut accounts,
+                    Fraction {
+                        numerator: 0,
+                        denominator: 1,
+                    }
+                ),
+            );
+        }
+
+        // invalid call: denominator is 0
+        {
+            assert_eq!(
+                Err(SwapError::InvalidExchangeRateOverride.into()),
+                set_exchange_rate_override(
+                    &mut accounts,
+                    Fraction {
+                        numerator: 1,
+                        denominator: 0,
+                    }
+                ),
+            );
+        }
+
+        // valid call: remove exchange rate override
+        {
+            let empty_exchange_rate_override = Fraction {
+                numerator: 0,
+                denominator: 0,
+            };
+
+            set_exchange_rate_override(&mut accounts, empty_exchange_rate_override).unwrap();
+
+            let swap_info = SwapInfo::unpack(&accounts.swap_account.data).unwrap();
+            assert_eq!(
+                get_exchange_rate_override(&swap_info),
+                empty_exchange_rate_override
+            );
+        }
+    }
+
+    #[test]
+    fn test_set_token_a_exchange_rate_override() {
+        exchange_rate_override_test_helper(
+            &SwapAccountInfo::set_token_a_exchange_rate_override,
+            &|swap_info: &SwapInfo| swap_info.token_a_exchange_rate_override,
+            &|swap_info: &SwapInfo| swap_info.token_b_exchange_rate_override,
+        );
+    }
+
+    #[test]
+    fn test_set_token_b_exchange_rate_override() {
+        exchange_rate_override_test_helper(
+            &SwapAccountInfo::set_token_b_exchange_rate_override,
+            &|swap_info: &SwapInfo| swap_info.token_b_exchange_rate_override,
+            &|swap_info: &SwapInfo| swap_info.token_a_exchange_rate_override,
+        );
     }
 }

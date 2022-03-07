@@ -1,6 +1,6 @@
 //! State transition types
 
-use crate::fees::Fees;
+use crate::{fees::Fees, fraction::Fraction};
 use arrayref::{array_mut_ref, array_ref, array_refs, mut_array_refs};
 use solana_program::{
     program_error::ProgramError,
@@ -51,6 +51,13 @@ pub struct SwapInfo {
     pub pool_mint: Pubkey,
     /// Fees
     pub fees: Fees,
+
+    /// Exchange rate override between token A and the underlying.
+    /// If 0/0, there is no override.
+    pub token_a_exchange_rate_override: Fraction,
+    /// Exchange rate override between token B and the underlying.
+    /// If 0/0, there is no override.
+    pub token_b_exchange_rate_override: Fraction,
 }
 
 /// Information about one of the tokens.
@@ -75,11 +82,11 @@ impl IsInitialized for SwapInfo {
 }
 
 impl Pack for SwapInfo {
-    const LEN: usize = 395;
+    const LEN: usize = 427;
 
     /// Unpacks a byte buffer into a [SwapInfo](struct.SwapInfo.html).
     fn unpack_from_slice(input: &[u8]) -> Result<Self, ProgramError> {
-        let input = array_ref![input, 0, 395];
+        let input = array_ref![input, 0, 427];
         #[allow(clippy::ptr_offset_with_cast)]
         let (
             is_initialized,
@@ -100,7 +107,11 @@ impl Pack for SwapInfo {
             admin_fee_key_a,
             admin_fee_key_b,
             fees,
-        ) = array_refs![input, 1, 1, 1, 8, 8, 8, 8, 8, 32, 32, 32, 32, 32, 32, 32, 32, 32, 64];
+            token_a_exchange_rate_override,
+            token_b_exchange_rate_override,
+        ) = array_refs![
+            input, 1, 1, 1, 8, 8, 8, 8, 8, 32, 32, 32, 32, 32, 32, 32, 32, 32, 64, 16, 16
+        ];
         Ok(Self {
             is_initialized: match is_initialized {
                 [0] => false,
@@ -134,11 +145,17 @@ impl Pack for SwapInfo {
             },
             pool_mint: Pubkey::new_from_array(*pool_mint),
             fees: Fees::unpack_from_slice(fees)?,
+            token_a_exchange_rate_override: Fraction::unpack_from_slice(
+                token_a_exchange_rate_override,
+            )?,
+            token_b_exchange_rate_override: Fraction::unpack_from_slice(
+                token_b_exchange_rate_override,
+            )?,
         })
     }
 
     fn pack_into_slice(&self, output: &mut [u8]) {
-        let output = array_mut_ref![output, 0, 395];
+        let output = array_mut_ref![output, 0, 427];
         let (
             is_initialized,
             is_paused,
@@ -158,7 +175,11 @@ impl Pack for SwapInfo {
             admin_fee_key_a,
             admin_fee_key_b,
             fees,
-        ) = mut_array_refs![output, 1, 1, 1, 8, 8, 8, 8, 8, 32, 32, 32, 32, 32, 32, 32, 32, 32, 64];
+            token_a_exchange_rate_override,
+            token_b_exchange_rate_override,
+        ) = mut_array_refs![
+            output, 1, 1, 1, 8, 8, 8, 8, 8, 32, 32, 32, 32, 32, 32, 32, 32, 32, 64, 16, 16
+        ];
         is_initialized[0] = self.is_initialized as u8;
         is_paused[0] = self.is_paused as u8;
         nonce[0] = self.nonce;
@@ -177,6 +198,10 @@ impl Pack for SwapInfo {
         admin_fee_key_a.copy_from_slice(self.token_a.admin_fees.as_ref());
         admin_fee_key_b.copy_from_slice(self.token_b.admin_fees.as_ref());
         self.fees.pack_into_slice(&mut fees[..]);
+        self.token_a_exchange_rate_override
+            .pack_into_slice(&mut token_a_exchange_rate_override[..]);
+        self.token_b_exchange_rate_override
+            .pack_into_slice(&mut token_b_exchange_rate_override[..]);
     }
 }
 
@@ -229,6 +254,14 @@ mod tests {
             withdraw_fee_numerator,
             withdraw_fee_denominator,
         };
+        let token_a_exchange_rate_override = Fraction {
+            numerator: 9,
+            denominator: 10,
+        };
+        let token_b_exchange_rate_override = Fraction {
+            numerator: 11,
+            denominator: 12,
+        };
 
         let is_initialized = true;
         let is_paused = false;
@@ -257,6 +290,8 @@ mod tests {
             },
             pool_mint,
             fees,
+            token_a_exchange_rate_override,
+            token_b_exchange_rate_override,
         };
 
         let mut packed = [0u8; SwapInfo::LEN];
@@ -291,6 +326,10 @@ mod tests {
         packed.extend_from_slice(&trade_fee_denominator.to_le_bytes());
         packed.extend_from_slice(&withdraw_fee_numerator.to_le_bytes());
         packed.extend_from_slice(&withdraw_fee_denominator.to_le_bytes());
+        packed.extend_from_slice(&token_a_exchange_rate_override.numerator.to_le_bytes());
+        packed.extend_from_slice(&token_a_exchange_rate_override.denominator.to_le_bytes());
+        packed.extend_from_slice(&token_b_exchange_rate_override.numerator.to_le_bytes());
+        packed.extend_from_slice(&token_b_exchange_rate_override.denominator.to_le_bytes());
         let unpacked = SwapInfo::unpack(&packed).unwrap();
         assert_eq!(swap_info, unpacked);
     }

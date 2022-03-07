@@ -4,6 +4,7 @@
 
 use crate::error::SwapError;
 use crate::fees::Fees;
+use crate::fraction::Fraction;
 use solana_program::{
     instruction::{AccountMeta, Instruction},
     program_error::ProgramError,
@@ -139,6 +140,18 @@ pub enum AdminInstruction {
     /// 0. `[writable]` StableSwap
     /// 1. `[signer]` Admin account
     SetNewFees(Fees),
+
+    /// Updates the exchange rate overrides for token A.
+    ///
+    /// 0. `[writable]` StableSwap
+    /// 1. `[signer]` Admin account
+    SetTokenAExchangeRateOverride(Fraction),
+
+    /// Updates the exchange rate overrides for token B.
+    ///
+    /// 0. `[writable]` StableSwap
+    /// 1. `[signer]` Admin account
+    SetTokenBExchangeRateOverride(Fraction),
 }
 
 impl AdminInstruction {
@@ -163,6 +176,14 @@ impl AdminInstruction {
             107 => {
                 let fees = Fees::unpack_unchecked(rest)?;
                 Some(Self::SetNewFees(fees))
+            }
+            108 => {
+                let exchange_rate_override = Fraction::unpack_unchecked(rest)?;
+                Some(Self::SetTokenAExchangeRateOverride(exchange_rate_override))
+            }
+            109 => {
+                let exchange_rate_override = Fraction::unpack_unchecked(rest)?;
+                Some(Self::SetTokenBExchangeRateOverride(exchange_rate_override))
             }
             _ => None,
         })
@@ -191,6 +212,18 @@ impl AdminInstruction {
                 let mut fees_slice = [0u8; Fees::LEN];
                 Pack::pack_into_slice(&fees, &mut fees_slice[..]);
                 buf.extend_from_slice(&fees_slice);
+            }
+            Self::SetTokenAExchangeRateOverride(exchange_rate_override) => {
+                buf.push(108);
+                let mut exchange_rate_slice = [0u8; Fraction::LEN];
+                Pack::pack_into_slice(&exchange_rate_override, &mut exchange_rate_slice[..]);
+                buf.extend_from_slice(&exchange_rate_slice);
+            }
+            Self::SetTokenBExchangeRateOverride(exchange_rate_override) => {
+                buf.push(109);
+                let mut exchange_rate_slice = [0u8; Fraction::LEN];
+                Pack::pack_into_slice(&exchange_rate_override, &mut exchange_rate_slice[..]);
+                buf.extend_from_slice(&exchange_rate_slice);
             }
         }
         buf
@@ -341,6 +374,46 @@ pub fn set_new_fees(
     new_fees: Fees,
 ) -> Result<Instruction, ProgramError> {
     let data = AdminInstruction::SetNewFees(new_fees).pack();
+
+    let accounts = vec![
+        AccountMeta::new(*swap_pubkey, false),
+        AccountMeta::new_readonly(*admin_pubkey, true),
+    ];
+
+    Ok(Instruction {
+        program_id: crate::ID,
+        accounts,
+        data,
+    })
+}
+
+/// Creates a `set_token_a_exchange_rate_override` instruction
+pub fn set_token_a_exchange_rate_override(
+    swap_pubkey: &Pubkey,
+    admin_pubkey: &Pubkey,
+    exchange_rate_override: Fraction,
+) -> Result<Instruction, ProgramError> {
+    let data = AdminInstruction::SetTokenAExchangeRateOverride(exchange_rate_override).pack();
+
+    let accounts = vec![
+        AccountMeta::new(*swap_pubkey, false),
+        AccountMeta::new_readonly(*admin_pubkey, true),
+    ];
+
+    Ok(Instruction {
+        program_id: crate::ID,
+        accounts,
+        data,
+    })
+}
+
+/// Creates a `set_token_b_exchange_rate_override` instruction
+pub fn set_token_b_exchange_rate_override(
+    swap_pubkey: &Pubkey,
+    admin_pubkey: &Pubkey,
+    exchange_rate_override: Fraction,
+) -> Result<Instruction, ProgramError> {
+    let data = AdminInstruction::SetTokenBExchangeRateOverride(exchange_rate_override).pack();
 
     let accounts = vec![
         AccountMeta::new(*swap_pubkey, false),
@@ -870,6 +943,34 @@ mod tests {
         let mut new_fees_slice = [0u8; Fees::LEN];
         new_fees.pack_into_slice(&mut new_fees_slice[..]);
         expect.extend_from_slice(&new_fees_slice);
+        assert_eq!(packed, expect);
+        let unpacked = AdminInstruction::unpack(&expect).unwrap();
+        assert_eq!(unpacked, Some(check));
+
+        let token_a_exchange_rate_override = Fraction {
+            numerator: 1,
+            denominator: 2,
+        };
+        let check = AdminInstruction::SetTokenAExchangeRateOverride(token_a_exchange_rate_override);
+        let packed = check.pack();
+        let mut expect = vec![108_u8];
+        let mut new_token_a_exchange_rate_slice = [0u8; Fraction::LEN];
+        token_a_exchange_rate_override.pack_into_slice(&mut new_token_a_exchange_rate_slice[..]);
+        expect.extend_from_slice(&new_token_a_exchange_rate_slice);
+        assert_eq!(packed, expect);
+        let unpacked = AdminInstruction::unpack(&expect).unwrap();
+        assert_eq!(unpacked, Some(check));
+
+        let token_b_exchange_rate_override = Fraction {
+            numerator: 3,
+            denominator: 4,
+        };
+        let check = AdminInstruction::SetTokenBExchangeRateOverride(token_b_exchange_rate_override);
+        let packed = check.pack();
+        let mut expect = vec![109_u8];
+        let mut new_token_b_exchange_rate_slice = [0u8; Fraction::LEN];
+        token_b_exchange_rate_override.pack_into_slice(&mut new_token_b_exchange_rate_slice[..]);
+        expect.extend_from_slice(&new_token_b_exchange_rate_slice);
         assert_eq!(packed, expect);
         let unpacked = AdminInstruction::unpack(&expect).unwrap();
         assert_eq!(unpacked, Some(check));

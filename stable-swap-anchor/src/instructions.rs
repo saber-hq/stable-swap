@@ -356,3 +356,39 @@ pub fn set_new_fees<'a, 'b, 'c, 'info>(
     solana_program::program::invoke_signed(&ix, &ctx.to_account_infos(), ctx.signer_seeds)?;
     Ok(())
 }
+
+/// Creates and invokes a [stable_swap_client::instruction::set_token_a_exchange_rate_override] instruction.
+///
+/// # Arguments
+///
+/// * `exchange_rate_override` - new [`stable_swap_client::fraction::Fraction`].
+pub fn set_token_a_exchange_rate_override<'a, 'b, 'c, 'info>(
+    ctx: CpiContext<'a, 'b, 'c, 'info, AdminUserContext<'info>>,
+    exchange_rate_override: stable_swap_client::fraction::Fraction,
+) -> Result<()> {
+    let ix = stable_swap_client::instruction::set_token_a_exchange_rate_override(
+        ctx.accounts.swap.key,
+        ctx.accounts.admin.key,
+        exchange_rate_override,
+    )?;
+    solana_program::program::invoke_signed(&ix, &ctx.to_account_infos(), ctx.signer_seeds)?;
+    Ok(())
+}
+
+/// Creates and invokes a [stable_swap_client::instruction::set_token_b_exchange_rate_override] instruction.
+///
+/// # Arguments
+///
+/// * `exchange_rate_override` - new [`stable_swap_client::fraction::Fraction`].
+pub fn set_token_b_exchange_rate_override<'a, 'b, 'c, 'info>(
+    ctx: CpiContext<'a, 'b, 'c, 'info, AdminUserContext<'info>>,
+    exchange_rate_override: stable_swap_client::fraction::Fraction,
+) -> Result<()> {
+    let ix = stable_swap_client::instruction::set_token_b_exchange_rate_override(
+        ctx.accounts.swap.key,
+        ctx.accounts.admin.key,
+        exchange_rate_override,
+    )?;
+    solana_program::program::invoke_signed(&ix, &ctx.to_account_infos(), ctx.signer_seeds)?;
+    Ok(())
+}

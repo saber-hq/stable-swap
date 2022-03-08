@@ -681,7 +681,7 @@ dependencies = [
 
 [[package]]
 name = "fastrand"
-version = "1.7.1"
+version = "1.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c3fcf0cee53519c866c09b5de1f6c56ff9d647101f81c1964fa632e148896cdf"
 dependencies = [
@@ -1698,7 +1698,7 @@ dependencies = [
 
 [[package]]
 name = "stable-swap"
-version = "1.7.1"
+version = "1.7.0"
 dependencies = [
  "solana-program",
  "solana-sdk",
@@ -1709,7 +1709,7 @@ dependencies = [
 
 [[package]]
 name = "stable-swap-anchor"
-version = "1.7.1"
+version = "1.7.0"
 dependencies = [
  "anchor-lang",
  "stable-swap-client",
@@ -1717,7 +1717,7 @@ dependencies = [
 
 [[package]]
 name = "stable-swap-client"
-version = "1.7.1"
+version = "1.7.0"
 dependencies = [
  "arbitrary",
  "arrayref",
@@ -1730,7 +1730,7 @@ dependencies = [
 
 [[package]]
 name = "stable-swap-fuzz"
-version = "1.7.1"
+version = "1.7.0"
 dependencies = [
  "arbitrary",
  "chrono",
@@ -1744,7 +1744,7 @@ dependencies = [
 
 [[package]]
 name = "stable-swap-math"
-version = "1.7.1"
+version = "1.7.0"
 dependencies = [
  "borsh",
  "num-traits",

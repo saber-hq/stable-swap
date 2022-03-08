@@ -65,7 +65,7 @@ pub struct WithdrawOne<'info> {
     /// - If withdrawing token B, this is `swap_info.token_a.reserves`.
     ///
     /// These reserves are needed for the withdraw_one instruction since the
-    /// StableSwap "D" invariant requires both the base and quote reserves
+    /// StableSwap `D` invariant requires both the base and quote reserves
     /// to determine how many tokens are paid out to users withdrawing from
     /// the swap.
     ///

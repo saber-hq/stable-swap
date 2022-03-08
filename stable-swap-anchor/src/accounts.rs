@@ -12,9 +12,9 @@ pub struct Initialize<'info> {
     pub swap_authority: AccountInfo<'info>,
     /// The admin of the swap.
     pub admin: AccountInfo<'info>,
-    /// The "A" token of the swap.
+    /// The A token of the swap.
     pub token_a: InitToken<'info>,
-    /// The "B" token of the swap.
+    /// The B token of the swap.
     pub token_b: InitToken<'info>,
     /// The pool mint of the swap.
     pub pool_mint: AccountInfo<'info>,
@@ -29,9 +29,9 @@ pub struct Initialize<'info> {
 pub struct Deposit<'info> {
     /// The context of the user.
     pub user: SwapUserContext<'info>,
-    /// The "A" token of the swap.
+    /// The A token of the swap.
     pub input_a: SwapToken<'info>,
-    /// The "B" token of the swap.
+    /// The B token of the swap.
     pub input_b: SwapToken<'info>,
     /// The pool mint of the swap.
     pub pool_mint: AccountInfo<'info>,
@@ -84,9 +84,9 @@ pub struct Withdraw<'info> {
     pub input_lp: AccountInfo<'info>,
     /// The pool mint of the swap.
     pub pool_mint: AccountInfo<'info>,
-    /// The "A" token of the swap.
+    /// The A token of the swap.
     pub output_a: SwapOutput<'info>,
-    /// The "B" token of the swap.
+    /// The B token of the swap.
     pub output_b: SwapOutput<'info>,
 }
 

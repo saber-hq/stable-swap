@@ -1,6 +1,6 @@
 [package]
 name = "stable-swap-math"
-version = "1.7.0"
+version = "1.7.2"
 description = "Calculations for the StableSwap invariant"
 license = "Apache-2.0"
 authors = ["michaelhly <michaelhly@gmail.com>"]

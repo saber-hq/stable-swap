@@ -2,9 +2,9 @@ name: Program
 
 on:
   push:
-    branches: [master]
+    branches: [master, exchange_rate_override]
   pull_request:
-    branches: [master]
+    branches: [master, exchange_rate_override]
 
 env:
   CARGO_TERM_COLOR: always

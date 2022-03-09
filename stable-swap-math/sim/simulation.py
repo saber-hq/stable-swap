@@ -164,9 +164,9 @@ class Curve:
             dx_expected = xp[j] - xp[j] * D1 // D0
           xp_reduced[j] -= fee * dx_expected // 10 ** 10
 
-        self.x = [x // (p // 10 ** 18) for x, p in zip(xp_reduced, self.p)]
+        self.x = [x * 10 ** 18 // p for x, p in zip(xp_reduced, self.p)]
         dy = xp_reduced[i] - self.y_D(i, D1) - 1    # Withdraw less to account for rounding errors
-        self.x = [x // (p // 10 ** 18) for x, p in zip(xp, self.p)]
+        self.x = [x * 10 ** 18 // p for x, p in zip(xp, self.p)]
         dy_0 = xp[i] - new_y
 
         return dy, dy_0 - dy

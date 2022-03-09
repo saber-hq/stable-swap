@@ -23,7 +23,7 @@ impl PoolTokenConverter<'_> {
             .checked_mul(self.token_a as u128)?
             .checked_div(self.supply as u128)?
             .to_u64()?;
-        let fee = self.fees.withdraw_fee(amount)?;
+        let fee = self.fees.withdraw_fee(amount.into())?.to_u64()?;
         let admin_fee = self.fees.admin_withdraw_fee(fee)?;
 
         Some((amount.checked_sub(fee)?, fee, admin_fee))
@@ -35,7 +35,7 @@ impl PoolTokenConverter<'_> {
             .checked_mul(self.token_b as u128)?
             .checked_div(self.supply as u128)?
             .to_u64()?;
-        let fee = self.fees.withdraw_fee(amount)?;
+        let fee = self.fees.withdraw_fee(amount.into())?.to_u64()?;
         let admin_fee = self.fees.admin_withdraw_fee(fee)?;
 
         Some((amount.checked_sub(fee)?, fee, admin_fee))
@@ -92,7 +92,7 @@ mod tests {
             fees: &fees,
         };
         let expected_result = if let Some(expected_before_fees) = expected_before_fees {
-            let expected_fees = fees.withdraw_fee(expected_before_fees).unwrap();
+            let expected_fees = fees.withdraw_fee(expected_before_fees.into()).unwrap().to_u64().unwrap();
             let expected_admin_fees = fees.admin_withdraw_fee(expected_fees).unwrap();
             let expected_amount = expected_before_fees - expected_fees;
             Some((expected_amount, expected_fees, expected_admin_fees))

@@ -15,6 +15,7 @@ use stable_swap::{
     curve::{MAX_AMP, MIN_AMP},
     error::SwapError,
     fees::Fees,
+    fraction::Fraction,
     instruction::*,
 };
 
@@ -85,6 +86,8 @@ fn run_swaps(argv: Vec<SwapArgs>) {
         INITIAL_SWAP_TOKEN_A_AMOUNT,
         INITIAL_SWAP_TOKEN_B_AMOUNT,
         fees,
+        Fraction::UNDEFINED,
+        Fraction::UNDEFINED,
     );
 
     let mut user_account = NativeAccountData::new_signer(0, system_program::id());

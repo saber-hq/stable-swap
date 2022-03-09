@@ -8,7 +8,7 @@
 pub mod entrypoint;
 pub mod processor;
 
-pub use stable_swap_client::{error, fees, instruction, state};
+pub use stable_swap_client::{error, fees, fraction, instruction, state};
 pub use stable_swap_math::{curve, math, pool_converter};
 
 /// Export current solana-program types for downstream users who may also be

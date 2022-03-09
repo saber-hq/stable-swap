@@ -40,9 +40,19 @@ pub fn process_swap_instruction(
             nonce,
             amp_factor,
             fees,
+            token_a_exchange_rate_override,
+            token_b_exchange_rate_override,
         }) => {
             msg!("Instruction: Init");
-            process_initialize(program_id, nonce, amp_factor, fees, accounts)
+            process_initialize(
+                program_id,
+                nonce,
+                amp_factor,
+                fees,
+                token_a_exchange_rate_override,
+                token_b_exchange_rate_override,
+                accounts,
+            )
         }
         SwapInstruction::Swap(SwapData {
             amount_in,
@@ -100,6 +110,8 @@ fn process_initialize(
     nonce: u8,
     amp_factor: u64,
     fees: Fees,
+    token_a_exchange_rate_override: Fraction,
+    token_b_exchange_rate_override: Fraction,
     accounts: &[AccountInfo],
 ) -> ProgramResult {
     let account_info_iter = &mut accounts.iter();
@@ -226,23 +238,6 @@ fn process_initialize(
         SwapError::InvalidAdmin
     );
 
-    // amp_factor == initial_amp_factor == target_amp_factor on init
-    let invariant = StableSwap::new(amp_factor, amp_factor, ZERO_TS, ZERO_TS, ZERO_TS);
-    // Compute amount of LP tokens to mint for bootstrapper
-    let mint_amount_u256 = invariant
-        .compute_d(token_a.amount, token_b.amount)
-        .ok_or(SwapError::CalculationFailure)?;
-    let mint_amount = (mint_amount_u256.try_to_u64())?;
-    token::mint_to(
-        swap_info.key,
-        token_program_info.clone(),
-        pool_mint_info.clone(),
-        destination_info.clone(),
-        authority_info.clone(),
-        nonce,
-        mint_amount,
-    )?;
-
     let obj = SwapInfo {
         is_initialized: true,
         is_paused: false,
@@ -268,16 +263,32 @@ fn process_initialize(
         },
         pool_mint: *pool_mint_info.key,
         fees,
-        token_a_exchange_rate_override: Fraction {
-            numerator: 0,
-            denominator: 0,
-        },
-        token_b_exchange_rate_override: Fraction {
-            numerator: 0,
-            denominator: 0,
-        },
+        token_a_exchange_rate_override,
+        token_b_exchange_rate_override,
     };
     SwapInfo::pack(obj, &mut swap_info.data.borrow_mut())?;
+
+    // amp_factor == initial_amp_factor == target_amp_factor on init
+    let invariant = StableSwap::new(amp_factor, amp_factor, ZERO_TS, ZERO_TS, ZERO_TS);
+    // Compute amount of LP tokens to mint for bootstrapper
+    let mint_amount_u256 = invariant
+        .compute_d(
+            obj.exchange_rate_a(),
+            obj.exchange_rate_b(),
+            token_a.amount,
+            token_b.amount,
+        )
+        .ok_or(SwapError::CalculationFailure)?;
+    let mint_amount = (mint_amount_u256.try_to_u64())?;
+    token::mint_to(
+        swap_info.key,
+        token_program_info.clone(),
+        pool_mint_info.clone(),
+        destination_info.clone(),
+        authority_info.clone(),
+        nonce,
+        mint_amount,
+    )?;
 
     log_event(
         Event::Deposit,
@@ -378,6 +389,8 @@ fn process_swap(
             amount_in,
             swap_source_account.amount,
             swap_destination_account.amount,
+            token_swap.exchange_rate_from_token_account(*swap_source_info.key),
+            token_swap.exchange_rate_from_token_account(*swap_destination_info.key),
             &token_swap.fees,
         )
         .ok_or(SwapError::CalculationFailure)?;
@@ -487,6 +500,8 @@ fn process_deposit(
             token_b_amount,
             token_a.amount,
             token_b.amount,
+            token_swap.exchange_rate_a(),
+            token_swap.exchange_rate_b(),
             pool_mint.supply,
             &token_swap.fees,
         )
@@ -782,6 +797,8 @@ fn process_withdraw_one(
             pool_mint.supply,
             base_token.amount,
             quote_token.amount,
+            token_swap.exchange_rate_from_token_account(*base_token_info.key),
+            token_swap.exchange_rate_from_token_account(*quote_token_info.key),
             &token_swap.fees,
         )
         .ok_or(SwapError::CalculationFailure)?;
@@ -874,12 +891,22 @@ mod tests {
         let token_a_amount = 1000;
         let token_b_amount = 2000;
         let pool_token_amount = 10;
+        let token_a_exchange_rate_override = Fraction {
+            numerator: 1,
+            denominator: 2,
+        };
+        let token_b_exchange_rate_override = Fraction {
+            numerator: 3,
+            denominator: 4,
+        };
         let mut accounts = SwapAccountInfo::new(
             &user_key,
             amp_factor,
             token_a_amount,
             token_b_amount,
             DEFAULT_TEST_FEES,
+            token_a_exchange_rate_override,
+            token_b_exchange_rate_override,
         );
         // wrong nonce for authority_key
         {
@@ -1324,6 +1351,8 @@ mod tests {
         assert_eq!(swap_info.token_a.admin_fees, accounts.admin_fee_a_key);
         assert_eq!(swap_info.token_b.admin_fees, accounts.admin_fee_b_key);
         assert_eq!(swap_info.fees, DEFAULT_TEST_FEES);
+        assert_eq!(swap_info.exchange_rate_a(), token_a_exchange_rate_override);
+        assert_eq!(swap_info.exchange_rate_b(), token_b_exchange_rate_override);
         let token_a = utils::unpack_token_account(&accounts.token_a_account.data).unwrap();
         assert_eq!(token_a.amount, token_a_amount);
         let token_b = utils::unpack_token_account(&accounts.token_b_account.data).unwrap();
@@ -1346,6 +1375,8 @@ mod tests {
             token_a_amount,
             token_b_amount,
             DEFAULT_TEST_FEES,
+            Fraction::UNDEFINED,
+            Fraction::UNDEFINED,
         );
 
         let deposit_a = token_a_amount / 10;
@@ -1891,6 +1922,8 @@ mod tests {
             token_a_amount,
             token_b_amount,
             DEFAULT_TEST_FEES,
+            Fraction::UNDEFINED,
+            Fraction::UNDEFINED,
         );
         let withdrawer_key = pubkey_rand();
         let initial_a = token_a_amount / 10;
@@ -2466,6 +2499,8 @@ mod tests {
             token_a_amount,
             token_b_amount,
             DEFAULT_TEST_FEES,
+            Fraction::UNDEFINED,
+            Fraction::UNDEFINED,
         );
         let initial_a = token_a_amount / 5;
         let initial_b = token_b_amount / 5;
@@ -2840,6 +2875,8 @@ mod tests {
                     a_to_b_amount,
                     token_a_amount,
                     token_b_amount,
+                    Fraction::ONE,
+                    Fraction::ONE,
                     &DEFAULT_TEST_FEES,
                 )
                 .unwrap();
@@ -2893,6 +2930,8 @@ mod tests {
                     b_to_a_amount,
                     token_b_amount,
                     token_a_amount,
+                    Fraction::ONE,
+                    Fraction::ONE,
                     &DEFAULT_TEST_FEES,
                 )
                 .unwrap();
@@ -2963,6 +3002,8 @@ mod tests {
             token_a_amount,
             token_b_amount,
             DEFAULT_TEST_FEES,
+            Fraction::UNDEFINED,
+            Fraction::UNDEFINED,
         );
         let withdrawer_key = pubkey_rand();
         let initial_a = token_a_amount / 10;
@@ -3407,6 +3448,8 @@ mod tests {
                     old_pool_mint.supply,
                     old_swap_token_a.amount,
                     old_swap_token_b.amount,
+                    Fraction::ONE,
+                    Fraction::ONE,
                     &DEFAULT_TEST_FEES,
                 )
                 .unwrap();

@@ -17,6 +17,8 @@ pub fn initialize<'a, 'b, 'c, 'info>(
     nonce: u8,
     amp_factor: u64,
     fees: stable_swap_client::fees::Fees,
+    token_a_exchange_rate_override: stable_swap_client::fraction::Fraction,
+    token_b_exchange_rate_override: stable_swap_client::fraction::Fraction,
 ) -> Result<()> {
     let ix = stable_swap_client::instruction::initialize(
         // token program ID is verified by the stable swap program
@@ -35,6 +37,8 @@ pub fn initialize<'a, 'b, 'c, 'info>(
         nonce,
         amp_factor,
         fees,
+        token_a_exchange_rate_override,
+        token_b_exchange_rate_override,
     )?;
     solana_program::program::invoke_signed(
         &ix,

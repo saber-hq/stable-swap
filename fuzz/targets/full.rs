@@ -16,6 +16,7 @@ use stable_swap::{
     curve::{StableSwap, MAX_AMP, MIN_AMP},
     error::SwapError,
     fees::Fees,
+    fraction::Fraction,
     instruction::*,
 };
 use std::collections::{HashMap, HashSet};
@@ -115,6 +116,8 @@ fn run_actions(actions: Vec<Action>) {
         INITIAL_SWAP_TOKEN_A_AMOUNT,
         INITIAL_SWAP_TOKEN_B_AMOUNT,
         fees,
+        Fraction::UNDEFINED,
+        Fraction::UNDEFINED,
     );
 
     // keep track of all accounts, including swap accounts
@@ -416,11 +419,21 @@ fn run_action(
     // Assert virtual price does not decrease
     let initial_amp_factor = initial_invariant.compute_amp_factor().unwrap();
     let d_0 = initial_invariant
-        .compute_d(initial_token_a_balance, initial_token_b_balance)
+        .compute_d(
+            Fraction::ONE,
+            Fraction::ONE,
+            initial_token_a_balance,
+            initial_token_b_balance,
+        )
         .unwrap();
     let current_amp_factor = current_invariant.compute_amp_factor().unwrap();
     let d_1 = current_invariant
-        .compute_d(current_token_a_balance, current_token_b_balance)
+        .compute_d(
+            Fraction::ONE,
+            Fraction::ONE,
+            current_token_a_balance,
+            current_token_b_balance,
+        )
         .unwrap();
     assert!(
         d_1 / current_mint_supply >= d_0 / initial_mint_supply,

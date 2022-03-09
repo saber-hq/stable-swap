@@ -1,7 +1,7 @@
 //! Math helpers
 
 use num_traits::ToPrimitive;
-use stable_swap_client::fees::Fees;
+use stable_swap_client::{fees::Fees, fraction::Fraction};
 
 const MAX: u64 = 1 << 32;
 const MAX_BIG: u64 = 1 << 48;
@@ -33,6 +33,20 @@ pub fn mul_div_imbalanced(a: u64, b: u64, c: u64) -> Option<u64> {
     } else {
         a.checked_mul(b)?.checked_div(c)
     }
+}
+
+/// Multiplies 'a' by 'b'.
+/// This function attempts to use 64 bit math if possible.
+#[inline(always)]
+pub fn mul_fraction(a: u64, b: Fraction) -> Option<u64> {
+    mul_div(a, b.numerator, b.denominator)
+}
+
+/// Divides 'a' by 'b'.
+/// This function attempts to use 64 bit math if possible.
+#[inline(always)]
+pub fn div_fraction(a: u64, b: Fraction) -> Option<u64> {
+    mul_div(a, b.denominator, b.numerator)
 }
 
 /// Calculates fees.

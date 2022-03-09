@@ -8,7 +8,7 @@ use arbitrary::Arbitrary;
 use solana_program::{
     bpf_loader, entrypoint::ProgramResult, program_pack::Pack, pubkey::Pubkey, system_program,
 };
-use stable_swap::{fees::Fees, instruction::*, state::SwapInfo};
+use stable_swap::{fees::Fees, fraction::Fraction, instruction::*, state::SwapInfo};
 /// Helper enum to tell which token for WithdrawOne.
 #[derive(Arbitrary, Clone, Debug, PartialEq)]
 pub enum TokenType {
@@ -25,6 +25,8 @@ pub struct NativeStableSwap {
     pub initial_amp_factor: u64,
     pub target_amp_factor: u64,
     pub fees: Fees,
+    pub token_a_exchange_rate_override: Fraction,
+    pub token_b_exchange_rate_override: Fraction,
     pub swap_account: NativeAccountData,
     pub authority_account: NativeAccountData,
     pub pool_mint_account: NativeAccountData,
@@ -46,6 +48,8 @@ impl NativeStableSwap {
         token_a_amount: u64,
         token_b_amount: u64,
         fees: Fees,
+        token_a_exchange_rate_override: Fraction,
+        token_b_exchange_rate_override: Fraction,
     ) -> Self {
         let mut user_account = NativeAccountData::new_signer(0, system_program::id());
         let mut swap_account = NativeAccountData::new(SwapInfo::LEN, stable_swap::id());
@@ -93,6 +97,8 @@ impl NativeStableSwap {
             nonce,
             amp_factor,
             fees,
+            token_a_exchange_rate_override,
+            token_b_exchange_rate_override,
         )
         .unwrap();
 
@@ -121,6 +127,8 @@ impl NativeStableSwap {
             initial_amp_factor: amp_factor,
             target_amp_factor: amp_factor,
             fees,
+            token_a_exchange_rate_override,
+            token_b_exchange_rate_override,
             swap_account,
             authority_account,
             pool_mint_account,

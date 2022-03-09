@@ -372,6 +372,8 @@ mod tests {
             DEFAULT_TOKEN_A_AMOUNT,
             DEFAULT_TOKEN_B_AMOUNT,
             DEFAULT_TEST_FEES,
+            Fraction::UNDEFINED,
+            Fraction::UNDEFINED,
         );
 
         accounts.initialize_swap().unwrap();
@@ -388,6 +390,8 @@ mod tests {
             DEFAULT_TOKEN_A_AMOUNT,
             DEFAULT_TOKEN_B_AMOUNT,
             DEFAULT_TEST_FEES,
+            Fraction::UNDEFINED,
+            Fraction::UNDEFINED,
         );
 
         // swap not initialized
@@ -489,6 +493,8 @@ mod tests {
             DEFAULT_TOKEN_A_AMOUNT,
             DEFAULT_TOKEN_B_AMOUNT,
             DEFAULT_TEST_FEES,
+            Fraction::UNDEFINED,
+            Fraction::UNDEFINED,
         );
 
         // swap not initialized
@@ -535,6 +541,8 @@ mod tests {
             DEFAULT_TOKEN_A_AMOUNT,
             DEFAULT_TOKEN_B_AMOUNT,
             DEFAULT_TEST_FEES,
+            Fraction::UNDEFINED,
+            Fraction::UNDEFINED,
         );
 
         // swap not initialized
@@ -571,6 +579,8 @@ mod tests {
             DEFAULT_TOKEN_A_AMOUNT,
             DEFAULT_TOKEN_B_AMOUNT,
             DEFAULT_TEST_FEES,
+            Fraction::UNDEFINED,
+            Fraction::UNDEFINED,
         );
 
         // swap not initialized
@@ -614,6 +624,8 @@ mod tests {
             DEFAULT_TOKEN_A_AMOUNT,
             DEFAULT_TOKEN_B_AMOUNT,
             DEFAULT_TEST_FEES,
+            Fraction::UNDEFINED,
+            Fraction::UNDEFINED,
         );
         let (
             admin_fee_key_a,
@@ -687,6 +699,8 @@ mod tests {
             DEFAULT_TOKEN_A_AMOUNT,
             DEFAULT_TOKEN_B_AMOUNT,
             DEFAULT_TEST_FEES,
+            Fraction::UNDEFINED,
+            Fraction::UNDEFINED,
         );
 
         // swap not initialized
@@ -757,6 +771,8 @@ mod tests {
             DEFAULT_TOKEN_A_AMOUNT,
             DEFAULT_TOKEN_B_AMOUNT,
             DEFAULT_TEST_FEES,
+            Fraction::UNDEFINED,
+            Fraction::UNDEFINED,
         );
 
         // swap not initialized
@@ -822,6 +838,8 @@ mod tests {
             DEFAULT_TOKEN_A_AMOUNT,
             DEFAULT_TOKEN_B_AMOUNT,
             DEFAULT_TEST_FEES,
+            Fraction::UNDEFINED,
+            Fraction::UNDEFINED,
         );
 
         let new_fees: Fees = Fees {
@@ -879,6 +897,8 @@ mod tests {
             DEFAULT_TOKEN_A_AMOUNT,
             DEFAULT_TOKEN_B_AMOUNT,
             DEFAULT_TEST_FEES,
+            Fraction::UNDEFINED,
+            Fraction::UNDEFINED,
         );
 
         let valid_exchange_rate = Fraction {

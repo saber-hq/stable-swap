@@ -26,31 +26,38 @@ pub struct Model {
 impl Model {
     /// Constructs a new [`Model`].
     pub fn new(amp_factor: u64, balances: Vec<u64>, n_coins: u8) -> Model {
-        let src_file = File::open(FILE_PATH);
-        let mut src_file = match src_file {
-            Ok(file) => file,
-            Err(error) => {
-                panic!("{:?}\n Please run `curl -L
-            https://raw.githubusercontent.com/curvefi/curve-contract/master/tests/simulation.py > sim/simulation.py`", error)
-            }
-        };
-        let mut src_content = String::new();
-        let _ = src_file.read_to_string(&mut src_content);
-
-        Self {
-            py_src: src_content,
+        Model::new_with_target_prices_and_pool_tokens(
             amp_factor,
             balances,
             n_coins,
-            target_prices: vec![DEFAULT_TARGET_PRICE, DEFAULT_TARGET_PRICE],
-            pool_tokens: DEFAULT_POOL_TOKENS,
-        }
+            vec![DEFAULT_TARGET_PRICE, DEFAULT_TARGET_PRICE],
+            DEFAULT_POOL_TOKENS,
+        )
+    }
+
+    pub fn new_with_target_prices(
+        amp_factor: u64,
+        balances: Vec<u64>,
+        target_prices: Vec<u128>,
+        n_coins: u8,
+    ) -> Model {
+        Model::new_with_target_prices_and_pool_tokens(amp_factor, balances, n_coins, target_prices, DEFAULT_POOL_TOKENS)
     }
 
     pub fn new_with_pool_tokens(
         amp_factor: u64,
         balances: Vec<u64>,
         n_coins: u8,
+        pool_token_amount: u64,
+    ) -> Model {
+        Model::new_with_target_prices_and_pool_tokens(amp_factor, balances, n_coins, vec![DEFAULT_TARGET_PRICE, DEFAULT_TARGET_PRICE], pool_token_amount)
+    }
+
+    pub fn new_with_target_prices_and_pool_tokens(
+        amp_factor: u64,
+        balances: Vec<u64>,
+        n_coins: u8,
+        target_prices: Vec<u128>,
         pool_token_amount: u64,
     ) -> Model {
         let src_file = File::open(FILE_PATH);
@@ -69,7 +76,7 @@ impl Model {
             amp_factor,
             balances,
             n_coins,
-            target_prices: vec![DEFAULT_TARGET_PRICE, DEFAULT_TARGET_PRICE],
+            target_prices,
             pool_tokens: pool_token_amount,
         }
     }

@@ -93,10 +93,10 @@ impl SwapInfo {
         if key == self.token_b.reserves {
             return self.exchange_rate_b();
         }
-        return Fraction {
+        Fraction {
             numerator: 0,
             denominator: 0,
-        };
+        }
     }
 }
 

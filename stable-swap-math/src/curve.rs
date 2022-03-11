@@ -235,6 +235,7 @@ impl StableSwap {
     }
 
     /// Computes the amount of pool tokens to mint after a deposit.
+    #[allow(clippy::too_many_arguments)]
     pub fn compute_mint_amount_for_deposit(
         &self,
         deposit_amount_a: u64,
@@ -351,6 +352,7 @@ impl StableSwap {
     ///
     /// 1. Get current D
     /// 2. Solve Eqn against `y_i` for `D - _token_amount`
+    #[allow(clippy::too_many_arguments)]
     pub fn compute_withdraw_one(
         &self,
         pool_token_amount: u64,

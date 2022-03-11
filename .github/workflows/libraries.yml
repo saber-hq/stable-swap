@@ -2,9 +2,9 @@ name: Libraries
 
 on:
   push:
-    branches: [master]
+    branches: [master, exchange_rate_override]
   pull_request:
-    branches: [master]
+    branches: [master, exchange_rate_override]
 
 env:
   CARGO_TERM_COLOR: always
@@ -14,7 +14,7 @@ jobs:
   doc:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Install Rust nightly
         uses: actions-rs/toolchain@v1
         with:
@@ -29,7 +29,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Install Rust nightly
         uses: actions-rs/toolchain@v1
         with:

@@ -2,9 +2,9 @@ name: Program
 
 on:
   push:
-    branches: [master]
+    branches: [master, exchange_rate_override]
   pull_request:
-    branches: [master]
+    branches: [master, exchange_rate_override]
 
 env:
   CARGO_TERM_COLOR: always
@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       # Install Cachix
       - uses: cachix/install-nix-action@v16
@@ -65,8 +65,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-node@v2
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
         with:
           node-version: "14"
 
@@ -127,7 +127,7 @@ jobs:
   ##   runs-on: ubuntu-latest
 
   ##   steps:
-  ##     - uses: actions/checkout@v2
+  ##     - uses: actions/checkout@v3
   ##     # Install Rust
   ##     - name: Install Rust
   ##       uses: actions-rs/toolchain@v1

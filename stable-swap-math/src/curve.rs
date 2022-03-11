@@ -1663,8 +1663,7 @@ mod tests {
                     .unwrap(),
             )
             .unwrap();
-        return mul_fraction(swap_destination_amount, swap_destination_exchange_rate).unwrap()
-            > y + 1;
+        mul_fraction(swap_destination_amount, swap_destination_exchange_rate).unwrap() > y + 1
     }
 
     proptest! {

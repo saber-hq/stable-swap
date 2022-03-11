@@ -400,7 +400,10 @@ impl StableSwap {
             .checked_sub(1)?; // Withdraw less to account for rounding errors
         let dy_0 = swap_base_amount_xp.checked_sub(new_y)?;
 
-        Some((div_fraction(dy, swap_base_exchange_rate)?, div_fraction(dy_0.checked_sub(dy)?, swap_base_exchange_rate)?))
+        Some((
+            div_fraction(dy, swap_base_exchange_rate)?,
+            div_fraction(dy_0.checked_sub(dy)?, swap_base_exchange_rate)?,
+        ))
     }
 
     /// Compute SwapResult after an exchange
@@ -426,7 +429,9 @@ impl StableSwap {
             )?,
         )?;
         // https://github.com/curvefi/curve-contract/blob/b0bbf77f8f93c9c5f4e415bce9cd71f0cdee960e/contracts/pool-templates/base/SwapTemplateBase.vy#L466
-        let dy = mul_fraction(swap_destination_amount, swap_destination_exchange_rate)?.checked_sub(y)?.checked_sub(1)?;
+        let dy = mul_fraction(swap_destination_amount, swap_destination_exchange_rate)?
+            .checked_sub(y)?
+            .checked_sub(1)?;
         let dy_fee = fees.trade_fee(dy)?;
         let admin_fee = fees.admin_trade_fee(dy_fee)?;
 
@@ -769,7 +774,17 @@ mod tests {
             N_COINS,
         );
 
-        let expected_amount_swapped = div_fraction(model.sim_exchange(0, 1, mul_fraction(source_amount, swap_source_exchange_rate).unwrap().into()), swap_destination_exchange_rate).unwrap();
+        let expected_amount_swapped = div_fraction(
+            model.sim_exchange(
+                0,
+                1,
+                mul_fraction(source_amount, swap_source_exchange_rate)
+                    .unwrap()
+                    .into(),
+            ),
+            swap_destination_exchange_rate,
+        )
+        .unwrap();
         let diff = (expected_amount_swapped as i128 - result.amount_swapped as i128).abs();
         let tolerance = std::cmp::max(1, expected_amount_swapped as i128 / 1_000_000_000);
         assert!(
@@ -1095,14 +1110,16 @@ mod tests {
             div_fraction(
                 model.sim_calc_withdraw_one_coin(pool_token_amount, 0).0,
                 swap_base_exchange_rate,
-            ).unwrap(),
+            )
+            .unwrap(),
         );
         assert_eq!(
             result.1,
             div_fraction(
                 model.sim_calc_withdraw_one_coin(pool_token_amount, 0).1,
                 swap_base_exchange_rate,
-            ).unwrap(),
+            )
+            .unwrap(),
         );
     }
 
@@ -1404,8 +1421,10 @@ mod tests {
             let start_ramp_ts: i64 = rng.gen_range(ZERO_TS..=i64::MAX);
             let stop_ramp_ts: i64 = rng.gen_range(start_ramp_ts..=i64::MAX);
             let current_ts: i64 = rng.gen_range(start_ramp_ts..=stop_ramp_ts);
-            let token_a_exchange_rate_numerator: u64 = rng.gen_range(1..=MAX_EXCHANGE_RATE_NUMERATOR);
-            let token_b_exchange_rate_numerator: u64 = rng.gen_range(1..=MAX_EXCHANGE_RATE_NUMERATOR);
+            let token_a_exchange_rate_numerator: u64 =
+                rng.gen_range(1..=MAX_EXCHANGE_RATE_NUMERATOR);
+            let token_b_exchange_rate_numerator: u64 =
+                rng.gen_range(1..=MAX_EXCHANGE_RATE_NUMERATOR);
             println!("testing curve_math_with_random_inputs:");
             println!(
                 "current_ts: {}, start_ramp_ts: {}, stop_ramp_ts: {}",
@@ -1490,8 +1509,10 @@ mod tests {
             let source_amount: u64 = rng.gen_range(1..=MAX_TOKENS_IN);
             let swap_source_amount: u64 = rng.gen_range(1..=MAX_TOKENS_IN);
             let swap_destination_amount: u64 = rng.gen_range(1..=MAX_TOKENS_IN);
-            let swap_source_exchange_rate_numerator: u64 = rng.gen_range(1..=MAX_EXCHANGE_RATE_NUMERATOR);
-            let swap_destination_exchange_rate_numerator: u64 = rng.gen_range(1..=MAX_EXCHANGE_RATE_NUMERATOR);
+            let swap_source_exchange_rate_numerator: u64 =
+                rng.gen_range(1..=MAX_EXCHANGE_RATE_NUMERATOR);
+            let swap_destination_exchange_rate_numerator: u64 =
+                rng.gen_range(1..=MAX_EXCHANGE_RATE_NUMERATOR);
             println!("testing swap_calculation_with_random_inputs:");
             println!(
                 "current_ts: {}, start_ramp_ts: {}, stop_ramp_ts: {}",
@@ -1574,8 +1595,10 @@ mod tests {
             let swap_quote_amount: u64 = rng.gen_range(1..=MAX_TOKENS_IN);
             let pool_token_supply = swap_base_amount + swap_quote_amount;
             let pool_token_amount: u64 = rng.gen_range(1..=pool_token_supply);
-            let swap_base_exchange_rate_numerator: u64 = rng.gen_range(1..=MAX_EXCHANGE_RATE_NUMERATOR);
-            let swap_quote_exchange_rate_numerator: u64 = rng.gen_range(1..=MAX_EXCHANGE_RATE_NUMERATOR);
+            let swap_base_exchange_rate_numerator: u64 =
+                rng.gen_range(1..=MAX_EXCHANGE_RATE_NUMERATOR);
+            let swap_quote_exchange_rate_numerator: u64 =
+                rng.gen_range(1..=MAX_EXCHANGE_RATE_NUMERATOR);
             println!("testing compute_withdraw_one_with_random_inputs:");
             println!(
                 "current_ts: {}, start_ramp_ts: {}, stop_ramp_ts: {}",
@@ -1621,19 +1644,25 @@ mod tests {
         swap_source_exchange_rate: Fraction,
         swap_destination_exchange_rate: Fraction,
     ) -> bool {
-        let y = invariant.compute_y(
-            mul_fraction(
-                swap_source_amount.checked_add(swap_amount).unwrap(),
-                swap_source_exchange_rate,
-            ).unwrap(),
-            invariant.compute_d(
-                swap_source_exchange_rate,
-                swap_destination_exchange_rate,
-                swap_source_amount,
-                swap_destination_amount,
-            ).unwrap(),
-        ).unwrap();
-        return mul_fraction(swap_destination_amount, swap_destination_exchange_rate).unwrap() > y + 1;
+        let y = invariant
+            .compute_y(
+                mul_fraction(
+                    swap_source_amount.checked_add(swap_amount).unwrap(),
+                    swap_source_exchange_rate,
+                )
+                .unwrap(),
+                invariant
+                    .compute_d(
+                        swap_source_exchange_rate,
+                        swap_destination_exchange_rate,
+                        swap_source_amount,
+                        swap_destination_amount,
+                    )
+                    .unwrap(),
+            )
+            .unwrap();
+        return mul_fraction(swap_destination_amount, swap_destination_exchange_rate).unwrap()
+            > y + 1;
     }
 
     proptest! {

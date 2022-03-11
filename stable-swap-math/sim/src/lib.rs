@@ -41,7 +41,13 @@ impl Model {
         target_prices: Vec<u128>,
         n_coins: u8,
     ) -> Model {
-        Model::new_with_target_prices_and_pool_tokens(amp_factor, balances, n_coins, target_prices, DEFAULT_POOL_TOKENS)
+        Model::new_with_target_prices_and_pool_tokens(
+            amp_factor,
+            balances,
+            n_coins,
+            target_prices,
+            DEFAULT_POOL_TOKENS,
+        )
     }
 
     pub fn new_with_pool_tokens(
@@ -50,7 +56,13 @@ impl Model {
         n_coins: u8,
         pool_token_amount: u64,
     ) -> Model {
-        Model::new_with_target_prices_and_pool_tokens(amp_factor, balances, n_coins, vec![DEFAULT_TARGET_PRICE, DEFAULT_TARGET_PRICE], pool_token_amount)
+        Model::new_with_target_prices_and_pool_tokens(
+            amp_factor,
+            balances,
+            n_coins,
+            vec![DEFAULT_TARGET_PRICE, DEFAULT_TARGET_PRICE],
+            pool_token_amount,
+        )
     }
 
     pub fn new_with_target_prices_and_pool_tokens(

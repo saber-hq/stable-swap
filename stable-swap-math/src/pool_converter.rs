@@ -92,7 +92,11 @@ mod tests {
             fees: &fees,
         };
         let expected_result = if let Some(expected_before_fees) = expected_before_fees {
-            let expected_fees = fees.withdraw_fee(expected_before_fees.into()).unwrap().to_u64().unwrap();
+            let expected_fees = fees
+                .withdraw_fee(expected_before_fees.into())
+                .unwrap()
+                .to_u64()
+                .unwrap();
             let expected_admin_fees = fees.admin_withdraw_fee(expected_fees).unwrap();
             let expected_amount = expected_before_fees - expected_fees;
             Some((expected_amount, expected_fees, expected_admin_fees))

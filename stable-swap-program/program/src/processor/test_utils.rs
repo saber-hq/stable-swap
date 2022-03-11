@@ -187,7 +187,7 @@ impl SwapAccountInfo {
             self.token_a_exchange_rate_override,
             self.token_b_exchange_rate_override,
         );
-        let result = do_process_instruction(
+        do_process_instruction(
             intialize_result?,
             vec![
                 &mut self.swap_account,
@@ -203,8 +203,7 @@ impl SwapAccountInfo {
                 &mut self.pool_token_account,
                 &mut Account::default(),
             ],
-        );
-        result
+        )
     }
 
     pub fn setup_token_accounts(

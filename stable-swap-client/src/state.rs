@@ -60,6 +60,40 @@ pub struct SwapInfo {
     pub token_b_exchange_rate_override: Fraction,
 }
 
+impl SwapInfo {
+    fn exchange_rate_from_override(exchange_rate_override: Fraction) -> Fraction {
+        if exchange_rate_override == Fraction::UNDEFINED {
+            return Fraction::ONE;
+        }
+
+        exchange_rate_override
+    }
+
+    /// Calculates the exchange rate of token A.
+    pub fn exchange_rate_a(&self) -> Fraction {
+        // For now, we exclusively rely on the exchange rate override.
+        SwapInfo::exchange_rate_from_override(self.token_a_exchange_rate_override)
+    }
+
+    /// Calculates the exchange rate of token B.
+    pub fn exchange_rate_b(&self) -> Fraction {
+        // For now, we exclusively rely on the exchange rate override.
+        SwapInfo::exchange_rate_from_override(self.token_b_exchange_rate_override)
+    }
+
+    /// Calculates the exchange rate of the token corresponding with 'key'.
+    /// Assumes that 'key' corresponds with either token A or token B.
+    pub fn exchange_rate_from_token_account(&self, key: Pubkey) -> Fraction {
+        if key == self.token_a.reserves {
+            return self.exchange_rate_a();
+        }
+        if key == self.token_b.reserves {
+            return self.exchange_rate_b();
+        }
+        Fraction::UNDEFINED
+    }
+}
+
 /// Information about one of the tokens.
 #[repr(C)]
 #[derive(Clone, Copy, Debug, PartialEq)]

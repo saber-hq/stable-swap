@@ -1,6 +1,7 @@
 //! Utilities for getting the virtual price of a pool.
 
 use crate::{bn::U192, curve::StableSwap};
+use stable_swap_client::fraction::Fraction;
 
 /// Utilities for calculating the virtual price of a Saber LP token.
 ///
@@ -52,6 +53,10 @@ pub struct SaberSwap {
     ///
     /// This is `token_b.reserve.amount`, where `token_b.reserve` is an SPL Token Token Account.
     pub token_b_reserve: u64,
+    /// Exchange rate of token A.
+    pub token_a_exchange_rate: Fraction,
+    /// Exchange rate of token B.
+    pub token_b_exchange_rate: Fraction,
 }
 
 impl From<&SaberSwap> for crate::curve::StableSwap {
@@ -107,7 +112,12 @@ impl SaberSwap {
     /// Computes D, which is the virtual price times the total supply of the pool.
     pub fn compute_d(&self) -> Option<U192> {
         let calculator = StableSwap::from(self);
-        calculator.compute_d(self.token_a_reserve, self.token_b_reserve)
+        calculator.compute_d_with_exchange_rates(
+            self.token_a_exchange_rate,
+            self.token_b_exchange_rate,
+            self.token_a_reserve,
+            self.token_b_reserve,
+        )
     }
 }
 
@@ -117,12 +127,17 @@ mod tests {
     use proptest::prelude::*;
 
     use super::SaberSwap;
+    use stable_swap_client::fraction::Fraction;
 
     prop_compose! {
         fn arb_swap_unsafe()(
             token_a_reserve in 1_u64..=u64::MAX,
             token_b_reserve in 1_u64..=u64::MAX,
-            lp_mint_supply in 1_u64..=u64::MAX
+            lp_mint_supply in 1_u64..=u64::MAX,
+            token_a_exchange_rate_override_numerator in 1_u64..=u64::MAX,
+            token_a_exchange_rate_override_denominator in 1_u64..=u64::MAX,
+            token_b_exchange_rate_override_numerator in 1_u64..=u64::MAX,
+            token_b_exchange_rate_override_denominator in 1_u64..=u64::MAX
         ) -> SaberSwap {
             SaberSwap {
                 initial_amp_factor: 1,
@@ -133,7 +148,15 @@ mod tests {
 
                 lp_mint_supply,
                 token_a_reserve,
-                token_b_reserve
+                token_b_reserve,
+                token_a_exchange_rate: Fraction{
+                    numerator: token_a_exchange_rate_override_numerator,
+                    denominator: token_a_exchange_rate_override_denominator,
+                },
+                token_b_exchange_rate: Fraction{
+                    numerator: token_b_exchange_rate_override_numerator,
+                    denominator: token_b_exchange_rate_override_denominator,
+                },
             }
         }
     }

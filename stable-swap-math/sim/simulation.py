@@ -80,7 +80,7 @@ class Curve:
             y = (y ** 2 + c) // (2 * y + b)
         return y  # the result is in underlying units too
 
-    def y_D(self, i, _D):
+    def y_D(self, i, _D, _xp=None):
         """
         Calculate x[j] if one makes x[i] = x
 
@@ -90,7 +90,7 @@ class Curve:
 
         x_1 = (x_1**2 + c) / (2*x_1 + b)
         """
-        xx = self.xp()
+        xx = self.xp() if _xp is None else _xp
         xx = [xx[k] for k in range(self.n) if k != i]
         S = sum(xx)
         Ann = self.A * self.n
@@ -164,9 +164,7 @@ class Curve:
             dx_expected = xp[j] - xp[j] * D1 // D0
           xp_reduced[j] -= fee * dx_expected // 10 ** 10
 
-        self.x = [x * 10 ** 18 // p for x, p in zip(xp_reduced, self.p)]
-        dy = xp_reduced[i] - self.y_D(i, D1) - 1    # Withdraw less to account for rounding errors
-        self.x = [x * 10 ** 18 // p for x, p in zip(xp, self.p)]
+        dy = xp_reduced[i] - self.y_D(i, D1, xp_reduced) - 1    # Withdraw less to account for rounding errors
         dy_0 = xp[i] - new_y
 
         return dy, dy_0 - dy

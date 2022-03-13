@@ -24,6 +24,10 @@ pub struct InitializeData {
     pub amp_factor: u64,
     /// Fees
     pub fees: Fees,
+    /// Exchange rate override for token A. Specifying 0/0 means no override.
+    pub token_a_exchange_rate_override: Fraction,
+    /// Exchange rate override for token B. Specifying 0/0 means no override.
+    pub token_b_exchange_rate_override: Fraction,
 }
 
 /// Swap instruction data
@@ -511,11 +515,15 @@ impl SwapInstruction {
             0 => {
                 let (&nonce, rest) = rest.split_first().ok_or(SwapError::InvalidInstruction)?;
                 let (amp_factor, rest) = unpack_u64(rest)?;
-                let fees = Fees::unpack_unchecked(rest)?;
+                let (fees, rest) = unpack_fees(rest)?;
+                let (token_a_exchange_rate_override, rest) = unpack_fraction(rest)?;
+                let token_b_exchange_rate_override = Fraction::unpack_unchecked(rest)?;
                 Self::Initialize(InitializeData {
                     nonce,
                     amp_factor,
                     fees,
+                    token_a_exchange_rate_override,
+                    token_b_exchange_rate_override,
                 })
             }
             1 => {
@@ -566,6 +574,8 @@ impl SwapInstruction {
                 nonce,
                 amp_factor,
                 fees,
+                token_a_exchange_rate_override,
+                token_b_exchange_rate_override,
             }) => {
                 buf.push(0);
                 buf.push(nonce);
@@ -573,6 +583,18 @@ impl SwapInstruction {
                 let mut fees_slice = [0u8; Fees::LEN];
                 Pack::pack_into_slice(&fees, &mut fees_slice[..]);
                 buf.extend_from_slice(&fees_slice);
+                let mut exchange_rate_a_slice = [0u8; Fraction::LEN];
+                Pack::pack_into_slice(
+                    &token_a_exchange_rate_override,
+                    &mut exchange_rate_a_slice[..],
+                );
+                buf.extend_from_slice(&exchange_rate_a_slice);
+                let mut exchange_rate_b_slice = [0u8; Fraction::LEN];
+                Pack::pack_into_slice(
+                    &token_b_exchange_rate_override,
+                    &mut exchange_rate_b_slice[..],
+                );
+                buf.extend_from_slice(&exchange_rate_b_slice);
             }
             Self::Swap(SwapData {
                 amount_in,
@@ -632,11 +654,15 @@ pub fn initialize(
     nonce: u8,
     amp_factor: u64,
     fees: Fees,
+    token_a_exchange_rate_override: Fraction,
+    token_b_exchange_rate_override: Fraction,
 ) -> Result<Instruction, ProgramError> {
     let data = SwapInstruction::Initialize(InitializeData {
         nonce,
         amp_factor,
         fees,
+        token_a_exchange_rate_override,
+        token_b_exchange_rate_override,
     })
     .pack();
 
@@ -864,6 +890,22 @@ fn unpack_u64(input: &[u8]) -> Result<(u64, &[u8]), ProgramError> {
     }
 }
 
+fn unpack_fees(input: &[u8]) -> Result<(Fees, &[u8]), ProgramError> {
+    if input.len() >= Fees::LEN {
+        let (fees_slice, rest) = input.split_at(Fees::LEN);
+        return Ok((Fees::unpack_unchecked(fees_slice)?, rest));
+    }
+    Err(SwapError::InvalidInstruction.into())
+}
+
+fn unpack_fraction(input: &[u8]) -> Result<(Fraction, &[u8]), ProgramError> {
+    if input.len() >= Fraction::LEN {
+        let (fraction_slice, rest) = input.split_at(Fraction::LEN);
+        return Ok((Fraction::unpack_unchecked(fraction_slice)?, rest));
+    }
+    Err(SwapError::InvalidInstruction.into())
+}
+
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
@@ -990,10 +1032,20 @@ mod tests {
             withdraw_fee_numerator: 7,
             withdraw_fee_denominator: 8,
         };
+        let token_a_exchange_rate_override = Fraction {
+            numerator: 1,
+            denominator: 2,
+        };
+        let token_b_exchange_rate_override = Fraction {
+            numerator: 3,
+            denominator: 4,
+        };
         let check = SwapInstruction::Initialize(InitializeData {
             nonce,
             amp_factor,
             fees,
+            token_a_exchange_rate_override,
+            token_b_exchange_rate_override,
         });
         let packed = check.pack();
         let mut expect = vec![0_u8, nonce];
@@ -1001,6 +1053,12 @@ mod tests {
         let mut fees_slice = [0u8; Fees::LEN];
         fees.pack_into_slice(&mut fees_slice[..]);
         expect.extend_from_slice(&fees_slice);
+        let mut exchange_rate_a_slice = [0u8; Fraction::LEN];
+        token_a_exchange_rate_override.pack_into_slice(&mut exchange_rate_a_slice[..]);
+        expect.extend_from_slice(&exchange_rate_a_slice);
+        let mut exchange_rate_b_slice = [0u8; Fraction::LEN];
+        token_b_exchange_rate_override.pack_into_slice(&mut exchange_rate_b_slice[..]);
+        expect.extend_from_slice(&exchange_rate_b_slice);
         assert_eq!(packed, expect);
         let unpacked = SwapInstruction::unpack(&expect).unwrap();
         assert_eq!(unpacked, check);

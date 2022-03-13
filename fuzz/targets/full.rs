@@ -16,6 +16,7 @@ use stable_swap::{
     curve::{StableSwap, MAX_AMP, MIN_AMP},
     error::SwapError,
     fees::Fees,
+    fraction::Fraction,
     instruction::*,
 };
 use std::collections::{HashMap, HashSet};
@@ -115,6 +116,8 @@ fn run_actions(actions: Vec<Action>) {
         INITIAL_SWAP_TOKEN_A_AMOUNT,
         INITIAL_SWAP_TOKEN_B_AMOUNT,
         fees,
+        Fraction::UNDEFINED,
+        Fraction::UNDEFINED,
     );
 
     // keep track of all accounts, including swap accounts

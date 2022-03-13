@@ -8,13 +8,32 @@ use solana_program::{
 
 /// Fraction struct
 #[repr(C)]
-#[derive(Clone, Copy, Debug, Default, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 #[cfg_attr(feature = "fuzz", derive(arbitrary::Arbitrary))]
 pub struct Fraction {
     /// Numerator
     pub numerator: u64,
     /// Denominator
     pub denominator: u64,
+}
+
+impl Fraction {
+    /// The fraction corresponding to 1/1.
+    pub const ONE: Self = Self {
+        numerator: 1,
+        denominator: 1,
+    };
+
+    /// The fraction corresponding to 0/0.
+    pub const UNDEFINED: Self = Self {
+        numerator: 0,
+        denominator: 0,
+    };
+
+    /// Returns whether the fraction has a non-zero denominator.
+    pub fn is_divisible(&self) -> bool {
+        self.denominator != 0
+    }
 }
 
 impl Sealed for Fraction {}

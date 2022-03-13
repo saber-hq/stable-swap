@@ -23,7 +23,7 @@ impl PoolTokenConverter<'_> {
             .checked_mul(self.token_a as u128)?
             .checked_div(self.supply as u128)?
             .to_u64()?;
-        let fee = self.fees.withdraw_fee(amount)?;
+        let fee = self.fees.withdraw_fee(amount)?.to_u64()?;
         let admin_fee = self.fees.admin_withdraw_fee(fee)?;
 
         Some((amount.checked_sub(fee)?, fee, admin_fee))
@@ -35,7 +35,7 @@ impl PoolTokenConverter<'_> {
             .checked_mul(self.token_b as u128)?
             .checked_div(self.supply as u128)?
             .to_u64()?;
-        let fee = self.fees.withdraw_fee(amount)?;
+        let fee = self.fees.withdraw_fee(amount)?.to_u64()?;
         let admin_fee = self.fees.admin_withdraw_fee(fee)?;
 
         Some((amount.checked_sub(fee)?, fee, admin_fee))

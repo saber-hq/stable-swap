@@ -64,6 +64,8 @@ pub struct SwapAccountInfo {
     pub admin_fee_b_key: Pubkey,
     pub admin_fee_b_account: Account,
     pub fees: Fees,
+    pub token_a_exchange_rate_override: Fraction,
+    pub token_b_exchange_rate_override: Fraction,
 }
 
 impl SwapAccountInfo {
@@ -73,6 +75,8 @@ impl SwapAccountInfo {
         token_a_amount: u64,
         token_b_amount: u64,
         fees: Fees,
+        token_a_exchange_rate_override: Fraction,
+        token_b_exchange_rate_override: Fraction,
     ) -> Self {
         let swap_key = pubkey_rand();
         let swap_account = Account::new(0, SwapInfo::get_packed_len(), &SWAP_PROGRAM_ID);
@@ -158,28 +162,33 @@ impl SwapAccountInfo {
             admin_fee_b_key,
             admin_fee_b_account,
             fees,
+            token_a_exchange_rate_override,
+            token_b_exchange_rate_override,
         }
     }
 
     pub fn initialize_swap(&mut self) -> ProgramResult {
+        let intialize_result = initialize(
+            &spl_token::id(),
+            &self.swap_key,
+            &self.authority_key,
+            &self.admin_key,
+            &self.admin_fee_a_key,
+            &self.admin_fee_b_key,
+            &self.token_a_mint_key,
+            &self.token_a_key,
+            &self.token_b_mint_key,
+            &self.token_b_key,
+            &self.pool_mint_key,
+            &self.pool_token_key,
+            self.nonce,
+            self.initial_amp_factor,
+            self.fees,
+            self.token_a_exchange_rate_override,
+            self.token_b_exchange_rate_override,
+        );
         do_process_instruction(
-            initialize(
-                &spl_token::id(),
-                &self.swap_key,
-                &self.authority_key,
-                &self.admin_key,
-                &self.admin_fee_a_key,
-                &self.admin_fee_b_key,
-                &self.token_a_mint_key,
-                &self.token_a_key,
-                &self.token_b_mint_key,
-                &self.token_b_key,
-                &self.pool_mint_key,
-                &self.pool_token_key,
-                self.nonce,
-                self.initial_amp_factor,
-                self.fees,
-            )?,
+            intialize_result?,
             vec![
                 &mut self.swap_account,
                 &mut Account::default(),

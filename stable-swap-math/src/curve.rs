@@ -1828,6 +1828,84 @@ mod tests {
         }
     }
 
+    #[test]
+    fn test_exchange_rates_provide_better_slippage_specific() {
+        let swap = StableSwap {
+            initial_amp_factor: 2,
+            target_amp_factor: 2,
+            current_ts: 0,
+            start_ramp_ts: 0,
+            stop_ramp_ts: 0,
+        };
+        let source_amount = 5000;
+        let swap_source_amount = 100000000;
+        let swap_destination_amount = 200000000;
+        let swap_source_exchange_rate = Fraction {
+            numerator: 2,
+            denominator: 1,
+        };
+        let swap_source_exchange_rate_too_high = Fraction {
+            numerator: 4,
+            denominator: 1,
+        };
+        let swap_destination_exchange_rate = Fraction::ONE;
+
+        let correct_exchange_rate_amount_swapped = swap
+            .swap_to_with_exchange_rates(
+                source_amount,
+                swap_source_amount,
+                swap_destination_amount,
+                swap_source_exchange_rate,
+                swap_destination_exchange_rate,
+                &ZERO_FEES,
+            )
+            .unwrap()
+            .amount_swapped;
+
+        let no_exchange_rate_amount_swapped = swap
+            .swap_to(
+                source_amount,
+                swap_source_amount,
+                swap_destination_amount,
+                &ZERO_FEES,
+            )
+            .unwrap()
+            .amount_swapped;
+
+        let exchange_rate_too_high_amount_swapped = swap
+            .swap_to_with_exchange_rates(
+                source_amount,
+                swap_source_amount,
+                swap_destination_amount,
+                swap_source_exchange_rate_too_high,
+                swap_destination_exchange_rate,
+                &ZERO_FEES,
+            )
+            .unwrap()
+            .amount_swapped;
+
+        let optimal_amount_swapped =
+            mul_fraction(source_amount, swap_source_exchange_rate).unwrap();
+        // Positive slippage means that the swap was better than expected.
+        let slippage = |amount: u64| -> i128 {
+            (amount as i128)
+                .checked_sub(optimal_amount_swapped.into())
+                .unwrap()
+        };
+
+        assert!(slippage(no_exchange_rate_amount_swapped) < 0);
+        assert!(slippage(exchange_rate_too_high_amount_swapped) > 0);
+
+        assert!(
+            slippage(correct_exchange_rate_amount_swapped).abs()
+                < slippage(no_exchange_rate_amount_swapped).abs()
+        );
+        assert!(
+            slippage(correct_exchange_rate_amount_swapped).abs()
+                < slippage(exchange_rate_too_high_amount_swapped).abs()
+        );
+    }
+
     prop_compose! {
         pub fn exchange_rate()
                         (numerator in 1..=MAX_EXCHANGE_RATE_NUMERATOR)

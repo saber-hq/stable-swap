@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 
 set -ex
+trap "exit" INT TERM
+trap "kill 0" EXIT
 cd "$(dirname "$0")"
 
 export PATH="$HOME"/.local/share/solana/install/active_release/bin:"$PATH"

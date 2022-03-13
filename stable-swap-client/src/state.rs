@@ -62,7 +62,7 @@ pub struct SwapInfo {
 
 impl SwapInfo {
     fn exchange_rate_from_override(exchange_rate_override: Fraction) -> Fraction {
-        if exchange_rate_override.numerator == 0 && exchange_rate_override.denominator == 0 {
+        if exchange_rate_override == Fraction::UNDEFINED {
             return Fraction::ONE;
         }
 

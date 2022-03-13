@@ -279,7 +279,7 @@ fn set_exchange_rate_override(
     token: Token,
     exchange_rate_override: Fraction,
 ) -> ProgramResult {
-    if (exchange_rate_override.denominator == 0) != (exchange_rate_override.numerator == 0) {
+    if exchange_rate_override != Fraction::UNDEFINED && !exchange_rate_override.is_divisible() {
         return Err(SwapError::InvalidExchangeRateOverride.into());
     }
 

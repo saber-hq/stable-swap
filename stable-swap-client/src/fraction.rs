@@ -29,6 +29,11 @@ impl Fraction {
         numerator: 0,
         denominator: 0,
     };
+
+    /// Returns whether the fraction has a non-zero denominator.
+    pub fn is_divisible(&self) -> bool {
+        self.denominator != 0
+    }
 }
 
 impl Sealed for Fraction {}

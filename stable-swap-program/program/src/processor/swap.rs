@@ -272,7 +272,7 @@ fn process_initialize(
     let invariant = StableSwap::new(amp_factor, amp_factor, ZERO_TS, ZERO_TS, ZERO_TS);
     // Compute amount of LP tokens to mint for bootstrapper
     let mint_amount_u256 = invariant
-        .compute_d(
+        .compute_d_with_exchange_rates(
             obj.exchange_rate_a(),
             obj.exchange_rate_b(),
             token_a.amount,
@@ -385,7 +385,7 @@ fn process_swap(
         token_swap.stop_ramp_ts,
     );
     let result = invariant
-        .swap_to(
+        .swap_to_with_exchange_rates(
             amount_in,
             swap_source_account.amount,
             swap_destination_account.amount,
@@ -495,7 +495,7 @@ fn process_deposit(
         token_swap.stop_ramp_ts,
     );
     let mint_amount = invariant
-        .compute_mint_amount_for_deposit(
+        .compute_mint_amount_for_deposit_with_exchange_rates(
             token_a_amount,
             token_b_amount,
             token_a.amount,
@@ -792,7 +792,7 @@ fn process_withdraw_one(
         token_swap.stop_ramp_ts,
     );
     let (dy, dy_fee) = invariant
-        .compute_withdraw_one(
+        .compute_withdraw_one_with_exchange_rates(
             pool_token_amount,
             pool_mint.supply,
             base_token.amount,
@@ -2875,8 +2875,6 @@ mod tests {
                     a_to_b_amount,
                     token_a_amount,
                     token_b_amount,
-                    Fraction::ONE,
-                    Fraction::ONE,
                     &DEFAULT_TEST_FEES,
                 )
                 .unwrap();
@@ -2930,8 +2928,6 @@ mod tests {
                     b_to_a_amount,
                     token_b_amount,
                     token_a_amount,
-                    Fraction::ONE,
-                    Fraction::ONE,
                     &DEFAULT_TEST_FEES,
                 )
                 .unwrap();
@@ -3448,8 +3444,6 @@ mod tests {
                     old_pool_mint.supply,
                     old_swap_token_a.amount,
                     old_swap_token_b.amount,
-                    Fraction::ONE,
-                    Fraction::ONE,
                     &DEFAULT_TEST_FEES,
                 )
                 .unwrap();

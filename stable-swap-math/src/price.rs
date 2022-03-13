@@ -112,7 +112,7 @@ impl SaberSwap {
     /// Computes D, which is the virtual price times the total supply of the pool.
     pub fn compute_d(&self) -> Option<U192> {
         let calculator = StableSwap::from(self);
-        calculator.compute_d(
+        calculator.compute_d_with_exchange_rates(
             self.token_a_exchange_rate,
             self.token_b_exchange_rate,
             self.token_a_reserve,

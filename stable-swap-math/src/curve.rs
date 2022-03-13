@@ -174,6 +174,25 @@ impl StableSwap {
     }
 
     /// Computes the Stable Swap invariant (D).
+    /// Assumes that the exchange rates of the tokens are both 1.
+    ///
+    /// The invariant is defined as follows:
+    ///
+    /// ```text
+    /// A * sum(x_i) * n**n + D = A * D * n**n + D**(n+1) / (n**n * prod(x_i))
+    /// ```
+    ///
+    /// # Arguments
+    ///
+    /// - `amount_a` - The amount of token A owned by the LP pool. (i.e. token A reserves)
+    /// - `amount_b` - The amount of token B owned by the LP pool. (i.e. token B reserves)
+    ///
+    /// *For more info on reserves, see [stable_swap_client::state::SwapTokenInfo::reserves].*
+    pub fn compute_d(&self, amount_a: u64, amount_b: u64) -> Option<U192> {
+        self.compute_d_with_exchange_rates(Fraction::ONE, Fraction::ONE, amount_a, amount_b)
+    }
+
+    /// Computes the Stable Swap invariant (D).
     ///
     /// The invariant is defined as follows:
     ///
@@ -189,7 +208,7 @@ impl StableSwap {
     /// - `amount_b` - The amount of token B owned by the LP pool. (i.e. token B reserves)
     ///
     /// *For more info on reserves, see [stable_swap_client::state::SwapTokenInfo::reserves].*
-    pub fn compute_d(
+    pub fn compute_d_with_exchange_rates(
         &self,
         exchange_rate_a: Fraction,
         exchange_rate_b: Fraction,
@@ -235,8 +254,31 @@ impl StableSwap {
     }
 
     /// Computes the amount of pool tokens to mint after a deposit.
-    #[allow(clippy::too_many_arguments)]
+    /// Assumes that the exchange rates of the tokens are both 1.
     pub fn compute_mint_amount_for_deposit(
+        &self,
+        deposit_amount_a: u64,
+        deposit_amount_b: u64,
+        swap_amount_a: u64,
+        swap_amount_b: u64,
+        pool_token_supply: u64,
+        fees: &Fees,
+    ) -> Option<u64> {
+        self.compute_mint_amount_for_deposit_with_exchange_rates(
+            deposit_amount_a,
+            deposit_amount_b,
+            swap_amount_a,
+            swap_amount_b,
+            Fraction::ONE,
+            Fraction::ONE,
+            pool_token_supply,
+            fees,
+        )
+    }
+
+    /// Computes the amount of pool tokens to mint after a deposit.
+    #[allow(clippy::too_many_arguments)]
+    pub fn compute_mint_amount_for_deposit_with_exchange_rates(
         &self,
         deposit_amount_a: u64,
         deposit_amount_b: u64,
@@ -248,7 +290,7 @@ impl StableSwap {
         fees: &Fees,
     ) -> Option<u64> {
         // Initial invariant
-        let d_0 = self.compute_d(
+        let d_0 = self.compute_d_with_exchange_rates(
             exchange_rate_a,
             exchange_rate_b,
             swap_amount_a,
@@ -260,7 +302,7 @@ impl StableSwap {
             swap_amount_b.checked_add(deposit_amount_b)?,
         ];
         // Invariant after change
-        let d_1 = self.compute_d(
+        let d_1 = self.compute_d_with_exchange_rates(
             exchange_rate_a,
             exchange_rate_b,
             new_balances[0],
@@ -284,7 +326,7 @@ impl StableSwap {
                 new_balances[i] = new_balances[i].checked_sub(fee)?;
             }
 
-            let d_2 = self.compute_d(
+            let d_2 = self.compute_d_with_exchange_rates(
                 exchange_rate_a,
                 exchange_rate_b,
                 new_balances[0],
@@ -347,6 +389,7 @@ impl StableSwap {
     }
 
     /// Calculates the withdrawal amount when withdrawing only one type of token.
+    /// Assumes that the exchange rates of the tokens are both 1.
     ///
     /// Calculation:
     ///
@@ -359,11 +402,37 @@ impl StableSwap {
         pool_token_supply: u64,
         swap_base_amount: u64,  // Same denomination of token to be withdrawn
         swap_quote_amount: u64, // Counter denomination of token to be withdrawn
+        fees: &Fees,
+    ) -> Option<(u64, u64)> {
+        self.compute_withdraw_one_with_exchange_rates(
+            pool_token_amount,
+            pool_token_supply,
+            swap_base_amount,
+            swap_quote_amount,
+            Fraction::ONE,
+            Fraction::ONE,
+            fees,
+        )
+    }
+
+    /// Calculates the withdrawal amount when withdrawing only one type of token.
+    ///
+    /// Calculation:
+    ///
+    /// 1. Get current D
+    /// 2. Solve Eqn against `y_i` for `D - _token_amount`
+    #[allow(clippy::too_many_arguments)]
+    pub fn compute_withdraw_one_with_exchange_rates(
+        &self,
+        pool_token_amount: u64,
+        pool_token_supply: u64,
+        swap_base_amount: u64,  // Same denomination of token to be withdrawn
+        swap_quote_amount: u64, // Counter denomination of token to be withdrawn
         swap_base_exchange_rate: Fraction,
         swap_quote_exchange_rate: Fraction,
         fees: &Fees,
     ) -> Option<(u64, u64)> {
-        let d_0 = self.compute_d(
+        let d_0 = self.compute_d_with_exchange_rates(
             swap_base_exchange_rate,
             swap_quote_exchange_rate,
             swap_base_amount,
@@ -408,8 +477,27 @@ impl StableSwap {
         ))
     }
 
-    /// Compute SwapResult after an exchange
+    /// Compute SwapResult after an exchange.
+    /// Assumes that the exchange rates of the tokens are both 1.
     pub fn swap_to(
+        &self,
+        source_amount: u64,
+        swap_source_amount: u64,
+        swap_destination_amount: u64,
+        fees: &Fees,
+    ) -> Option<SwapResult> {
+        self.swap_to_with_exchange_rates(
+            source_amount,
+            swap_source_amount,
+            swap_destination_amount,
+            Fraction::ONE,
+            Fraction::ONE,
+            fees,
+        )
+    }
+
+    /// Compute SwapResult after an exchange
+    pub fn swap_to_with_exchange_rates(
         &self,
         source_amount: u64,
         swap_source_amount: u64,
@@ -423,7 +511,7 @@ impl StableSwap {
                 swap_source_amount.checked_add(source_amount)?,
                 swap_source_exchange_rate,
             )?,
-            self.compute_d(
+            self.compute_d_with_exchange_rates(
                 swap_source_exchange_rate,
                 swap_destination_exchange_rate,
                 swap_source_amount,
@@ -569,7 +657,7 @@ mod tests {
             stop_ramp_ts,
         };
         let d = swap
-            .compute_d(exchange_rate_a, exchange_rate_b, amount_a, amount_b)
+            .compute_d_with_exchange_rates(exchange_rate_a, exchange_rate_b, amount_a, amount_b)
             .unwrap();
         assert_eq!(d, model.sim_d().into());
         d
@@ -689,8 +777,6 @@ mod tests {
                 deposit_amount_b,
                 swap_amount_a,
                 swap_amount_b,
-                Fraction::ONE,
-                Fraction::ONE,
                 pool_token_supply,
                 &MODEL_FEES,
             )
@@ -758,7 +844,7 @@ mod tests {
             stop_ramp_ts,
         );
         let result = swap
-            .swap_to(
+            .swap_to_with_exchange_rates(
                 source_amount,
                 swap_source_amount,
                 swap_destination_amount,
@@ -909,7 +995,7 @@ mod tests {
                 ..
             } = self
                 .stable_swap
-                .swap_to(
+                .swap_to_with_exchange_rates(
                     source_amount,
                     swap_source_amount,
                     swap_dest_amount,
@@ -1088,7 +1174,7 @@ mod tests {
             stop_ramp_ts,
         );
         let result = swap
-            .compute_withdraw_one(
+            .compute_withdraw_one_with_exchange_rates(
                 pool_token_amount,
                 pool_token_supply,
                 swap_base_amount,
@@ -1213,15 +1299,13 @@ mod tests {
             let start_ramp_ts = cmp::max(0, current_ts - MIN_RAMP_DURATION);
             let stop_ramp_ts = cmp::min(i64::MAX, current_ts + MIN_RAMP_DURATION);
             let invariant = StableSwap::new(amp_factor, amp_factor, current_ts, start_ramp_ts, stop_ramp_ts);
-            let d0 = invariant.compute_d(Fraction::ONE, Fraction::ONE, swap_token_a_amount, swap_token_b_amount).unwrap();
+            let d0 = invariant.compute_d(swap_token_a_amount, swap_token_b_amount).unwrap();
 
             let mint_amount = invariant.compute_mint_amount_for_deposit(
                     deposit_amount_a,
                     deposit_amount_b,
                     swap_token_a_amount,
                     swap_token_b_amount,
-                    Fraction::ONE,
-                    Fraction::ONE,
                     pool_token_supply,
                     &MODEL_FEES,
                 );
@@ -1230,7 +1314,7 @@ mod tests {
             let new_swap_token_a_amount = swap_token_a_amount + deposit_amount_a;
             let new_swap_token_b_amount = swap_token_b_amount + deposit_amount_b;
             let new_pool_token_supply = pool_token_supply + mint_amount.unwrap();
-            let d1 = invariant.compute_d(Fraction::ONE, Fraction::ONE, new_swap_token_a_amount, new_swap_token_b_amount).unwrap();
+            let d1 = invariant.compute_d(new_swap_token_a_amount, new_swap_token_b_amount).unwrap();
 
             assert!(d0 < d1);
             assert!(d0 / pool_token_supply <= d1 / new_pool_token_supply);
@@ -1253,13 +1337,13 @@ mod tests {
             let start_ramp_ts = cmp::max(0, current_ts - MIN_RAMP_DURATION);
             let stop_ramp_ts = cmp::min(i64::MAX, current_ts + MIN_RAMP_DURATION);
             let invariant = StableSwap::new(amp_factor, amp_factor, current_ts, start_ramp_ts, stop_ramp_ts);
-            let d0 = invariant.compute_d(Fraction::ONE, Fraction::ONE, swap_source_amount, swap_destination_amount).unwrap();
+            let d0 = invariant.compute_d(swap_source_amount, swap_destination_amount).unwrap();
 
-            let swap_result = invariant.swap_to(source_token_amount, swap_source_amount, swap_destination_amount, Fraction::ONE, Fraction::ONE, &MODEL_FEES);
+            let swap_result = invariant.swap_to(source_token_amount, swap_source_amount, swap_destination_amount, &MODEL_FEES);
             prop_assume!(swap_result.is_some());
 
             let swap_result = swap_result.unwrap();
-            let d1 = invariant.compute_d(Fraction::ONE, Fraction::ONE,swap_result.new_source_amount, swap_result.new_destination_amount).unwrap();
+            let d1 = invariant.compute_d(swap_result.new_source_amount, swap_result.new_destination_amount).unwrap();
 
             assert!(d0 <= d1);  // Pool token supply not changed on swaps
         }
@@ -1282,7 +1366,7 @@ mod tests {
             let start_ramp_ts = cmp::max(0, current_ts - MIN_RAMP_DURATION);
             let stop_ramp_ts = cmp::min(i64::MAX, current_ts + MIN_RAMP_DURATION);
             let invariant = StableSwap::new(amp_factor, amp_factor, current_ts, start_ramp_ts, stop_ramp_ts);
-            let d0 = invariant.compute_d(Fraction::ONE, Fraction::ONE,swap_token_a_amount, swap_token_b_amount).unwrap();
+            let d0 = invariant.compute_d(swap_token_a_amount, swap_token_b_amount).unwrap();
 
             let converter = PoolTokenConverter {
                 supply: pool_token_supply,
@@ -1301,7 +1385,7 @@ mod tests {
 
             let new_swap_token_a_amount = swap_token_a_amount - withdraw_amount_a;
             let new_swap_token_b_amount = swap_token_b_amount - withdraw_amount_b;
-            let d1 = invariant.compute_d(Fraction::ONE, Fraction::ONE,new_swap_token_a_amount, new_swap_token_b_amount).unwrap();
+            let d1 = invariant.compute_d(new_swap_token_a_amount, new_swap_token_b_amount).unwrap();
             let new_pool_token_supply = pool_token_supply - pool_token_amount;
 
             assert!(d0 / pool_token_supply <= d1 / new_pool_token_supply);
@@ -1325,13 +1409,13 @@ mod tests {
             let start_ramp_ts = cmp::max(0, current_ts - MIN_RAMP_DURATION);
             let stop_ramp_ts = cmp::min(i64::MAX, current_ts + MIN_RAMP_DURATION);
             let invariant = StableSwap::new(amp_factor, amp_factor, current_ts, start_ramp_ts, stop_ramp_ts);
-            let d0 = invariant.compute_d(Fraction::ONE, Fraction::ONE,base_token_amount, quote_token_amount).unwrap();
+            let d0 = invariant.compute_d(base_token_amount, quote_token_amount).unwrap();
 
             prop_assume!(U192::from(pool_token_amount) * U192::from(base_token_amount) / U192::from(pool_token_supply) >= U192::from(1));
-            let (withdraw_amount, _) = invariant.compute_withdraw_one(pool_token_amount, pool_token_supply, base_token_amount, quote_token_amount, Fraction::ONE, Fraction::ONE, &MODEL_FEES).unwrap();
+            let (withdraw_amount, _) = invariant.compute_withdraw_one(pool_token_amount, pool_token_supply, base_token_amount, quote_token_amount, &MODEL_FEES).unwrap();
 
             let new_base_token_amount = base_token_amount - withdraw_amount;
-            let d1 = invariant.compute_d(Fraction::ONE, Fraction::ONE, new_base_token_amount, quote_token_amount).unwrap();
+            let d1 = invariant.compute_d(new_base_token_amount, quote_token_amount).unwrap();
             let new_pool_token_supply = pool_token_supply - pool_token_amount;
 
             assert!(d0 / pool_token_supply <= d1 / new_pool_token_supply);
@@ -1654,7 +1738,7 @@ mod tests {
                 )
                 .unwrap(),
                 invariant
-                    .compute_d(
+                    .compute_d_with_exchange_rates(
                         swap_source_exchange_rate,
                         swap_destination_exchange_rate,
                         swap_source_amount,
@@ -1686,13 +1770,13 @@ mod tests {
 
             let invariant = StableSwap::new(amp_factor, amp_factor, current_ts, start_ramp_ts, stop_ramp_ts);
             prop_assume!(valid_swap_would_occur(invariant, source_token_amount, swap_source_amount, swap_destination_amount, swap_source_exchange_rate, swap_destination_exchange_rate));
-            let d0 = invariant.compute_d(swap_source_exchange_rate, swap_destination_exchange_rate, swap_source_amount, swap_destination_amount).unwrap();
+            let d0 = invariant.compute_d_with_exchange_rates(swap_source_exchange_rate, swap_destination_exchange_rate, swap_source_amount, swap_destination_amount).unwrap();
 
-            let swap_result = invariant.swap_to(source_token_amount, swap_source_amount, swap_destination_amount, swap_source_exchange_rate, swap_destination_exchange_rate, &MODEL_FEES);
+            let swap_result = invariant.swap_to_with_exchange_rates(source_token_amount, swap_source_amount, swap_destination_amount, swap_source_exchange_rate, swap_destination_exchange_rate, &MODEL_FEES);
             prop_assume!(swap_result.is_some());
 
             let swap_result = swap_result.unwrap();
-            let d1 = invariant.compute_d(swap_source_exchange_rate, swap_destination_exchange_rate, swap_result.new_source_amount, swap_result.new_destination_amount).unwrap();
+            let d1 = invariant.compute_d_with_exchange_rates(swap_source_exchange_rate, swap_destination_exchange_rate, swap_result.new_source_amount, swap_result.new_destination_amount).unwrap();
 
             assert!(d0 <= d1);  // Pool token supply not changed on swaps
         }
@@ -1718,7 +1802,7 @@ mod tests {
             let stop_ramp_ts = cmp::min(i64::MAX, current_ts + MIN_RAMP_DURATION);
 
             let invariant = StableSwap::new(amp_factor, amp_factor, current_ts, start_ramp_ts, stop_ramp_ts);
-            let d0 = invariant.compute_d(token_a_exchange_rate, token_b_exchange_rate, swap_token_a_amount, swap_token_b_amount).unwrap();
+            let d0 = invariant.compute_d_with_exchange_rates(token_a_exchange_rate, token_b_exchange_rate, swap_token_a_amount, swap_token_b_amount).unwrap();
 
             let converter = PoolTokenConverter {
                 supply: pool_token_supply,
@@ -1737,7 +1821,7 @@ mod tests {
 
             let new_swap_token_a_amount = swap_token_a_amount - withdraw_amount_a;
             let new_swap_token_b_amount = swap_token_b_amount - withdraw_amount_b;
-            let d1 = invariant.compute_d(token_a_exchange_rate, token_b_exchange_rate, new_swap_token_a_amount, new_swap_token_b_amount).unwrap();
+            let d1 = invariant.compute_d_with_exchange_rates(token_a_exchange_rate, token_b_exchange_rate, new_swap_token_a_amount, new_swap_token_b_amount).unwrap();
             let new_pool_token_supply = pool_token_supply - pool_token_amount;
 
             assert!(d0 / pool_token_supply <= d1 / new_pool_token_supply);

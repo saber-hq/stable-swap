@@ -389,8 +389,14 @@ fn process_swap(
             amount_in,
             swap_source_account.amount,
             swap_destination_account.amount,
-            token_swap.exchange_rate_from_token_account(*swap_source_info.key),
-            token_swap.exchange_rate_from_token_account(*swap_destination_info.key),
+            unwrap_opt!(
+                token_swap.exchange_rate_from_token_account(*swap_source_info.key),
+                SwapError::FailedToGetExchangeRate.into()
+            ),
+            unwrap_opt!(
+                token_swap.exchange_rate_from_token_account(*swap_destination_info.key),
+                SwapError::FailedToGetExchangeRate.into()
+            ),
             &token_swap.fees,
         )
         .ok_or(SwapError::CalculationFailure)?;
@@ -797,8 +803,14 @@ fn process_withdraw_one(
             pool_mint.supply,
             base_token.amount,
             quote_token.amount,
-            token_swap.exchange_rate_from_token_account(*base_token_info.key),
-            token_swap.exchange_rate_from_token_account(*quote_token_info.key),
+            unwrap_opt!(
+                token_swap.exchange_rate_from_token_account(*base_token_info.key),
+                SwapError::FailedToGetExchangeRate.into()
+            ),
+            unwrap_opt!(
+                token_swap.exchange_rate_from_token_account(*quote_token_info.key),
+                SwapError::FailedToGetExchangeRate.into()
+            ),
             &token_swap.fees,
         )
         .ok_or(SwapError::CalculationFailure)?;

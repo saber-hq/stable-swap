@@ -83,14 +83,12 @@ impl SwapInfo {
 
     /// Calculates the exchange rate of the token corresponding with 'key'.
     /// Assumes that 'key' corresponds with either token A or token B.
-    pub fn exchange_rate_from_token_account(&self, key: Pubkey) -> Fraction {
-        if key == self.token_a.reserves {
-            return self.exchange_rate_a();
+    pub fn exchange_rate_from_token_account(&self, key: Pubkey) -> Option<Fraction> {
+        match key {
+            key if key == self.token_a.reserves => Some(self.exchange_rate_a()),
+            key if key == self.token_b.reserves => Some(self.exchange_rate_b()),
+            _ => None,
         }
-        if key == self.token_b.reserves {
-            return self.exchange_rate_b();
-        }
-        Fraction::UNDEFINED
     }
 }
 

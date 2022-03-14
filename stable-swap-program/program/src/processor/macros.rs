@@ -73,3 +73,14 @@ macro_rules! check_token_keys_condition {
         }
     };
 }
+
+/// Adaptation of viper's `unwrap_opt`, compatible with non-Anchor errors.
+macro_rules! unwrap_opt {
+    ($option:expr, $err:expr $(,)?) => {
+        $option.ok_or_else(|| -> ProgramError {
+            msg!(stringify!($option));
+            msg!("Error thrown at {}:{}", file!(), line!());
+            $err
+        })?
+    };
+}

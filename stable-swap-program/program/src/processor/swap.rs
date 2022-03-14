@@ -29,22 +29,6 @@ use super::checks::*;
 use super::logging::*;
 use super::token;
 
-macro_rules! log_code_location {
-    () => {
-        msg!("Error thrown at {}:{}", file!(), line!());
-    };
-}
-
-macro_rules! unwrap_opt {
-    ($option:expr, $err:expr $(,)?) => {
-        $option.ok_or_else(|| -> ProgramError {
-            msg!(stringify!($option));
-            log_code_location!();
-            $err
-        })?
-    };
-}
-
 pub fn process_swap_instruction(
     program_id: &Pubkey,
     accounts: &[AccountInfo],

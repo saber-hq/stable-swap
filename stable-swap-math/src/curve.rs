@@ -646,8 +646,6 @@ mod tests {
         current_ts: i64,
         start_ramp_ts: i64,
         stop_ramp_ts: i64,
-        exchange_rate_a: Fraction,
-        exchange_rate_b: Fraction,
     ) -> U192 {
         let swap = StableSwap {
             initial_amp_factor: model.amp_factor,
@@ -656,9 +654,7 @@ mod tests {
             start_ramp_ts,
             stop_ramp_ts,
         };
-        let d = swap
-            .compute_d_with_exchange_rates(exchange_rate_a, exchange_rate_b, amount_a, amount_b)
-            .unwrap();
+        let d = swap.compute_d(amount_a, amount_b).unwrap();
         assert_eq!(d, model.sim_d().into());
         d
     }
@@ -695,7 +691,7 @@ mod tests {
             let start_ramp_ts = cmp::max(0, current_ts - MIN_RAMP_DURATION);
             let stop_ramp_ts = cmp::min(i64::MAX, current_ts + MIN_RAMP_DURATION);
             let model = Model::new(amp_factor, vec![amount_a, amount_b], N_COINS);
-            let d = check_d(&model, amount_a, amount_b, current_ts, start_ramp_ts, stop_ramp_ts, Fraction::ONE, Fraction::ONE);
+            let d = check_d(&model, amount_a, amount_b, current_ts, start_ramp_ts, stop_ramp_ts);
             check_y(&model, amount_a, d, current_ts, start_ramp_ts, stop_ramp_ts);
         }
     }
@@ -714,8 +710,6 @@ mod tests {
             current_ts,
             start_ramp_ts,
             stop_ramp_ts,
-            Fraction::ONE,
-            Fraction::ONE,
         );
 
         let amount_a: u64 = 1046129065254161082;
@@ -728,8 +722,6 @@ mod tests {
             current_ts,
             start_ramp_ts,
             stop_ramp_ts,
-            Fraction::ONE,
-            Fraction::ONE,
         );
         let amount_x: u64 = 2045250484898639148;
         check_y(&model, amount_x, d, current_ts, start_ramp_ts, stop_ramp_ts);
@@ -744,8 +736,6 @@ mod tests {
             current_ts,
             start_ramp_ts,
             stop_ramp_ts,
-            Fraction::ONE,
-            Fraction::ONE,
         );
         let amount_x: u64 = 8155777549389559399;
         check_y(&model, amount_x, d, current_ts, start_ramp_ts, stop_ramp_ts);
@@ -814,8 +804,6 @@ mod tests {
                 current_ts,
                 start_ramp_ts,
                 stop_ramp_ts,
-                Fraction::ONE,
-                Fraction::ONE,
             );
             let amount_x: u64 = rng.gen_range(0..=amount_a);
 
@@ -833,8 +821,6 @@ mod tests {
         source_amount: u64,
         swap_source_amount: u64,
         swap_destination_amount: u64,
-        swap_source_exchange_rate: Fraction,
-        swap_destination_exchange_rate: Fraction,
     ) {
         let swap = StableSwap::new(
             initial_amp_factor,
@@ -844,35 +830,20 @@ mod tests {
             stop_ramp_ts,
         );
         let result = swap
-            .swap_to_with_exchange_rates(
+            .swap_to(
                 source_amount,
                 swap_source_amount,
                 swap_destination_amount,
-                swap_source_exchange_rate,
-                swap_destination_exchange_rate,
                 &MODEL_FEES,
             )
             .unwrap();
-        let model = model_with_exchange_rates(
+        let model = Model::new(
             swap.compute_amp_factor().unwrap(),
-            swap_source_amount,
-            swap_destination_amount,
-            swap_source_exchange_rate,
-            swap_destination_exchange_rate,
+            vec![swap_source_amount, swap_destination_amount],
             N_COINS,
         );
 
-        let expected_amount_swapped = div_fraction(
-            model.sim_exchange(
-                0,
-                1,
-                mul_fraction(source_amount, swap_source_exchange_rate)
-                    .unwrap()
-                    .into(),
-            ),
-            swap_destination_exchange_rate,
-        )
-        .unwrap();
+        let expected_amount_swapped = model.sim_exchange(0, 1, source_amount.into());
         let diff = (expected_amount_swapped as i128 - result.amount_swapped as i128).abs();
         let tolerance = std::cmp::max(1, expected_amount_swapped as i128 / 1_000_000_000);
         assert!(
@@ -913,8 +884,6 @@ mod tests {
                 source_amount,
                 swap_source_amount,
                 swap_destination_amount,
-                Fraction::ONE,
-                Fraction::ONE,
             );
         }
     }
@@ -951,8 +920,6 @@ mod tests {
                 source_amount,
                 swap_source_amount,
                 swap_destination_amount,
-                Fraction::ONE,
-                Fraction::ONE,
             );
         }
     }
@@ -964,8 +931,6 @@ mod tests {
         pub swap_reserve_balance_b: u64,
         pub user_token_balance_a: u64,
         pub user_token_balance_b: u64,
-        pub exchange_rate_a: Fraction,
-        pub exchange_rate_b: Fraction,
     }
 
     impl SwapTest<'_> {
@@ -983,11 +948,6 @@ mod tests {
                 false => (self.swap_reserve_balance_b, self.swap_reserve_balance_a),
             };
 
-            let (swap_source_exchange_rate, swap_destination_exchange_rate) = match swap_a_to_b {
-                true => (self.exchange_rate_a, self.exchange_rate_b),
-                false => (self.exchange_rate_b, self.exchange_rate_a),
-            };
-
             let SwapResult {
                 new_source_amount,
                 new_destination_amount,
@@ -995,12 +955,10 @@ mod tests {
                 ..
             } = self
                 .stable_swap
-                .swap_to_with_exchange_rates(
+                .swap_to(
                     source_amount,
                     swap_source_amount,
                     swap_dest_amount,
-                    swap_source_exchange_rate,
-                    swap_destination_exchange_rate,
                     &ZERO_FEES,
                 )
                 .unwrap();
@@ -1037,7 +995,7 @@ mod tests {
                 start_ramp_ts: ZERO_TS,
                 stop_ramp_ts: ZERO_TS
             };
-            let mut t = SwapTest { stable_swap: &stable_swap, swap_reserve_balance_a: MAX_TOKENS_IN, swap_reserve_balance_b: MAX_TOKENS_IN, user_token_balance_a: initial_user_token_a_amount, user_token_balance_b: initial_user_token_b_amount, exchange_rate_a: Fraction::ONE, exchange_rate_b: Fraction::ONE, };
+            let mut t = SwapTest { stable_swap: &stable_swap, swap_reserve_balance_a: MAX_TOKENS_IN, swap_reserve_balance_b: MAX_TOKENS_IN, user_token_balance_a: initial_user_token_a_amount, user_token_balance_b: initial_user_token_b_amount };
 
             const ITERATIONS: u64 = 100;
             const SHRINK_MULTIPLIER: u64= 10;
@@ -1084,8 +1042,6 @@ mod tests {
             swap_reserve_balance_b: INITIAL_SWAP_RESERVE_AMOUNT,
             user_token_balance_a: INITIAL_USER_TOKEN_AMOUNT,
             user_token_balance_b: INITIAL_USER_TOKEN_AMOUNT,
-            exchange_rate_a: Fraction::ONE,
-            exchange_rate_b: Fraction::ONE,
         };
 
         t.swap_a_to_b(2097152);
@@ -1114,8 +1070,6 @@ mod tests {
             swap_reserve_balance_b: INITIAL_SWAP_RESERVE_AMOUNT,
             user_token_balance_a: INITIAL_USER_TOKEN_AMOUNT,
             user_token_balance_b: INITIAL_USER_TOKEN_AMOUNT,
-            exchange_rate_a: Fraction::ONE,
-            exchange_rate_b: Fraction::ONE,
         };
 
         t.swap_b_to_a(33579101);
@@ -1143,8 +1097,6 @@ mod tests {
             swap_reserve_balance_b: INITIAL_SWAP_RESERVE_AMOUNT,
             user_token_balance_a: INITIAL_USER_TOKEN_AMOUNT,
             user_token_balance_b: INITIAL_USER_TOKEN_AMOUNT,
-            exchange_rate_a: Fraction::ONE,
-            exchange_rate_b: Fraction::ONE,
         };
 
         t.swap_b_to_a(65535);
@@ -1163,8 +1115,6 @@ mod tests {
         pool_token_supply: u64,
         swap_base_amount: u64,
         swap_quote_amount: u64,
-        swap_base_exchange_rate: Fraction,
-        swap_quote_exchange_rate: Fraction,
     ) {
         let swap = StableSwap::new(
             initial_amp_factor,
@@ -1174,40 +1124,27 @@ mod tests {
             stop_ramp_ts,
         );
         let result = swap
-            .compute_withdraw_one_with_exchange_rates(
+            .compute_withdraw_one(
                 pool_token_amount,
                 pool_token_supply,
                 swap_base_amount,
                 swap_quote_amount,
-                swap_base_exchange_rate,
-                swap_quote_exchange_rate,
                 &MODEL_FEES,
             )
             .unwrap();
-        let model = model_with_exchange_rates_and_pool_tokens(
+        let model = Model::new_with_pool_tokens(
             swap.compute_amp_factor().unwrap(),
-            swap_base_amount,
-            swap_quote_amount,
-            swap_base_exchange_rate,
-            swap_quote_exchange_rate,
+            vec![swap_base_amount, swap_quote_amount],
             N_COINS,
             pool_token_supply,
         );
         assert_eq!(
             result.0,
-            div_fraction(
-                model.sim_calc_withdraw_one_coin(pool_token_amount, 0).0,
-                swap_base_exchange_rate,
-            )
-            .unwrap(),
+            model.sim_calc_withdraw_one_coin(pool_token_amount, 0).0
         );
         assert_eq!(
             result.1,
-            div_fraction(
-                model.sim_calc_withdraw_one_coin(pool_token_amount, 0).1,
-                swap_base_exchange_rate,
-            )
-            .unwrap(),
+            model.sim_calc_withdraw_one_coin(pool_token_amount, 0).1
         );
     }
 
@@ -1233,8 +1170,6 @@ mod tests {
                 pool_token_supply,
                 swap_base_amount,
                 swap_quote_amount,
-                Fraction::ONE,
-                Fraction::ONE,
             );
         }
     }
@@ -1273,8 +1208,6 @@ mod tests {
                 pool_token_supply,
                 swap_base_amount,
                 swap_quote_amount,
-                Fraction::ONE,
-                Fraction::ONE,
             );
         }
     }
@@ -1478,6 +1411,30 @@ mod tests {
         )
     }
 
+    fn check_d_with_exchange_rates(
+        model: &Model,
+        amount_a: u64,
+        amount_b: u64,
+        current_ts: i64,
+        start_ramp_ts: i64,
+        stop_ramp_ts: i64,
+        exchange_rate_a: Fraction,
+        exchange_rate_b: Fraction,
+    ) -> U192 {
+        let swap = StableSwap {
+            initial_amp_factor: model.amp_factor,
+            target_amp_factor: model.amp_factor,
+            current_ts,
+            start_ramp_ts,
+            stop_ramp_ts,
+        };
+        let d = swap
+            .compute_d_with_exchange_rates(exchange_rate_a, exchange_rate_b, amount_a, amount_b)
+            .unwrap();
+        assert_eq!(d, model.sim_d().into());
+        d
+    }
+
     proptest! {
         #[test]
         fn test_curve_math_varying_exchange_rates(
@@ -1491,7 +1448,7 @@ mod tests {
             let start_ramp_ts = cmp::max(0, current_ts - MIN_RAMP_DURATION);
             let stop_ramp_ts = cmp::min(i64::MAX, current_ts + MIN_RAMP_DURATION);
             let model = model_with_exchange_rates(amp_factor, amount_a, amount_b, exchange_rate_a, exchange_rate_b, N_COINS);
-            let d = check_d(&model, amount_a, amount_b, current_ts, start_ramp_ts, stop_ramp_ts, exchange_rate_a, exchange_rate_b);
+            let d = check_d_with_exchange_rates(&model, amount_a, amount_b, current_ts, start_ramp_ts, stop_ramp_ts, exchange_rate_a, exchange_rate_b);
             check_y(&model, amount_a, d, current_ts, start_ramp_ts, stop_ramp_ts);
         }
     }
@@ -1537,7 +1494,7 @@ mod tests {
                 exchange_rate_b,
                 N_COINS,
             );
-            let d = check_d(
+            let d = check_d_with_exchange_rates(
                 &model,
                 amount_a,
                 amount_b,
@@ -1554,6 +1511,75 @@ mod tests {
         }
     }
 
+    fn check_swap_with_exchange_rates(
+        initial_amp_factor: u64,
+        target_amp_factor: u64,
+        current_ts: i64,
+        start_ramp_ts: i64,
+        stop_ramp_ts: i64,
+        source_amount: u64,
+        swap_source_amount: u64,
+        swap_destination_amount: u64,
+        swap_source_exchange_rate: Fraction,
+        swap_destination_exchange_rate: Fraction,
+    ) {
+        let swap = StableSwap::new(
+            initial_amp_factor,
+            target_amp_factor,
+            current_ts,
+            start_ramp_ts,
+            stop_ramp_ts,
+        );
+        let result = swap
+            .swap_to_with_exchange_rates(
+                source_amount,
+                swap_source_amount,
+                swap_destination_amount,
+                swap_source_exchange_rate,
+                swap_destination_exchange_rate,
+                &MODEL_FEES,
+            )
+            .unwrap();
+        let model = model_with_exchange_rates(
+            swap.compute_amp_factor().unwrap(),
+            swap_source_amount,
+            swap_destination_amount,
+            swap_source_exchange_rate,
+            swap_destination_exchange_rate,
+            N_COINS,
+        );
+
+        let expected_amount_swapped = div_fraction(
+            model.sim_exchange(
+                0,
+                1,
+                mul_fraction(source_amount, swap_source_exchange_rate)
+                    .unwrap()
+                    .into(),
+            ),
+            swap_destination_exchange_rate,
+        )
+        .unwrap();
+        let diff = (expected_amount_swapped as i128 - result.amount_swapped as i128).abs();
+        let tolerance = std::cmp::max(1, expected_amount_swapped as i128 / 1_000_000_000);
+        assert!(
+            diff <= tolerance,
+            "result={:?}, expected_amount_swapped={}, amp={}, source_amount={}, swap_source_amount={}, swap_destination_amount={}, diff={}",
+            result,
+            expected_amount_swapped,
+            swap.compute_amp_factor().unwrap(),
+            source_amount,
+            swap_source_amount,
+            swap_destination_amount,
+            diff
+        );
+        assert_eq!(result.new_source_amount, swap_source_amount + source_amount);
+        assert_eq!(
+            result.new_destination_amount,
+            swap_destination_amount - result.amount_swapped
+        );
+    }
+
     proptest! {
         #[test]
         fn test_swap_calculation_varying_exchange_rates(
@@ -1567,7 +1593,7 @@ mod tests {
         ) {
             let start_ramp_ts = cmp::max(0, current_ts - MIN_RAMP_DURATION);
             let stop_ramp_ts = cmp::min(i64::MAX, current_ts + MIN_RAMP_DURATION);
-            check_swap(
+            check_swap_with_exchange_rates(
                 amp_factor,
                 amp_factor,
                 current_ts,
@@ -1622,7 +1648,7 @@ mod tests {
                 swap_destination_exchange_rate
             );
 
-            check_swap(
+            check_swap_with_exchange_rates(
                 initial_amp_factor,
                 target_amp_factor,
                 current_ts,
@@ -1635,6 +1661,64 @@ mod tests {
                 swap_destination_exchange_rate,
             );
         }
+    }
+
+    fn check_withdraw_one_with_exchange_rates(
+        initial_amp_factor: u64,
+        target_amp_factor: u64,
+        current_ts: i64,
+        start_ramp_ts: i64,
+        stop_ramp_ts: i64,
+        pool_token_amount: u64,
+        pool_token_supply: u64,
+        swap_base_amount: u64,
+        swap_quote_amount: u64,
+        swap_base_exchange_rate: Fraction,
+        swap_quote_exchange_rate: Fraction,
+    ) {
+        let swap = StableSwap::new(
+            initial_amp_factor,
+            target_amp_factor,
+            current_ts,
+            start_ramp_ts,
+            stop_ramp_ts,
+        );
+        let result = swap
+            .compute_withdraw_one_with_exchange_rates(
+                pool_token_amount,
+                pool_token_supply,
+                swap_base_amount,
+                swap_quote_amount,
+                swap_base_exchange_rate,
+                swap_quote_exchange_rate,
+                &MODEL_FEES,
+            )
+            .unwrap();
+        let model = model_with_exchange_rates_and_pool_tokens(
+            swap.compute_amp_factor().unwrap(),
+            swap_base_amount,
+            swap_quote_amount,
+            swap_base_exchange_rate,
+            swap_quote_exchange_rate,
+            N_COINS,
+            pool_token_supply,
+        );
+        assert_eq!(
+            result.0,
+            div_fraction(
+                model.sim_calc_withdraw_one_coin(pool_token_amount, 0).0,
+                swap_base_exchange_rate,
+            )
+            .unwrap(),
+        );
+        assert_eq!(
+            result.1,
+            div_fraction(
+                model.sim_calc_withdraw_one_coin(pool_token_amount, 0).1,
+                swap_base_exchange_rate,
+            )
+            .unwrap(),
+        );
     }
 
     proptest! {
@@ -1651,7 +1735,7 @@ mod tests {
             let pool_token_supply = MAX_TOKENS_IN;
             let start_ramp_ts = cmp::max(0, current_ts - MIN_RAMP_DURATION);
             let stop_ramp_ts = cmp::min(i64::MAX, current_ts + MIN_RAMP_DURATION);
-            check_withdraw_one(
+            check_withdraw_one_with_exchange_rates(
                 amp_factor,
                 amp_factor,
                 current_ts,
@@ -1705,7 +1789,7 @@ mod tests {
             println!("swap_base_exchange_rate: {:?}", swap_base_exchange_rate);
             println!("swap_quote_exchange_rate: {:?}", swap_quote_exchange_rate);
 
-            check_withdraw_one(
+            check_withdraw_one_with_exchange_rates(
                 initial_amp_factor,
                 target_amp_factor,
                 current_ts,

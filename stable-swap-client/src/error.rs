@@ -101,6 +101,9 @@ pub enum SwapError {
     /// Exchange rate override cannot be x/0 or 0/x, where x != 0
     #[error("Exchange rate override cannot be 0 or infinity")]
     InvalidExchangeRateOverride,
+    /// Failed to get exchange rate.
+    #[error("Failed to get exchange rate")]
+    FailedToGetExchangeRate,
 }
 
 impl From<SwapError> for ProgramError {
@@ -178,6 +181,9 @@ impl PrintProgramError for SwapError {
             SwapError::MismatchedDecimals => msg!("Error: Token mints must have same decimals"),
             SwapError::InvalidExchangeRateOverride => {
                 msg!("Error: Exchange rate override cannot be 0 or infinity")
+            }
+            SwapError::FailedToGetExchangeRate => {
+                msg!("Error: Failed to get exchange rate")
             }
         }
     }

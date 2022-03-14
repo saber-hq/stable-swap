@@ -1252,9 +1252,9 @@
     tiny-invariant "^1.2.0"
     tslib "^2.3.1"
 
-"@saberhq/stableswap-sdk@https://gitpkg.now.sh/saber-hq/saber-common/packages/stableswap-sdk\\?isshiki/exchange-rate-override&scripts.postinstall=npm%20install%20--ignore-scripts%20%26%26%20npm%20run%20build":
+"@saberhq/stableswap-sdk@https://gitpkg.now.sh/saber-hq/saber-common/packages/stableswap-sdk\\?f72d2ef8baf0db72dc1a9f964521f3810cd728ee&scripts.postinstall=npm%20install%20--ignore-scripts%20%26%26%20npm%20run%20build":
   version "1.12.50"
-  resolved "https://gitpkg.now.sh/saber-hq/saber-common/packages/stableswap-sdk\\?isshiki/exchange-rate-override&scripts.postinstall=npm%20install%20--ignore-scripts%20%26%26%20npm%20run%20build#139406e9e407c267fd85e0fad9eaf35c0dda4af3"
+  resolved "https://gitpkg.now.sh/saber-hq/saber-common/packages/stableswap-sdk\\?f72d2ef8baf0db72dc1a9f964521f3810cd728ee&scripts.postinstall=npm%20install%20--ignore-scripts%20%26%26%20npm%20run%20build#f0bc374a6dd6bff3908c0db834e9ebab01130a5d"
   dependencies:
     "@saberhq/solana-contrib" "^1.12.50"
     "@saberhq/token-utils" "^1.12.50"

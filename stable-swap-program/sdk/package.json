@@ -39,7 +39,7 @@
     "typescript": "^4.5.5"
   },
   "dependencies": {
-    "@saberhq/stableswap-sdk": "https://gitpkg.now.sh/saber-hq/saber-common/packages/stableswap-sdk\\?isshiki/exchange-rate-override&scripts.postinstall=npm%20install%20--ignore-scripts%20%26%26%20npm%20run%20build",
+    "@saberhq/stableswap-sdk": "https://gitpkg.now.sh/saber-hq/saber-common/packages/stableswap-sdk\\?f72d2ef8baf0db72dc1a9f964521f3810cd728ee&scripts.postinstall=npm%20install%20--ignore-scripts%20%26%26%20npm%20run%20build",
     "@saberhq/token-utils": "^1.12.36",
     "@solana/web3.js": "^1.33.0",
     "@types/bn.js": "^5.1.0",

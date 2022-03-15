@@ -8,7 +8,7 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
-  RUST_TOOLCHAIN: "1.58.1"
+  RUST_TOOLCHAIN: "1.59.0"
 
 jobs:
   doc:

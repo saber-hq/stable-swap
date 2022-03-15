@@ -11,7 +11,7 @@ _We recommend using the included Nix flake to develop within this repo._
 Download or update the Solana SDK by running:
 
 ```bash
-solana-install init 1.8.11
+solana-install init 1.9.12
 ```
 
 To build the program, run:

@@ -1,6 +1,6 @@
 [package]
 name = "stable-swap-fuzz"
-version = "1.7.3"
+version = "1.8.0"
 authors = ["michaelhly <michaelhly@gmail.com>"]
 edition = "2021"
 description = "Fuzz tests for the Saber StableSwap program."

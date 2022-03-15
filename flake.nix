@@ -46,7 +46,8 @@
         };
       in {
         packages.ci = ci;
-        devShell = pkgs.mkShell {
+        devShell = pkgs.stdenvNoCC.mkDerivation {
+          name = "devshell";
           buildInputs = with pkgs; [
             ci
             rustup

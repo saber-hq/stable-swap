@@ -523,7 +523,10 @@ impl StableSwap {
             .checked_sub(y)?
             .checked_sub(1)?;
         let dy_fee = fees.trade_fee(dy)?;
-        let admin_fee = fees.admin_trade_fee(dy_fee)?;
+        let admin_fee = div_fraction(
+            fees.admin_trade_fee(dy_fee)?,
+            swap_destination_exchange_rate,
+        )?;
 
         let amount_swapped = div_fraction(dy.checked_sub(dy_fee)?, swap_destination_exchange_rate)?;
         let new_destination_amount = swap_destination_amount
@@ -531,12 +534,16 @@ impl StableSwap {
             .checked_sub(admin_fee)?;
         let new_source_amount = swap_source_amount.checked_add(source_amount)?;
 
+        // Calculate the true fee after rounding errors; due to rounding errors, this quantity
+        // is not equivalent to `div_fraction(dy_fee, swap_destination_exchange_rate)`.
+        let fee = div_fraction(dy, swap_destination_exchange_rate)?.checked_sub(amount_swapped)?;
+
         Some(SwapResult {
             new_source_amount,
             new_destination_amount,
             amount_swapped,
             admin_fee,
-            fee: dy_fee,
+            fee,
         })
     }
 }
@@ -568,6 +575,16 @@ mod tests {
     const MODEL_FEES: Fees = Fees {
         admin_trade_fee_numerator: 0,
         admin_trade_fee_denominator: 1,
+        admin_withdraw_fee_numerator: 0,
+        admin_withdraw_fee_denominator: 1,
+        trade_fee_numerator: MODEL_FEE_NUMERATOR,
+        trade_fee_denominator: MODEL_FEE_DENOMINATOR,
+        withdraw_fee_numerator: 0,
+        withdraw_fee_denominator: 1,
+    };
+    const MODEL_FEES_WITH_ADMIN_FEES: Fees = Fees {
+        admin_trade_fee_numerator: 1,
+        admin_trade_fee_denominator: 20,
         admin_withdraw_fee_numerator: 0,
         admin_withdraw_fee_denominator: 1,
         trade_fee_numerator: MODEL_FEE_NUMERATOR,
@@ -834,7 +851,7 @@ mod tests {
                 source_amount,
                 swap_source_amount,
                 swap_destination_amount,
-                &MODEL_FEES,
+                &MODEL_FEES_WITH_ADMIN_FEES,
             )
             .unwrap();
         let model = Model::new(
@@ -860,7 +877,19 @@ mod tests {
         assert_eq!(result.new_source_amount, swap_source_amount + source_amount);
         assert_eq!(
             result.new_destination_amount,
-            swap_destination_amount - result.amount_swapped
+            swap_destination_amount - result.amount_swapped - result.admin_fee
+        );
+        assert_eq!(
+            MODEL_FEES_WITH_ADMIN_FEES
+                .trade_fee(result.amount_swapped + result.fee)
+                .unwrap(),
+            result.fee
+        );
+        assert_eq!(
+            MODEL_FEES_WITH_ADMIN_FEES
+                .admin_trade_fee(result.fee)
+                .unwrap(),
+            result.admin_fee
         );
     }
 
@@ -1537,7 +1566,7 @@ mod tests {
                 swap_destination_amount,
                 swap_source_exchange_rate,
                 swap_destination_exchange_rate,
-                &MODEL_FEES,
+                &MODEL_FEES_WITH_ADMIN_FEES,
             )
             .unwrap();
         let model = model_with_exchange_rates(
@@ -1560,24 +1589,47 @@ mod tests {
             swap_destination_exchange_rate,
         )
         .unwrap();
-        let diff = (expected_amount_swapped as i128 - result.amount_swapped as i128).abs();
-        let tolerance = std::cmp::max(1, expected_amount_swapped as i128 / 1_000_000_000);
+        let diff_within_tolerance = |expected: u64, actual: u64| {
+            let diff = (expected as i128 - actual as i128).abs();
+            let tolerance = std::cmp::max(1, expected as i128 / 1_000_000_000);
+
+            diff <= tolerance
+        };
         assert!(
-            diff <= tolerance,
-            "result={:?}, expected_amount_swapped={}, amp={}, source_amount={}, swap_source_amount={}, swap_destination_amount={}, diff={}",
+            diff_within_tolerance(expected_amount_swapped, result.amount_swapped),
+            "result={:?}, expected_amount_swapped={}, amp={}, source_amount={}, swap_source_amount={}, swap_destination_amount={}",
             result,
             expected_amount_swapped,
             swap.compute_amp_factor().unwrap(),
             source_amount,
             swap_source_amount,
             swap_destination_amount,
-            diff
         );
         assert_eq!(result.new_source_amount, swap_source_amount + source_amount);
         assert_eq!(
             result.new_destination_amount,
-            swap_destination_amount - result.amount_swapped
+            swap_destination_amount - result.amount_swapped - result.admin_fee
         );
+
+        // Unlike in check_swap(), multiplying and dividing by exchange rates can result in a
+        // slight rounding difference compared to the expected fees, so we assert a diff
+        // within tolerance instead of an exact diff.
+
+        // Check that the reported trade fee is what it theoretically should be.
+        assert!(diff_within_tolerance(
+            MODEL_FEES_WITH_ADMIN_FEES
+                .trade_fee(result.amount_swapped + result.fee)
+                .unwrap(),
+            result.fee
+        ));
+
+        // Check that the reported admin trade fee is what it theoretically should be.
+        assert!(diff_within_tolerance(
+            MODEL_FEES_WITH_ADMIN_FEES
+                .admin_trade_fee(result.fee)
+                .unwrap(),
+            result.admin_fee
+        ));
     }
 
     proptest! {

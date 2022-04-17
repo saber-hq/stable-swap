@@ -12,50 +12,52 @@
       "aarch64-darwin"
       "x86_64-linux"
       "x86_64-darwin"
-    ] (system:
-      let
-        pkgs = import nixpkgs { inherit system; }
-          // saber-overlay.packages.${system};
-        ci = pkgs.buildEnv {
-          name = "ci";
-          paths = with pkgs;
-            (pkgs.lib.optionals pkgs.stdenv.isLinux ([ udev ])) ++ [
-              anchor-0_22_0
-              cargo-workspaces
-              cargo-fuzz
+    ]
+      (system:
+        let
+          pkgs = import nixpkgs { inherit system; }
+            // saber-overlay.packages.${system};
+          ci = pkgs.buildEnv {
+            name = "ci";
+            paths = with pkgs;
+              (pkgs.lib.optionals pkgs.stdenv.isLinux ([ udev ])) ++ [
+                anchor-0_24_2
+                cargo-workspaces
+                cargo-fuzz
 
-              # sdk
-              nodejs
-              yarn
-              python3
+                # sdk
+                nodejs
+                yarn
+                python3
 
-              pkgconfig
-              openssl
-              jq
-              gnused
+                pkgconfig
+                openssl
+                jq
+                gnused
 
-              solana-basic
+                solana-basic
 
-              libiconv
-            ] ++ (pkgs.lib.optionals pkgs.stdenv.isDarwin
-              (with pkgs.darwin.apple_sdk.frameworks; [
-                AppKit
-                IOKit
-                Foundation
-              ]));
-        };
-      in {
-        packages.ci = ci;
-        devShell = pkgs.stdenvNoCC.mkDerivation {
-          name = "devshell";
-          buildInputs = with pkgs; [
-            ci
-            rustup
-            cargo-outdated
-            cargo-deps
-            gh
-            spl-token-cli
-          ];
-        };
-      });
+                libiconv
+              ] ++ (pkgs.lib.optionals pkgs.stdenv.isDarwin
+                (with pkgs.darwin.apple_sdk.frameworks; [
+                  AppKit
+                  IOKit
+                  Foundation
+                ]));
+          };
+        in
+        {
+          packages.ci = ci;
+          devShell = pkgs.stdenvNoCC.mkDerivation {
+            name = "devshell";
+            buildInputs = with pkgs; [
+              ci
+              rustup
+              cargo-outdated
+              cargo-deps
+              gh
+              spl-token-cli
+            ];
+          };
+        });
 }

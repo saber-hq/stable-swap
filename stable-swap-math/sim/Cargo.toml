@@ -13,4 +13,4 @@ keywords = ["solana", "saber", "curve", "sim"]
 name = "sim"
 
 [dependencies]
-pyo3 = { version = "^0.16.4", features = ["auto-initialize"] }
+pyo3 = { version = "^0.17.0", features = ["auto-initialize"] }

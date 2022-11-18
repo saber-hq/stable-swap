@@ -53,7 +53,7 @@ jobs:
           export PATH="/home/runner/.local/share/solana/install/active_release/bin:$PATH"
           solana --version
       - name: Cache Rust
-        uses: Swatinem/rust-cache@v1
+        uses: Swatinem/rust-cache@v2
         with:
           key: ${{ runner.os }}-${{ env.SOLANA_VERSION }}
 
@@ -112,7 +112,7 @@ jobs:
           profile: minimal
           toolchain: ${{ env.RUST_TOOLCHAIN }}
       - name: Cache Rust
-        uses: Swatinem/rust-cache@v1
+        uses: Swatinem/rust-cache@v2
         with:
           key: ${{ runner.os }}-${{ env.SOLANA_VERSION }}
 
@@ -136,7 +136,7 @@ jobs:
   ##         profile: minimal
   ##         toolchain: nightly-2022-02-01
   ##     - name: Cache dependencies
-  ##       uses: Swatinem/rust-cache@v1
+  ##       uses: Swatinem/rust-cache@v2
 
   ##     # Install Cachix
   ##     - uses: cachix/install-nix-action@v17

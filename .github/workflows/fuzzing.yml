@@ -21,7 +21,7 @@ jobs:
           profile: minimal
           toolchain: nightly-2021-12-25
       - name: Cache dependencies
-        uses: Swatinem/rust-cache@v1
+        uses: Swatinem/rust-cache@v2
 
       # Install Cachix
       - uses: cachix/install-nix-action@v17

@@ -1,6 +1,6 @@
 [package]
 name = "stable-swap-client"
-version = "1.8.1"
+version = "1.8.2"
 description = "StableSwap Rust client."
 license = "Apache-2.0"
 authors = ["michaelhly <michaelhly@gmail.com>"]

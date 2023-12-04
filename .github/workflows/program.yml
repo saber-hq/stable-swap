@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       # Install Cachix
       - uses: cachix/install-nix-action@v22
@@ -65,7 +65,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/setup-node@v3
         with:
           node-version: "14"
@@ -127,7 +127,7 @@ jobs:
   ##   runs-on: ubuntu-latest
 
   ##   steps:
-  ##     - uses: actions/checkout@v3
+  ##     - uses: actions/checkout@v4
   ##     # Install Rust
   ##     - name: Install Rust
   ##       uses: actions-rs/toolchain@v1

@@ -1,8 +1,5 @@
 //! Program state processor
 
-#[macro_use]
-mod macros;
-
 mod admin;
 mod checks;
 mod logging;
@@ -10,8 +7,6 @@ mod swap;
 mod token;
 mod utils;
 
-#[cfg(test)]
-#[allow(clippy::unwrap_used)]
 mod test_utils;
 
 use crate::instruction::AdminInstruction;

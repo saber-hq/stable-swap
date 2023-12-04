@@ -11,6 +11,8 @@ pub mod processor;
 pub use stable_swap_client::{error, fees, instruction, state};
 pub use stable_swap_math::{curve, math, pool_converter};
 
+pub use stable_swap_client::error::SwapError as ErrorCode;
+
 /// Export current solana-program types for downstream users who may also be
 /// building with a different solana-program version
 pub use solana_program;

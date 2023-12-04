@@ -1,27 +1,43 @@
 //! Checks for processing instructions.
 
+use anchor_lang::prelude::*;
+
+use super::logging::log_slippage_error;
 use crate::{
     error::SwapError,
     processor::utils,
     state::{SwapInfo, SwapTokenInfo},
 };
-
 use solana_program::{
     account_info::AccountInfo, entrypoint::ProgramResult, program_error::ProgramError,
     pubkey::Pubkey,
 };
-
-use super::logging::log_slippage_error;
+use vipers::{assert_keys_eq, assert_keys_neq, invariant};
 
 /// Checks if the reserve of the swap is the given key.
 fn check_reserves_match(token: &SwapTokenInfo, reserves_info_key: &Pubkey) -> ProgramResult {
-    check_token_keys_equal!(
-        token,
-        *reserves_info_key,
-        token.reserves,
-        "Reserves",
-        SwapError::IncorrectSwapAccount
-    );
+    if token.index == 0 {
+        assert_keys_eq!(
+            reserves_info_key,
+            token.reserves,
+            SwapError::IncorrectSwapAccount,
+            "Reserves A"
+        );
+    } else if token.index == 1 {
+        assert_keys_eq!(
+            reserves_info_key,
+            token.reserves,
+            SwapError::IncorrectSwapAccount,
+            "Reserves B"
+        );
+    } else {
+        assert_keys_eq!(
+            reserves_info_key,
+            token.reserves,
+            SwapError::IncorrectSwapAccount,
+            "Reserves",
+        );
+    }
     Ok(())
 }
 
@@ -30,15 +46,16 @@ pub fn check_has_admin_signer(
     expected_admin_key: &Pubkey,
     admin_account_info: &AccountInfo,
 ) -> ProgramResult {
-    check_keys_equal!(
-        *expected_admin_key,
-        *admin_account_info.key,
+    assert_keys_eq!(
+        expected_admin_key,
+        admin_account_info.key,
+        SwapError::Unauthorized,
         "Admin signer",
-        SwapError::Unauthorized
     );
-    if !admin_account_info.is_signer {
-        return Err(ProgramError::MissingRequiredSignature);
-    }
+    invariant!(
+        admin_account_info.is_signer,
+        ProgramError::MissingRequiredSignature
+    );
     Ok(())
 }
 
@@ -47,13 +64,32 @@ pub fn check_deposit_token_accounts(
     source_key: &Pubkey,
     reserves_info_key: &Pubkey,
 ) -> ProgramResult {
-    check_token_keys_not_equal!(
-        token,
-        *source_key,
-        token.reserves,
-        "Source account cannot be swap token account of token",
-        SwapError::InvalidInput
-    );
+    match token.index {
+        0 => {
+            assert_keys_neq!(
+                source_key,
+                token.reserves,
+                SwapError::InvalidInput,
+                "Source account cannot be one of swap's token accounts for token A",
+            );
+        }
+        1 => {
+            assert_keys_neq!(
+                source_key,
+                token.reserves,
+                SwapError::InvalidInput,
+                "Source account cannot be one of swap's token accounts for token B",
+            );
+        }
+        _ => {
+            assert_keys_neq!(
+                source_key,
+                token.reserves,
+                SwapError::InvalidInput,
+                "Source account cannot be one of swap's token accounts",
+            );
+        }
+    };
     check_reserves_match(token, reserves_info_key)?;
     Ok(())
 }
@@ -78,11 +114,11 @@ pub fn check_withdraw_token_accounts(
     admin_fee_dest_key: &Pubkey,
 ) -> ProgramResult {
     check_reserves_match(token, reserves_info_key)?;
-    check_keys_equal!(
-        *admin_fee_dest_key,
+    assert_keys_eq!(
+        admin_fee_dest_key,
         token.admin_fees,
+        SwapError::InvalidAdmin,
         "Admin fee dest",
-        SwapError::InvalidAdmin
     );
     Ok(())
 }
@@ -94,11 +130,11 @@ pub fn check_swap_authority(
     swap_authority_key: &Pubkey,
 ) -> ProgramResult {
     let swap_authority = utils::authority_id(program_id, swap_info_key, token_swap.nonce)?;
-    check_keys_equal!(
-        *swap_authority_key,
+    assert_keys_eq!(
+        swap_authority_key,
         swap_authority,
+        SwapError::InvalidProgramAddress,
         "Swap authority",
-        SwapError::InvalidProgramAddress
     );
     Ok(())
 }
@@ -109,17 +145,17 @@ pub fn check_swap_token_destination_accounts(
     swap_destination_info_key: &Pubkey,
     admin_destination_info_key: &Pubkey,
 ) -> ProgramResult {
-    check_keys_equal!(
-        *swap_destination_info_key,
+    assert_keys_eq!(
+        swap_destination_info_key,
         token.reserves,
+        SwapError::IncorrectSwapAccount,
         "Incorrect destination, expected",
-        SwapError::IncorrectSwapAccount
     );
-    check_keys_equal!(
-        *admin_destination_info_key,
+    assert_keys_eq!(
+        admin_destination_info_key,
         token.admin_fees,
+        SwapError::InvalidAdmin,
         "Admin fee",
-        SwapError::InvalidAdmin
     );
     Ok(())
 }

@@ -1,4 +1,6 @@
 //! Test utility methods
+#![cfg(test)]
+#![allow(clippy::unwrap_used)]
 #![allow(clippy::too_many_arguments)]
 
 use crate::{curve::ZERO_TS, fees::Fees, instruction::*, processor::Processor, state::SwapInfo};

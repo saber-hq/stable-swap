@@ -2,7 +2,7 @@
 
 An adaptation of the Solana [token-swap](https://github.com/solana-labs/solana-program-library/tree/master/token-swap/program) program implementing Curve's [StableSwap](https://www.curve.fi/stableswap-paper.pdf) invariant.
 
-Click [here](https://stableswap.pro) to try it out live on the Solana testnet!
+Click [here](https://devnet.saber.so/) to try it out live on the Solana devnet!
 
 ## Development
 
@@ -11,13 +11,13 @@ _We recommend using the included Nix flake to develop within this repo._
 Download or update the Solana SDK by running:
 
 ```bash
-solana-install init 1.11.10
+solana-install init 1.17.12
 ```
 
 To build the program, run:
 
 ```bash
-anchor build --program-name stable_swap
+anchor build --program-name stable_swap --arch sbf
 ```
 
 ### Testing
@@ -50,7 +50,7 @@ To deploy, run:
 
 ```bash
 # On Vagrant/build environment only
-anchor build --program-name stable_swap
+anchor build --program-name stable_swap --arch sbf
 
 # On your machine
 ./scripts/deploy-program.sh <cluster>
@@ -82,7 +82,7 @@ solana program deploy --buffer $BUFFER_ADDR --program-id $PROGRAM_ID --keypair $
 
 ## Documentation
 
-Detailed information on how to build on Saber can be found on the [Saber developer documentation website](https://docs.saber.so/docs/developing/overview).
+Detailed information on how to build on Saber can be found on the [Saber developer documentation website](https://docs.saber.so/developing/overview).
 
 ## License
 

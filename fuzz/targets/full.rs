@@ -77,7 +77,7 @@ lazy_static! {
         .unwrap_or(0);
 }
 
-fuzz_target!(|actions: Vec<Action>| { run_actions(actions) });
+fuzz_target!(|actions: Vec<Action>| run_actions(actions));
 
 fn run_actions(actions: Vec<Action>) {
     let mut rng = rand::thread_rng();

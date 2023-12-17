@@ -47,7 +47,7 @@ lazy_static! {
         .unwrap_or(0);
 }
 
-fuzz_target!(|argv: Vec<SwapArgs>| { run_swaps(argv) });
+fuzz_target!(|argv: Vec<SwapArgs>| run_swaps(argv));
 
 fn run_swaps(argv: Vec<SwapArgs>) {
     let mut rng = rand::thread_rng();

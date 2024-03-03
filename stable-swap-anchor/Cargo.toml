@@ -1,6 +1,6 @@
 [package]
 name = "stable-swap-anchor"
-version = "1.8.2"
+version = "1.8.3"
 description = "Anchor bindings for the StableSwap Rust client."
 license = "Apache-2.0"
 authors = ["michaelhly <michaelhly@gmail.com>"]
@@ -10,5 +10,5 @@ edition = "2021"
 keywords = ["solana", "saber", "anchor"]
 
 [dependencies]
-anchor-lang = ">=0.22.0"
+anchor-lang = "0.29.0"
 stable-swap-client = { path = "../stable-swap-client", version = "^1" }

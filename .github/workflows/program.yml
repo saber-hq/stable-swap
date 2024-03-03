@@ -8,8 +8,8 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
-  SOLANA_VERSION: "1.11.10"
-  RUST_TOOLCHAIN: "1.59.0"
+  SOLANA_VERSION: "1.17.10"
+  RUST_TOOLCHAIN: "1.68.0-dev"
 
 jobs:
   unit-tests:
@@ -68,7 +68,7 @@ jobs:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
         with:
-          node-version: "14"
+          node-version: "18"
 
       - name: Cache SDK dependencies
         uses: actions/cache@v3
@@ -117,7 +117,7 @@ jobs:
           key: ${{ runner.os }}-${{ env.SOLANA_VERSION }}
 
       - name: Build
-        run: nix shell .#ci --command anchor build --program-name stable_swap
+        run: nix shell .#ci --command anchor build --program-name stable_swap --arch sbf
       - name: Run e2e tests
         working-directory: stable-swap-program
         run: nix shell ../#ci --command ./do.sh e2e-test

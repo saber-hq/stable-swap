@@ -8,7 +8,7 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
-  RUST_TOOLCHAIN: "1.59.0"
+  RUST_TOOLCHAIN: "1.68.0-dev"
 
 jobs:
   release-crate:
@@ -45,7 +45,7 @@ jobs:
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
 
       - name: Build programs
-        run: nix shell .#ci --command anchor build --verifiable --program-name stable_swap
+        run: nix shell .#ci --command anchor build --verifiable --program-name stable_swap --arch sbf
       - name: Release
         uses: softprops/action-gh-release@v1
         with:

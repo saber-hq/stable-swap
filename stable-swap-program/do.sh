@@ -19,8 +19,8 @@ perform_action() {
     e2e-test)
         (
             rm -rf scripts/tmp
-            anchor build --program-name stable_swap
-            solana-test-validator --quiet --bpf-program SSwpkEEcbUqx4vtoEByFjSkhKdCT862DNVb52nZg1UZ ../target/deploy/stable_swap.so &
+            anchor build --program-name stable_swap --arch sbf
+            solana-test-validator --quiet --sbf-program SSwpkEEcbUqx4vtoEByFjSkhKdCT862DNVb52nZg1UZ ../target/deploy/stable_swap.so &
             yarn --cwd sdk install
             yarn --cwd sdk test-int ${@:2}
         )
@@ -30,7 +30,7 @@ perform_action() {
         exit
         ;;
     test)
-        cargo test-bpf --manifest-path program/Cargo.toml -- --test-threads 1 ${@:2}
+        cargo test-sbf --manifest-path program/Cargo.toml -- --test-threads 1 ${@:2}
         ;;
     esac
 }

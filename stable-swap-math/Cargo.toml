@@ -1,6 +1,6 @@
 [package]
 name = "stable-swap-math"
-version = "1.8.2"
+version = "1.8.3"
 description = "Calculations for the StableSwap invariant"
 license = "Apache-2.0"
 authors = ["michaelhly <michaelhly@gmail.com>"]
@@ -10,12 +10,12 @@ edition = "2021"
 keywords = ["solana", "saber", "math"]
 
 [dependencies]
-borsh = "0.9.2"
+borsh = "0.9.3"
 num-traits = "0.2"
 stable-swap-client = { path = "../stable-swap-client", version = "^1" }
 uint = { version = "0.9", default-features = false }
 
 [dev-dependencies]
 proptest = "1.0.0"
-rand = "0.8.4"
+rand = "0.8.5"
 stable-swap-sim = { path = "./sim", version = "^0.1" }
